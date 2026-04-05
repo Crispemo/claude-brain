@@ -2,9 +2,9 @@
 
 Al iniciar cada sesión, lee estos archivos para tener contexto completo:
 
-- `os/goals.md` — objetivos actuales de los proyectos
-- `os/weekly-agenda.md` — tareas y foco de la semana
-- `os/feedback-log.md` — qué ha funcionado, historial
+- `dashboard/os/goals.md` — objetivos actuales de los proyectos
+- `dashboard/os/weekly-agenda.md` — tareas y foco de la semana
+- `dashboard/os/feedback-log.md` — qué ha funcionado, historial
 
 ## Perfil del usuario
 - Cris, 26 años, enfermero reconvertido a tecnología (año 1 de transición)
