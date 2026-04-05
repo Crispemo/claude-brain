@@ -299,27 +299,119 @@ app.delete('/api/script/:id', (req, res) => {
   }
 });
 
-// POST /api/generate-script — genera guión con Claude API
+// GET /api/script-content/:folder — lee el guion.md real de un script de agencia
+app.get('/api/script-content/:folder', (req, res) => {
+  try {
+    const folder = req.params.folder.replace(/[^a-z0-9\-]/gi, ''); // sanitize
+    const guionPath = path.join(__dirname, '..', 'agencia', 'scripts', folder, 'guion.md');
+    if (!fs.existsSync(guionPath)) return res.status(404).json({ error: 'Guión no encontrado' });
+    const content = fs.readFileSync(guionPath, 'utf8');
+    res.json({ content });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PATCH /api/goal/:id — edita una meta existente
+app.patch('/api/goal/:id', (req, res) => {
+  try {
+    const { name, date, emoji } = req.body;
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const goal = (state.goals || []).find(g => String(g.id) === String(req.params.id));
+    if (!goal) return res.status(404).json({ error: 'Meta no encontrada' });
+    if (name) goal.name = name;
+    if (date) goal.date = date;
+    if (emoji) goal.emoji = emoji;
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, goal });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/generate-script — genera guión con Claude API usando contexto real del canal
 app.post('/api/generate-script', async (req, res) => {
   try {
-    const { title, project, type } = req.body;
+    const { title, project, type, folder } = req.body;
     if (!title) return res.status(400).json({ error: 'title requerido' });
 
-    const projectContext = project === 'simulia'
-      ? 'plataforma de preparación para oposiciones de enfermería (EIR). Audiencia: enfermeros y estudiantes de enfermería que quieren aprobar oposiciones.'
-      : 'canal de YouTube sobre IA aplicada a ecommerce. Audiencia: emprendedores con tiendas online que quieren usar IA para crecer.';
+    // Si tiene folder, leer el guión real como base
+    let existingGuion = '';
+    if (folder && project === 'agencia') {
+      const guionPath = path.join(__dirname, '..', 'agencia', 'scripts', folder, 'guion.md');
+      if (fs.existsSync(guionPath)) {
+        existingGuion = fs.readFileSync(guionPath, 'utf8');
+      }
+    }
 
-    const typeContext = type === 'short'
-      ? 'un SHORT de YouTube (máx 60 segundos, gancho primeros 3 segundos, sin intro larga)'
-      : 'un VÍDEO LARGO de YouTube (10-15 min, estructura clara con intro/desarrollo/cta)';
+    // Contexto rico del canal (extraído de 00-contexto.md y 04-banco-de-ideas.md)
+    const agenciaContext = `
+CANAL: @CristinaPerisAI — YouTube sobre IA aplicada a ecommerce en español
+OBJETIVO DEL CANAL: Captar clientes para agencia de automatización (no views virales)
+CLIENTE IDEAL (ICP): Dueño/a de tienda Shopify/WooCommerce, facturando algo, frustrado con procesos manuales
+NICHO: IA + n8n aplicado a ecommerce. Casos reales. Siempre el ángulo: "cómo esto mejora tu tienda"
+REGLA DE ORO DE TÍTULOS: incluir "Shopify" ó número ó problema exacto en palabras del dueño
+REFERENTE: Nacho Leo (YouTube). Diferenciarse siendo más específico en IA + ecom
+
+FORMATO QUE FUNCIONA EN TUS VÍDEOS:
+- Hook: primeros 30 segundos sin intro de canal, directo al problema
+- Estructura: problema reconocible → causa → solución con workflow/demo → CTA a WhatsApp
+- Los vídeos de WhatsApp + Shopify tienen más views → priorizar ese ángulo
+- CTA final: "sesión de revisión gratuita" → wa.me/34643135603
+
+HISTORIAL DE VÍDEOS QUE FUNCIONARON BIEN:
+- WhatsApp + Shopify automation (máximos views)
+- Dashboard Shopify con métricas automáticas
+- Fichas de producto con IA en 1 hora`;
+
+    const simuliaContext = `
+PLATAFORMA: Simulia (simulia.es) — preparación para oposiciones de enfermería EIR
+AUDIENCIA: Enfermeros y estudiantes que quieren aprobar oposiciones EIR/OPE
+OBJETIVO DE CONTENIDO: Captación orgánica para la plataforma
+CTA: Probar Simulia gratis en simulia.es`;
+
+    const projectContext = project === 'simulia' ? simuliaContext : agenciaContext;
+
+    let prompt;
+    if (existingGuion) {
+      prompt = `Tengo este guión base para un vídeo de YouTube:
+
+---
+${existingGuion.slice(0, 3000)}
+---
+
+CONTEXTO DEL CANAL:
+${projectContext}
+
+Mejora y expande este guión con:
+1. Hook de apertura MÁS impactante (primeros 30 segundos)
+2. Ejemplos más concretos y datos reales
+3. CTA más directo a conseguir clientes
+4. Frases exactas a decir en cámara para los puntos clave
+
+Formato de salida: guión listo para grabar, con indicaciones de escena, frases exactas y estructura clara. En español. Máximo 800 palabras.`;
+    } else {
+      const typeCtx = type === 'short'
+        ? 'SHORT de YouTube (máx 60 segundos, gancho primeros 3 segundos, NO intro de canal, directo al error/solución, texto en pantalla que refuerza)'
+        : 'VÍDEO LARGO de YouTube (10-15 min, hook urgente → problema → solución con demo → CTA WhatsApp)';
+      prompt = `Genera un guión detallado para ${typeCtx} sobre: "${title}"
+
+CONTEXTO DEL CANAL:
+${projectContext}
+
+El guión debe incluir:
+- Hook exacto (primeros 30 segundos, palabra por palabra)
+- Estructura del vídeo por bloques con duración estimada
+- Frases clave a decir en cámara
+- Elementos visuales necesarios (pantallas, gráficos)
+- CTA final exacto
+
+Directo, accionable, en español. Sin relleno. Máximo 800 palabras.`;
+    }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
-        messages: [{ role: 'user', content: `Genera un guión detallado para ${typeContext} sobre el tema: "${title}". El canal es de ${projectContext}. Formato: gancho (primeros segundos), desarrollo (puntos clave), CTA final. Directo, sin relleno, en español.` }]
+        max_tokens: 1200,
+        messages: [{ role: 'user', content: prompt }]
       })
     });
     if (!response.ok) return res.status(response.status).json({ error: 'Claude API error' });

@@ -882,6 +882,98 @@
       cursor: pointer; font-family: inherit;
     }
     .freq-btn.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+    /* ── SIDEBAR / CONTENT PANEL ── */
+    #sidebar-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 500; display: none; backdrop-filter: blur(2px);
+    }
+    #sidebar-overlay.open { display: block; }
+    #content-sidebar {
+      position: fixed; top: 0; right: -100%; width: min(480px, 100vw);
+      height: 100vh; background: var(--surface); z-index: 501;
+      transition: right 0.3s ease; display: flex; flex-direction: column;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.4);
+    }
+    #content-sidebar.open { right: 0; }
+    .sidebar-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sidebar-title { font-size: 15px; font-weight: 700; }
+    .sidebar-close {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 22px; cursor: pointer; padding: 0 4px; line-height: 1;
+    }
+    .sidebar-tabs {
+      display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sidebar-tab {
+      flex: 1; padding: 10px; text-align: center; font-size: 12px;
+      color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+      background: none; border-top: none; border-left: none; border-right: none;
+      font-family: inherit;
+    }
+    .sidebar-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .sidebar-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+    /* Sidebar pipeline (list view) */
+    .sb-pipeline-section { margin-bottom: 16px; }
+    .sb-section-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 8px;
+    }
+    .sb-script-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; background: var(--surface2); border-radius: 8px;
+      margin-bottom: 6px; cursor: pointer;
+    }
+    .sb-script-row:hover { border: 1px solid var(--blue); margin: -1px -1px 5px -1px; }
+    .sb-script-status-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .sb-script-info { flex: 1; min-width: 0; }
+    .sb-script-title { font-size: 13px; line-height: 1.3; }
+    .sb-script-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .sb-script-advance {
+      font-size: 10px; padding: 3px 8px; border-radius: 4px;
+      border: 1px solid var(--blue); color: var(--blue); background: none;
+      cursor: pointer; flex-shrink: 0; font-family: inherit;
+    }
+    .sb-script-read {
+      font-size: 10px; padding: 3px 8px; border-radius: 4px;
+      border: 1px solid var(--border); color: var(--text-muted); background: none;
+      cursor: pointer; flex-shrink: 0; font-family: inherit;
+    }
+    /* Script viewer panel */
+    #script-viewer {
+      position: fixed; inset: 0; background: var(--surface); z-index: 600;
+      display: none; flex-direction: column;
+    }
+    #script-viewer.open { display: flex; }
+    .sv-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sv-back { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 14px; font-family: inherit; }
+    .sv-title { font-size: 14px; font-weight: 600; flex: 1; }
+    .sv-body { flex: 1; overflow-y: auto; padding: 20px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+    /* Ideas tab */
+    .idea-card {
+      background: var(--surface2); border-radius: 8px; padding: 10px 12px;
+      margin-bottom: 8px; font-size: 13px; line-height: 1.4;
+    }
+    .idea-card-cat { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+    /* Status dot colors */
+    .dot-pendiente { background: var(--text-muted); }
+    .dot-grabado   { background: var(--yellow); }
+    .dot-editado   { background: var(--blue); }
+    .dot-publicado { background: var(--green); }
+    /* Sidebar trigger btn in header */
+    .sidebar-trigger {
+      padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text); font-size: 12px;
+      cursor: pointer; font-family: inherit;
+    }
   </style>
 </head>
 <body>
@@ -947,6 +1039,50 @@
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
       <button style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--purple);background:transparent;color:var(--purple);font-size:13px;cursor:pointer" onclick="generateScriptFromModal()">✨ Generar guión con IA</button>
       <div class="script-gen-output" id="script-gen-output"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- CONTENT SIDEBAR -->
+<div id="content-sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-title">📋 Contenido</span>
+    <button class="sidebar-close" onclick="closeSidebar()">×</button>
+  </div>
+  <div class="sidebar-tabs">
+    <button class="sidebar-tab active" onclick="switchSidebarTab('pipeline',this)">Pipeline</button>
+    <button class="sidebar-tab" onclick="switchSidebarTab('ideas',this)">Ideas</button>
+    <button class="sidebar-tab" onclick="switchSidebarTab('generar',this)">✨ Generar</button>
+  </div>
+  <div class="sidebar-body" id="sidebar-body">
+    <!-- rendered by JS -->
+  </div>
+</div>
+
+<!-- SCRIPT VIEWER (full-screen) -->
+<div id="script-viewer">
+  <div class="sv-header">
+    <button class="sv-back" onclick="closeScriptViewer()">← Volver</button>
+    <span class="sv-title" id="sv-title"></span>
+    <button style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--purple);color:var(--purple);background:none;cursor:pointer;font-family:inherit" onclick="generateFromViewer()">✨ Mejorar con IA</button>
+  </div>
+  <div class="sv-body" id="sv-body">Cargando guión...</div>
+</div>
+
+<!-- GOAL EDIT MODAL -->
+<div class="modal-backdrop hidden" id="goal-edit-modal" onclick="if(event.target===this)closeGoalEditModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <p class="modal-title">✏️ Editar meta</p>
+    <input type="hidden" id="goal-edit-id">
+    <input type="text" class="modal-textarea" id="goal-edit-name" placeholder="Nombre de la meta" style="resize:none;height:48px;padding:12px">
+    <input type="date" class="goal-modal-date" id="goal-edit-date">
+    <input type="text" class="modal-textarea" id="goal-edit-emoji" placeholder="Emoji (ej: 🏃)" style="resize:none;height:48px;padding:12px">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeGoalEditModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveGoalEdit()">Guardar</button>
     </div>
   </div>
 </div>
@@ -1374,7 +1510,8 @@ function renderPipeline() {
         <div>${escapeHtml(s.title)}</div>
         <div class="pc-actions">
           ${advanceBtn}
-          <button class="pc-btn gen" onclick="openScriptGen('${s.id}')">✨ Guión</button>
+          ${s.folder ? `<button class="pc-btn" style="border-color:var(--simulia);color:var(--simulia)" onclick="openScriptViewer('${s.id}','${s.folder}','${escapeHtml(s.title)}')">📄</button>` : ''}
+          <button class="pc-btn gen" onclick="openScriptGen('${s.id}')">✨</button>
           <button class="pc-btn del" onclick="deleteScript('${s.id}')">×</button>
         </div>
       </div>`;
@@ -1489,14 +1626,18 @@ async function generateScriptFromModal() {
   const type = document.getElementById('script-type-input').value;
   if (!title) { alert('Pon un título primero'); return; }
 
+  // Buscar si el script editado tiene folder
+  const editScript = _editingScriptId ? (STATE.scripts || []).find(s => s.id === _editingScriptId) : null;
+  const folder = editScript?.folder || null;
+
   const outEl = document.getElementById('script-gen-output');
   outEl.style.display = 'block';
-  outEl.textContent = '✨ Generando guión con IA...';
+  outEl.textContent = '✨ Generando guión con contexto real del canal...';
 
   try {
     const res = await fetch(`${SERVER}/api/generate-script`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, project, type })
+      body: JSON.stringify({ title, project, type, folder })
     });
     const data = await res.json();
     outEl.textContent = data.script || data.error || 'Sin respuesta';
@@ -1507,21 +1648,22 @@ async function generateScriptFromModal() {
 
 /* ── Goals / Metas ── */
 function renderGoals() {
-  const goals = STATE.goals || [];
   const today = new Date(); today.setHours(0,0,0,0);
+  // Ordenar por fecha más cercana primero
+  const goals = [...(STATE.goals || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const chips = goals.map(g => {
     const target = new Date(g.date); target.setHours(0,0,0,0);
     const days = Math.round((target - today) / 86400000);
     const cls = days <= 3 ? 'urgent' : days <= 14 ? 'soon' : 'ok';
     const label = days < 0 ? `hace ${Math.abs(days)}d` : days === 0 ? '¡HOY!' : `${days}d`;
-    return `<div class="goal-chip ${cls}">
+    return `<div class="goal-chip ${cls}" onclick="openGoalEditModal(${g.id})" style="cursor:pointer" title="Editar">
       <span>${escapeHtml(g.emoji || '🎯')}</span>
       <div>
         <div class="goal-days ${cls}">${label}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(g.name)}</div>
       </div>
-      <button class="goal-delete" onclick="deleteGoal(${g.id})" title="Eliminar">×</button>
+      <button class="goal-delete" onclick="event.stopPropagation();deleteGoal(${g.id})" title="Eliminar">×</button>
     </div>`;
   }).join('');
 
@@ -1584,7 +1726,10 @@ function renderHeader(globalProgress) {
   <div class="header-block">
     <div class="header-top">
       <span class="week-label">Semana ${wn}</span>
-      <span class="week-date">${dateStr}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="week-date">${dateStr}</span>
+        <button class="sidebar-trigger" onclick="openSidebar()">📋 Contenido</button>
+      </div>
     </div>
     <div class="week-focus">${weekFocus || '—'}</div>
     <div class="global-bar-label">
@@ -1984,6 +2129,227 @@ function getDailyQuote() {
   const diff = d - start;
   const dayOfYear = Math.floor(diff / 86400000);
   return QUOTES[dayOfYear % QUOTES.length];
+}
+
+/* ═══════════════════════════════════════════════
+   CONTENT SIDEBAR
+════════════════════════════════════════════════ */
+let _sidebarTab = 'pipeline';
+
+function openSidebar() {
+  document.getElementById('content-sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+  renderSidebarTab(_sidebarTab);
+}
+function closeSidebar() {
+  document.getElementById('content-sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+function switchSidebarTab(tab, btn) {
+  _sidebarTab = tab;
+  document.querySelectorAll('.sidebar-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSidebarTab(tab);
+}
+
+const PIPELINE_STATUS_ORDER = ['pendiente', 'grabado', 'editado', 'publicado'];
+
+function renderSidebarTab(tab) {
+  const body = document.getElementById('sidebar-body');
+  if (!body) return;
+  if (tab === 'pipeline') body.innerHTML = renderSidebarPipeline();
+  else if (tab === 'ideas') body.innerHTML = renderSidebarIdeas();
+  else if (tab === 'generar') body.innerHTML = renderSidebarGenerar();
+}
+
+function renderSidebarPipeline() {
+  const scripts = STATE.scripts || [];
+  const filterActive = document.querySelector('.pipeline-filter-btn.active')?.textContent?.toLowerCase();
+  const projectFilter = filterActive && filterActive !== 'todo' ? filterActive.replace(/[^a-z]/g,'') : null;
+
+  const sections = PIPELINE_STATUS_ORDER.map(stage => {
+    const stageScripts = scripts.filter(s => s.status === stage && (!projectFilter || s.project === projectFilter || s.project.startsWith(projectFilter)));
+    if (stageScripts.length === 0) return '';
+    const rows = stageScripts.map(s => {
+      const nextStage = PIPELINE_STAGES[PIPELINE_STAGES.indexOf(stage) + 1];
+      const advanceBtn = nextStage
+        ? `<button class="sb-script-advance" onclick="advanceScript('${s.id}','${nextStage}');renderSidebarTab('pipeline')">→ ${PIPELINE_LABELS[nextStage]}</button>`
+        : '';
+      const readBtn = s.folder
+        ? `<button class="sb-script-read" onclick="openScriptViewer('${s.id}','${s.folder}','${escapeHtml(s.title)}')">📄 Ver</button>`
+        : '';
+      return `<div class="sb-script-row">
+        <div class="sb-script-status-dot dot-${stage}"></div>
+        <div class="sb-script-info">
+          <div class="sb-script-title">${escapeHtml(s.title)}</div>
+          <div class="sb-script-meta">${s.project} · ${TYPE_ICONS[s.type]||''} ${s.type}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">${readBtn}${advanceBtn}</div>
+      </div>`;
+    }).join('');
+    return `<div class="sb-pipeline-section">
+      <div class="sb-section-label">${PIPELINE_LABELS[stage]} (${stageScripts.length})</div>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  const total = scripts.length;
+  const pub = scripts.filter(s => s.status === 'publicado').length;
+  return `<div style="margin-bottom:12px;font-size:12px;color:var(--text-muted)">${pub}/${total} publicados</div>
+    ${sections || '<div style="color:var(--text-muted);font-size:13px">No hay scripts</div>'}
+    <button style="width:100%;margin-top:12px;padding:10px;border-radius:8px;border:1px dashed var(--border);background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:inherit" onclick="openScriptModal()">+ Añadir script</button>`;
+}
+
+function renderSidebarIdeas() {
+  // Ideas de vídeo reales del banco de ideas (hardcoded desde el archivo real)
+  const ideas = [
+    { cat: '🔥 Tendencia', title: 'ChatGPT ya puede comprar en tu Shopify solo — esto es lo que debes preparar' },
+    { cat: '🔥 Tendencia', title: 'El comprador del futuro no es una persona: cómo adaptar tu Shopify a los agentes de IA' },
+    { cat: '⚙️ n8n + Shopify', title: '5 automatizaciones de n8n que toda tienda Shopify debería tener en 2026' },
+    { cat: '⚙️ n8n + Shopify', title: 'Automatiza los reportes semanales de tu Shopify con n8n y nunca más abras Excel' },
+    { cat: '📱 WhatsApp + Ecom', title: 'El bot de WhatsApp que cierra ventas mientras duermes (lo monté en Shopify en 1 tarde)' },
+    { cat: '📱 WhatsApp + Ecom', title: 'Sistema de post-venta automático por WhatsApp: reduce devoluciones un 30%' },
+    { cat: '💰 Conversión', title: 'El error de checkout en Shopify que le cuesta 300€/mes a tu tienda (y no lo ves)' },
+    { cat: '💰 Conversión', title: 'Estás pagando de más en Shopify: apps que no necesitas y cuestan 200€/mes' },
+    { cat: '🎯 Captación', title: 'Así audito una tienda Shopify en 30 minutos (y lo que encuentro siempre)' },
+    { cat: '🎯 Captación', title: '3 señales de que tu tienda Shopify necesita un sistema de automatización ya' },
+    { cat: '📱 Short', title: 'El error que tiene el 90% de los Shopify con el stock' },
+    { cat: '📱 Short', title: 'Si tu Shopify tarda más de 3 segundos en cargar, pierdes este % de ventas' },
+    { cat: '📱 Short', title: 'La razón por la que tus clientes no repiten compra en tu Shopify' },
+  ];
+  const cards = ideas.map(i =>
+    `<div class="idea-card">
+      <div class="idea-card-cat">${i.cat}</div>
+      <div>${escapeHtml(i.title)}</div>
+      <button style="margin-top:6px;font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;font-family:inherit"
+        onclick="addIdeaAsScript(${JSON.stringify(escapeHtml(i.title)).replace(/"/g,"'")})">+ Al pipeline</button>
+    </div>`
+  ).join('');
+  return `<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">Ideas reales del banco de contenido · <a href="#" style="color:var(--blue)" onclick="closeSidebar()">Ver banco completo</a></div>${cards}`;
+}
+
+function renderSidebarGenerar() {
+  return `<div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Genera un guión completo con contexto real del canal.</p>
+    <input type="text" id="sg-title" class="modal-textarea" placeholder="Título del vídeo" style="resize:none;height:48px;padding:12px;margin-bottom:10px">
+    <select class="modal-select" id="sg-project" style="margin-bottom:10px">
+      <option value="agencia">📹 Agencia (Shopify + IA)</option>
+      <option value="simulia">🏥 Simulia (EIR)</option>
+    </select>
+    <select class="modal-select" id="sg-type" style="margin-bottom:16px">
+      <option value="largo">🎥 Vídeo largo YT (10-15min)</option>
+      <option value="short">📱 Short (60s)</option>
+    </select>
+    <button style="width:100%;padding:12px;border-radius:8px;border:none;background:var(--purple);color:white;font-size:14px;cursor:pointer;font-family:inherit" onclick="generateFromSidebar()">✨ Generar guión con IA</button>
+    <div id="sg-output" style="margin-top:16px;font-size:13px;line-height:1.6;white-space:pre-wrap;display:none;background:var(--surface2);border-radius:8px;padding:12px;max-height:400px;overflow-y:auto"></div>
+  </div>`;
+}
+
+async function generateFromSidebar() {
+  const title = document.getElementById('sg-title')?.value?.trim();
+  const project = document.getElementById('sg-project')?.value;
+  const type = document.getElementById('sg-type')?.value;
+  const out = document.getElementById('sg-output');
+  if (!title || !out) return;
+  out.style.display = 'block';
+  out.textContent = '✨ Generando guión con contexto real del canal...';
+  try {
+    const res = await fetch(`${SERVER}/api/generate-script`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, project, type })
+    });
+    const data = await res.json();
+    out.textContent = data.script || data.error || 'Sin respuesta';
+  } catch (e) { out.textContent = 'Error al generar guión.'; }
+}
+
+async function addIdeaAsScript(title) {
+  try {
+    const res = await fetch(`${SERVER}/api/script`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'), project: 'agencia', type: 'largo' })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      STATE.scripts = STATE.scripts || [];
+      STATE.scripts.push(data.script);
+      renderSidebarTab('pipeline');
+      renderDashboard();
+    }
+  } catch(e) { console.error(e); }
+}
+
+/* Script viewer */
+let _viewerScriptId = null;
+
+async function openScriptViewer(scriptId, folder, title) {
+  _viewerScriptId = scriptId;
+  const viewer = document.getElementById('script-viewer');
+  const body = document.getElementById('sv-body');
+  const titleEl = document.getElementById('sv-title');
+  viewer.classList.add('open');
+  titleEl.textContent = title;
+  body.textContent = 'Cargando guión...';
+  try {
+    const res = await fetch(`${SERVER}/api/script-content/${folder}`);
+    const data = await res.json();
+    body.textContent = data.content || data.error || 'Sin contenido';
+  } catch (e) { body.textContent = 'Error cargando guión.'; }
+}
+
+function closeScriptViewer() {
+  document.getElementById('script-viewer').classList.remove('open');
+  _viewerScriptId = null;
+}
+
+async function generateFromViewer() {
+  const script = (STATE.scripts || []).find(s => s.id === _viewerScriptId);
+  if (!script) return;
+  const body = document.getElementById('sv-body');
+  body.textContent = '✨ Mejorando guión con IA y contexto real del canal...';
+  try {
+    const res = await fetch(`${SERVER}/api/generate-script`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: script.title, project: script.project, type: script.type, folder: script.folder })
+    });
+    const data = await res.json();
+    body.textContent = data.script || data.error || 'Sin respuesta';
+  } catch (e) { body.textContent = 'Error al generar.'; }
+}
+
+/* ── Goals editar ── */
+function openGoalEditModal(id) {
+  const goal = (STATE.goals || []).find(g => String(g.id) === String(id));
+  if (!goal) return;
+  document.getElementById('goal-edit-id').value = id;
+  document.getElementById('goal-edit-name').value = goal.name;
+  document.getElementById('goal-edit-date').value = goal.date;
+  document.getElementById('goal-edit-emoji').value = goal.emoji || '';
+  document.getElementById('goal-edit-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('goal-edit-name').focus(), 100);
+}
+function closeGoalEditModal() {
+  document.getElementById('goal-edit-modal').classList.add('hidden');
+}
+async function saveGoalEdit() {
+  const id = document.getElementById('goal-edit-id').value;
+  const name = document.getElementById('goal-edit-name').value.trim();
+  const date = document.getElementById('goal-edit-date').value;
+  const emoji = document.getElementById('goal-edit-emoji').value.trim() || '🎯';
+  if (!name || !date) return;
+  try {
+    const res = await fetch(`${SERVER}/api/goal/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, date, emoji })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const goal = (STATE.goals || []).find(g => String(g.id) === String(id));
+      if (goal) { goal.name = name; goal.date = date; goal.emoji = emoji; }
+      closeGoalEditModal();
+      renderDashboard();
+    }
+  } catch (e) { alert('Error editando meta'); }
 }
 
 /* ═══════════════════════════════════════════════

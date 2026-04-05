@@ -180,150 +180,19 @@
   },
   "ideas": [],
   "scripts": [
-    {
-      "id": "ag-l1",
-      "project": "agencia",
-      "type": "largo",
-      "title": "Bot WhatsApp Shopify — automatiza respuestas",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-l2",
-      "project": "agencia",
-      "type": "largo",
-      "title": "Crea una tienda online con IA en 1 hora",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-l3",
-      "project": "agencia",
-      "type": "largo",
-      "title": "ChatGPT para descripciones de producto que venden",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-l4",
-      "project": "agencia",
-      "type": "largo",
-      "title": "Automatiza tu email marketing con IA",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-l5",
-      "project": "agencia",
-      "type": "largo",
-      "title": "IA para gestionar anuncios de Meta Ads",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-l6",
-      "project": "agencia",
-      "type": "largo",
-      "title": "Crea carruseles virales con IA en 10 minutos",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-s1",
-      "project": "agencia",
-      "type": "short",
-      "title": "Short: Bot WhatsApp en 60 segundos",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-s2",
-      "project": "agencia",
-      "type": "short",
-      "title": "Short: Prompt para descripción de producto",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-s3",
-      "project": "agencia",
-      "type": "short",
-      "title": "Short: 3 herramientas IA para ecom",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-s4",
-      "project": "agencia",
-      "type": "short",
-      "title": "Short: Automatiza respuestas de clientes",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-s5",
-      "project": "agencia",
-      "type": "short",
-      "title": "Short: Email de bienvenida con IA",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "ag-s6",
-      "project": "agencia",
-      "type": "short",
-      "title": "Short: Meta Ads copy con IA",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "si-v1",
-      "project": "simulia",
-      "type": "simulia",
-      "title": "Oposiciones enfermería 2026 — temario EIR",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "si-v2",
-      "project": "simulia",
-      "type": "simulia",
-      "title": "Cómo aprobar la oposición de enfermería a la primera",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "si-v3",
-      "project": "simulia",
-      "type": "simulia",
-      "title": "Los 5 errores más comunes en las oposiciones",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    },
-    {
-      "id": "si-v4",
-      "project": "simulia",
-      "type": "simulia",
-      "title": "Plan de estudio semanal para oposiciones EIR",
-      "status": "pendiente",
-      "scheduledDate": null,
-      "notes": ""
-    }
+    { "id": "ag-01", "project": "agencia", "type": "largo", "folder": "01-chatgpt-compra-en-shopify", "title": "ChatGPT ya puede comprar en tu Shopify solo — lo que debes preparar ahora", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "ag-02", "project": "agencia", "type": "largo", "folder": "02-fichas-producto-ia-1-hora", "title": "Cómo uso IA para generar 100 fichas de producto en Shopify en 1 hora (workflow real)", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "ag-03", "project": "agencia", "type": "largo", "folder": "03-alertas-stock-whatsapp", "title": "n8n Envía Alertas de Stock Bajo a WhatsApp Automáticamente (Tutorial Paso a Paso)", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "ag-04", "project": "agencia", "type": "largo", "folder": "04-carritos-abandonados-vs-klaviyo", "title": "Cómo n8n recupera carritos abandonados mejor que Klaviyo (y gratis)", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "ag-05", "project": "agencia", "type": "largo", "folder": "05-dashboard-shopify-total", "title": "El Panel de Control Total de tu Shopify — todas las métricas en un dashboard automático", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "ag-06", "project": "agencia", "type": "largo", "folder": "06-agente-ia-soporte-24h", "title": "El Agente de IA con n8n que Responde a tus Clientes de Shopify 24/7", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "ag-07", "project": "agencia", "type": "largo", "folder": "07-sistema-postventa-whatsapp", "title": "Sistema de Post-Venta Automático por WhatsApp: Reduce Devoluciones un 30%", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "ag-08", "project": "agencia", "type": "largo", "folder": "08-80-porciento-pierden-clientes-whatsapp", "title": "Por qué el 80% de los Ecommerce Pierden Clientes en WhatsApp (y la Solución en 10 min)", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "ag-09", "project": "agencia", "type": "largo", "folder": "09-bot-whatsapp-soporte-shopify", "title": "Bot de WhatsApp para tu tienda Shopify con n8n (soporte automático 24/7)", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "si-v1", "project": "simulia", "type": "simulia", "folder": null, "title": "Oposiciones enfermería 2026 — temario EIR completo", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "si-v2", "project": "simulia", "type": "simulia", "folder": null, "title": "Cómo aprobar la oposición de enfermería a la primera", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "si-v3", "project": "simulia", "type": "simulia", "folder": null, "title": "Los 5 errores más comunes en las oposiciones EIR", "status": "pendiente", "scheduledDate": null, "notes": "" },
+    { "id": "si-v4", "project": "simulia", "type": "simulia", "folder": null, "title": "Plan de estudio semanal para oposiciones EIR", "status": "pendiente", "scheduledDate": null, "notes": "" }
   ],
   "lifeGoals": [
     {
@@ -397,7 +266,8 @@
   ],
   "habitLog": {
     "2026-04-05": [
-      "h-postura"
+      "h-postura",
+      "h-python"
     ]
   },
   "goals": [
