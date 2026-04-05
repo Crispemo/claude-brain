@@ -250,6 +250,86 @@ app.get('/api/instagram', async (req, res) => {
   }
 });
 
+// PATCH /api/script/:id — avanza el estado del script en el pipeline
+app.patch('/api/script/:id', (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    state.scripts = state.scripts || [];
+    const script = state.scripts.find(s => s.id === req.params.id);
+    if (!script) return res.status(404).json({ error: 'Script no encontrado' });
+    const PIPELINE = ['pendiente', 'grabado', 'editado', 'publicado'];
+    const { status, scheduledDate, notes, title } = req.body;
+    if (status && PIPELINE.includes(status)) script.status = status;
+    if (scheduledDate !== undefined) script.scheduledDate = scheduledDate;
+    if (notes !== undefined) script.notes = notes;
+    if (title !== undefined) script.title = title;
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, script });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/script — crea nuevo script
+app.post('/api/script', (req, res) => {
+  try {
+    const { project, type, title } = req.body;
+    if (!project || !title) return res.status(400).json({ error: 'project y title requeridos' });
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    state.scripts = state.scripts || [];
+    const id = `${project.slice(0,2)}-${Date.now()}`;
+    const script = { id, project, type: type || 'largo', title, status: 'pendiente', scheduledDate: null, notes: '' };
+    state.scripts.push(script);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, script });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/script/:id
+app.delete('/api/script/:id', (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    state.scripts = (state.scripts || []).filter(s => s.id !== req.params.id);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/generate-script — genera guión con Claude API
+app.post('/api/generate-script', async (req, res) => {
+  try {
+    const { title, project, type } = req.body;
+    if (!title) return res.status(400).json({ error: 'title requerido' });
+
+    const projectContext = project === 'simulia'
+      ? 'plataforma de preparación para oposiciones de enfermería (EIR). Audiencia: enfermeros y estudiantes de enfermería que quieren aprobar oposiciones.'
+      : 'canal de YouTube sobre IA aplicada a ecommerce. Audiencia: emprendedores con tiendas online que quieren usar IA para crecer.';
+
+    const typeContext = type === 'short'
+      ? 'un SHORT de YouTube (máx 60 segundos, gancho primeros 3 segundos, sin intro larga)'
+      : 'un VÍDEO LARGO de YouTube (10-15 min, estructura clara con intro/desarrollo/cta)';
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 800,
+        messages: [{ role: 'user', content: `Genera un guión detallado para ${typeContext} sobre el tema: "${title}". El canal es de ${projectContext}. Formato: gancho (primeros segundos), desarrollo (puntos clave), CTA final. Directo, sin relleno, en español.` }]
+      })
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'Claude API error' });
+    const data = await response.json();
+    res.json({ script: data.content?.[0]?.text || '' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /oauth/callback — captura el código de Google y lo intercambia por refresh_token
 app.get('/oauth/callback', async (req, res) => {
   const code = req.query.code;

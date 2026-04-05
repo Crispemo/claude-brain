@@ -750,6 +750,62 @@
     .goal-modal-date { width: 100%; background: var(--surface2); border: 1px solid var(--border);
       border-radius: 10px; color: var(--text); padding: 12px; font-size: 15px;
       font-family: inherit; outline: none; margin-bottom: 16px; min-height: 44px; }
+
+    /* ── CONTENT PIPELINE ── */
+    .pipeline-block { margin-bottom: var(--gap); }
+    .pipeline-filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+    .pipeline-filter-btn {
+      padding: 5px 12px; border-radius: 16px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text-muted); font-size: 12px; cursor: pointer;
+    }
+    .pipeline-filter-btn.active { background: var(--blue); border-color: var(--blue); color: white; }
+    .pipeline-stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    @media (max-width: 600px) { .pipeline-stages { grid-template-columns: 1fr 1fr; } }
+    .pipeline-col { background: var(--surface2); border-radius: 10px; padding: 10px; min-height: 60px; }
+    .pipeline-col-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between;
+    }
+    .pipeline-col-title.pendiente { color: var(--text-muted); }
+    .pipeline-col-title.grabado  { color: var(--yellow); }
+    .pipeline-col-title.editado  { color: var(--blue); }
+    .pipeline-col-title.publicado { color: var(--green); }
+    .pipeline-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;
+      font-size: 12px; line-height: 1.4; cursor: pointer; position: relative;
+    }
+    .pipeline-card:hover { border-color: var(--blue); }
+    .pipeline-card .pc-project {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .pipeline-card .pc-type {
+      font-size: 10px; color: var(--text-muted); margin-bottom: 3px;
+    }
+    .pipeline-card .pc-actions {
+      display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap;
+    }
+    .pc-btn {
+      font-size: 10px; padding: 2px 7px; border-radius: 4px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text-muted); cursor: pointer;
+    }
+    .pc-btn.advance { border-color: var(--blue); color: var(--blue); }
+    .pc-btn.gen { border-color: var(--purple); color: var(--purple); }
+    .pc-btn.del { border-color: var(--red); color: var(--red); }
+    .pipeline-add-btn {
+      width: 100%; padding: 8px; border-radius: 8px; border: 1px dashed var(--border);
+      background: transparent; color: var(--text-muted); font-size: 12px;
+      cursor: pointer; margin-top: 8px;
+    }
+    /* Script modal */
+    .script-modal-textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); padding: 12px; font-size: 14px;
+      font-family: inherit; outline: none; resize: vertical; min-height: 120px; margin-bottom: 12px; }
+    .script-gen-output { background: var(--surface2); border-radius: 8px; padding: 12px;
+      font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap;
+      margin-top: 12px; max-height: 300px; overflow-y: auto; display: none; }
   </style>
 </head>
 <body>
@@ -793,6 +849,32 @@
 <!-- ═══════════════════════════════════════════════
      IDEA MODAL
 ════════════════════════════════════════════════ -->
+<!-- SCRIPT MODAL -->
+<div class="modal-backdrop hidden" id="script-modal" onclick="if(event.target===this)closeScriptModal()">
+  <div class="modal-card" onclick="event.stopPropagation()" style="max-height:80vh;overflow-y:auto">
+    <p class="modal-title" id="script-modal-title">📝 Nuevo script</p>
+    <input type="text" class="modal-textarea" id="script-title-input" placeholder="Título del vídeo o script" style="resize:none;height:48px;padding:12px;margin-bottom:12px">
+    <select class="modal-select" id="script-project-input">
+      <option value="agencia">Agencia</option>
+      <option value="simulia">Simulia</option>
+    </select>
+    <select class="modal-select" id="script-type-input" style="margin-bottom:16px">
+      <option value="largo">🎥 Vídeo largo YT</option>
+      <option value="short">📱 Short</option>
+      <option value="simulia">🏥 Simulia</option>
+      <option value="carrusel">📸 Carrusel</option>
+    </select>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeScriptModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveScript()">Añadir</button>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+      <button style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--purple);background:transparent;color:var(--purple);font-size:13px;cursor:pointer" onclick="generateScriptFromModal()">✨ Generar guión con IA</button>
+      <div class="script-gen-output" id="script-gen-output"></div>
+    </div>
+  </div>
+</div>
+
 <!-- GOAL MODAL -->
 <div class="modal-backdrop hidden" id="goal-modal" onclick="if(event.target===this)closeGoalModal()">
   <div class="modal-card" onclick="event.stopPropagation()">
@@ -1063,6 +1145,7 @@ function renderDashboard() {
     ${renderGoals()}
     ${renderProjects(s, a, m)}
     ${renderTasks(s, a)}
+    ${renderPipeline()}
     ${renderMetrics()}
     ${renderChat()}
     ${renderMindset()}
@@ -1133,6 +1216,170 @@ async function loadLiveMetrics() {
   if (tsEl) {
     const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
     tsEl.textContent = `Métricas en vivo · ${time}`;
+  }
+}
+
+/* ── Content Pipeline ── */
+const PIPELINE_STAGES = ['pendiente', 'grabado', 'editado', 'publicado'];
+const PIPELINE_LABELS = { pendiente: 'Pendiente', grabado: 'Grabado', editado: 'Editado', publicado: 'Publicado' };
+const TYPE_ICONS = { largo: '🎥', short: '📱', simulia: '🏥', carrusel: '📸' };
+const PROJECT_COLORS = { agencia: 'var(--agencia)', simulia: 'var(--simulia)', mocca: 'var(--mocca)' };
+
+let pipelineFilter = 'todos';
+
+function renderPipeline() {
+  const scripts = STATE.scripts || [];
+  const filtered = pipelineFilter === 'todos' ? scripts : scripts.filter(s => s.project === pipelineFilter);
+
+  const counts = {};
+  PIPELINE_STAGES.forEach(st => { counts[st] = filtered.filter(s => s.status === st).length; });
+  const total = filtered.length;
+  const done = counts.publicado || 0;
+
+  const filterBtns = ['todos','agencia','simulia'].map(f =>
+    `<button class="pipeline-filter-btn ${pipelineFilter===f?'active':''}" onclick="setPipelineFilter('${f}')">${f==='todos'?`Todo (${total})`:f==='agencia'?`🎥 Agencia`:f==='simulia'?`🏥 Simulia`:f}</button>`
+  ).join('');
+
+  const cols = PIPELINE_STAGES.map(stage => {
+    const cards = filtered.filter(s => s.status === stage).map(s => {
+      const nextStage = PIPELINE_STAGES[PIPELINE_STAGES.indexOf(stage) + 1];
+      const advanceBtn = nextStage
+        ? `<button class="pc-btn advance" onclick="advanceScript('${s.id}','${nextStage}')">→ ${PIPELINE_LABELS[nextStage]}</button>`
+        : '';
+      return `<div class="pipeline-card" data-id="${s.id}">
+        <div class="pc-project" style="color:${PROJECT_COLORS[s.project]||'var(--text-muted)'}">${s.project}</div>
+        <div class="pc-type">${TYPE_ICONS[s.type]||'📄'} ${s.type}</div>
+        <div>${escapeHtml(s.title)}</div>
+        <div class="pc-actions">
+          ${advanceBtn}
+          <button class="pc-btn gen" onclick="openScriptGen('${s.id}')">✨ Guión</button>
+          <button class="pc-btn del" onclick="deleteScript('${s.id}')">×</button>
+        </div>
+      </div>`;
+    }).join('') || `<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:8px">—</div>`;
+
+    return `<div class="pipeline-col">
+      <div class="pipeline-col-title ${stage}">
+        <span>${PIPELINE_LABELS[stage]}</span>
+        <span>${counts[stage]}</span>
+      </div>
+      ${cards}
+    </div>`;
+  }).join('');
+
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+
+  return `<div class="pipeline-block card">
+    <div class="flex-between" style="margin-bottom:10px">
+      <div class="section-title" style="margin-bottom:0">📋 Pipeline de contenido</div>
+      <span style="font-size:12px;color:var(--text-muted)">${done}/${total} publicados (${pct}%)</span>
+    </div>
+    <div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:12px">
+      <div style="height:100%;width:${pct}%;background:var(--green);border-radius:2px;transition:width 0.4s"></div>
+    </div>
+    <div class="pipeline-filters">${filterBtns}
+      <button class="pipeline-add-btn" style="width:auto;padding:5px 12px;margin:0" onclick="openScriptModal()">+ Añadir</button>
+    </div>
+    <div class="pipeline-stages">${cols}</div>
+  </div>`;
+}
+
+function setPipelineFilter(f) {
+  pipelineFilter = f;
+  renderDashboard();
+}
+
+async function advanceScript(id, newStatus) {
+  try {
+    const res = await fetch(`${SERVER}/api/script/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const script = (STATE.scripts || []).find(s => s.id === id);
+      if (script) script.status = newStatus;
+      renderDashboard();
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function deleteScript(id) {
+  try {
+    await fetch(`${SERVER}/api/script/${id}`, { method: 'DELETE' });
+    STATE.scripts = (STATE.scripts || []).filter(s => s.id !== id);
+    renderDashboard();
+  } catch (e) { console.error(e); }
+}
+
+let _editingScriptId = null;
+
+function openScriptModal() {
+  _editingScriptId = null;
+  document.getElementById('script-modal-title').textContent = '📝 Nuevo script';
+  document.getElementById('script-title-input').value = '';
+  document.getElementById('script-gen-output').style.display = 'none';
+  document.getElementById('script-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('script-title-input').focus(), 100);
+}
+
+function openScriptGen(id) {
+  const script = (STATE.scripts || []).find(s => s.id === id);
+  if (!script) return;
+  _editingScriptId = id;
+  document.getElementById('script-modal-title').textContent = `✨ Generar guión`;
+  document.getElementById('script-title-input').value = script.title;
+  document.getElementById('script-project-input').value = script.project;
+  document.getElementById('script-type-input').value = script.type;
+  document.getElementById('script-gen-output').style.display = 'none';
+  document.getElementById('script-modal').classList.remove('hidden');
+  setTimeout(() => generateScriptFromModal(), 200);
+}
+
+function closeScriptModal() {
+  document.getElementById('script-modal').classList.add('hidden');
+  _editingScriptId = null;
+}
+
+async function saveScript() {
+  const title = document.getElementById('script-title-input').value.trim();
+  const project = document.getElementById('script-project-input').value;
+  const type = document.getElementById('script-type-input').value;
+  if (!title) return;
+  try {
+    const res = await fetch(`${SERVER}/api/script`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, project, type })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      STATE.scripts = STATE.scripts || [];
+      STATE.scripts.push(data.script);
+      closeScriptModal();
+      renderDashboard();
+    }
+  } catch (e) { alert('Error guardando script'); }
+}
+
+async function generateScriptFromModal() {
+  const title = document.getElementById('script-title-input').value.trim();
+  const project = document.getElementById('script-project-input').value;
+  const type = document.getElementById('script-type-input').value;
+  if (!title) { alert('Pon un título primero'); return; }
+
+  const outEl = document.getElementById('script-gen-output');
+  outEl.style.display = 'block';
+  outEl.textContent = '✨ Generando guión con IA...';
+
+  try {
+    const res = await fetch(`${SERVER}/api/generate-script`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, project, type })
+    });
+    const data = await res.json();
+    outEl.textContent = data.script || data.error || 'Sin respuesta';
+  } catch (e) {
+    outEl.textContent = '❌ Error generando guión. ¿Está el servidor corriendo?';
   }
 }
 
