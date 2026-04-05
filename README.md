@@ -34,10 +34,14 @@ Cada carpeta tiene:
 
 ---
 
-## Próximas acciones inmediatas
+## Estado actual (abril 2026)
 
-| Proyecto | Próximo paso |
-|---|---|
-| Simulia | Verificar `site:simulia.es` en Google + resolver problema de renderizado React |
-| Agencia | Recopilar métricas actuales de cada plataforma |
-| Mocca | Definir qué producto lanzar primero + hacer estudio de mercado con Claude |
+| Proyecto | Estado | KPI |
+|---|---|---|
+| Simulia | Activo — prioritario | 347€ MRR → objetivo 1.000€ |
+| Agencia | Activo | 0 clientes → objetivo 5/mes |
+| Mocca | Pausado | Retomar cuando Simulia > 800€ MRR |
+
+## Dashboard personal
+Panel de control en `dashboard/` — accesible desde iPhone vía Cloudflare Tunnel (`dash.simulia.es`).
+Incluye: métricas en tiempo real (Stripe, YouTube), tareas semanales, chat con Claude, habit tracker.

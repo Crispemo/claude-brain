@@ -22,9 +22,9 @@ Cada vídeo = una herramienta o sistema que el espectador puede implementar ese 
 - Casos reales con datos
 
 ## Objetivos
-- 5.000 suscriptores YouTube (actual: 3.241)
-- ER Instagram > 4%
-- 4 vídeos/mes mínimo
+- 5 clientes/mes (actual: 0, en validación)
+- YouTube: captación — no volumen de subs (actual: 17 subs)
+- 4 vídeos/mes mínimo en YouTube + shorts + carruseles IG
 
 ## Tono
 Directo, útil, sin relleno. Como un amigo que sabe mucho y te lo explica sin complicarlo.

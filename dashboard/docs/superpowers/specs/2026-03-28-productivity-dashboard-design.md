@@ -39,14 +39,15 @@ claude-brain/
 │   ├── .env                ← TODAS las API keys (en .gitignore)
 │   ├── package.json        ← dependencias: express, dotenv, node-fetch
 │   └── state.json          ← Estado proyectos + tareas
-├── os/
-│   ├── goals.md            ← OKRs medibles por proyecto (trimestral)
-│   ├── weekly-agenda.md    ← Tareas de la semana actual
-│   └── feedback-log.md     ← Qué funcionó, qué repetir, historial
 ├── simulia/                ← (ya existe)
 ├── agencia/                ← (ya existe)
 ├── mocca/                  ← (ya existe)
-└── CLAUDE.md               ← Auto-carga contexto al abrir sesión
+├── CLAUDE.md               ← Auto-carga contexto al abrir sesión
+└── dashboard/
+    └── os/
+        ├── goals.md            ← OKRs medibles por proyecto (trimestral)
+        ├── weekly-agenda.md    ← Tareas de la semana actual
+        └── feedback-log.md     ← Qué funcionó, qué repetir, historial
 ```
 
 ### state.json — estructura
@@ -69,12 +70,17 @@ claude-brain/
     },
     "agencia": {
       "status": "active",
-      "color": "green",
-      "objective": "5.000 suscriptores YouTube",
-      "current": "3.241 suscriptores",
-      "progress": 64,
+      "color": "agencia",
+      "objective": "5 clientes/mes",
+      "objectiveValue": 5,
+      "current": "0 clientes",
+      "currentValue": 0,
+      "unit": "clientes",
+      "progress": 0,
+      "velocityWeeks": null,
+      "velocityDate": null,
       "tasks": [
-        { "id": 1, "text": "Grabar guión #10 - Bot WhatsApp Shopify", "done": false, "priority": "high" }
+        { "id": "a1", "text": "Grabar vídeo largo YT", "done": false, "priority": "high" }
       ]
     },
     "mocca": {

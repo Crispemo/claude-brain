@@ -16,22 +16,24 @@
 
 ```
 claude-brain/
-├── CLAUDE.md                              MODIFY — añadir auto-carga de contexto OS
-├── os/
-│   ├── goals.md                           CREATE — OKRs Simulia + Agencia
-│   ├── weekly-agenda.md                   CREATE — tareas semana actual
-│   └── feedback-log.md                    CREATE — historial semanal
+├── CLAUDE.md                              ✅ actualizado con auto-carga de contexto OS
 ├── simulia/
-│   └── marketing-context.md               CREATE — contexto para skills
+│   └── marketing-context.md               ✅ creado
 ├── agencia/
-│   └── marketing-context.md               CREATE — contexto para skills
+│   └── marketing-context.md               ✅ creado
 └── dashboard/
-    ├── .env.example                        CREATE — template de keys
-    ├── .env                                CREATE (gitignored) — keys reales
-    ├── package.json                        CREATE
-    ├── server.js                           CREATE — Express proxy + state API
-    ├── state.json                          CREATE — estado proyectos + tareas
-    └── index.html                          CREATE — dashboard completo
+    ├── os/                                ✅ movido aquí (antes en raíz)
+    │   ├── goals.md                       ✅ OKRs Simulia + Agencia
+    │   ├── weekly-agenda.md               ✅ tareas semana actual
+    │   └── feedback-log.md                ✅ historial semanal
+    ├── .env.example                        ✅ creado
+    ├── .env                                ✅ creado (gitignored) — keys reales
+    ├── package.json                        ✅ creado
+    ├── server.js                           ✅ Express proxy + state API + habits + scripts + Claude
+    ├── state.json                          ✅ estado completo (proyectos, tareas, lifeGoals, habitLog, scripts, goals)
+    ├── favicon.png                         ✅ favicon para iPhone/web
+    ├── tunnel-setup.sh                     ✅ script túnel permanente dash.simulia.es
+    └── index.html                          ✅ dashboard completo con navegación por tabs
 ```
 
 ---
@@ -46,7 +48,7 @@ claude-brain/
 - Create: `os/feedback-log.md`
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1.1: Crear `os/goals.md`**
+- [x] **Step 1.1: Crear `os/goals.md`**
 
 ```markdown
 # Objetivos — Q2 2026
@@ -60,21 +62,21 @@ claude-brain/
   - Churn mensual: < 5%
 - **Palancas:** SEO orgánico, contenido oposiciones, optimización conversión
 
-## AGENCIA — Objetivo: 5.000 suscriptores YouTube
-- **Actual:** 3.241 subs (64%)
+## AGENCIA — Objetivo: 5 clientes/mes
+- **Actual:** 0 clientes (en validación)
 - **Fecha límite:** 30 junio 2026
 - **Métricas clave:**
-  - Views/semana: objetivo 15.000
-  - ER Instagram: objetivo > 4%
+  - Clientes captados/mes: objetivo 5
+  - YouTube subs: 17 (canal de captación, no de volumen)
   - Vídeos publicados/mes: objetivo 4
-- **Palancas:** consistencia publicación, thumbnails, SEO vídeo
+- **Palancas:** YouTube como demostración de competencia, ICP = dueños tiendas Shopify
 
 ## MOCCA — PAUSADO
 - Sin objetivos activos hasta tener presupuesto
 - Retomar cuando Simulia supere 800€ MRR
 ```
 
-- [ ] **Step 1.2: Crear `os/weekly-agenda.md`**
+- [x] **Step 1.2: Crear `os/weekly-agenda.md`**
 
 ```markdown
 # Agenda Semana 14 — 28 mar 2026
@@ -98,7 +100,7 @@ Captación orgánica Simulia + Guión #10 Agencia
 - Actualizar estado de proyectos en state.json
 ```
 
-- [ ] **Step 1.3: Crear `os/feedback-log.md`**
+- [x] **Step 1.3: Crear `os/feedback-log.md`**
 
 ```markdown
 # Feedback Log — Historial semanal
@@ -111,7 +113,7 @@ Captación orgánica Simulia + Guión #10 Agencia
 - **Métricas finales:** MRR: ___ | Subs YT: ___ | ER IG: ___
 ```
 
-- [ ] **Step 1.4: Modificar `CLAUDE.md`** — añadir bloque de auto-carga al inicio del archivo existente
+- [x] **Step 1.4: Modificar `CLAUDE.md`** — añadir bloque de auto-carga al inicio del archivo existente
 
 Si no existe `CLAUDE.md`, crearlo. Añadir o actualizar con:
 
@@ -120,9 +122,9 @@ Si no existe `CLAUDE.md`, crearlo. Añadir o actualizar con:
 
 Al iniciar cada sesión, lee estos archivos para tener contexto completo:
 
-- `os/goals.md` — objetivos actuales de los proyectos
-- `os/weekly-agenda.md` — tareas y foco de la semana
-- `os/feedback-log.md` — qué ha funcionado, historial
+- `dashboard/os/goals.md` — objetivos actuales de los proyectos
+- `dashboard/os/weekly-agenda.md` — tareas y foco de la semana
+- `dashboard/os/feedback-log.md` — qué ha funcionado, historial
 
 ## Perfil del usuario
 - Cris, 26 años, enfermero reconvertido a tecnología (año 1 de transición)
@@ -141,11 +143,11 @@ Al iniciar cada sesión, lee estos archivos para tener contexto completo:
 - Cuando el usuario mencione algo personal o un bloqueo, responde como guía, no solo como herramienta
 ```
 
-- [ ] **Step 1.5: Verificar**
+- [x] **Step 1.5: Verificar**
 
 Abre una sesión nueva de Claude Code en `claude-brain/`. Confirma que Claude tiene contexto de goals y agenda sin que el usuario lo tenga que pegar.
 
-- [ ] **Step 1.6: Commit**
+- [x] **Step 1.6: Commit**
 
 ```bash
 git add os/ CLAUDE.md
@@ -160,7 +162,7 @@ git commit -m "feat: add productivity OS — goals, weekly agenda, feedback log,
 - Create: `simulia/marketing-context.md`
 - Create: `agencia/marketing-context.md`
 
-- [ ] **Step 2.1: Crear `simulia/marketing-context.md`**
+- [x] **Step 2.1: Crear `simulia/marketing-context.md`**
 
 ```markdown
 # Marketing Context — Simulia
@@ -202,7 +204,7 @@ Tests tipo OPE reales, explicaciones detalladas, estadísticas de rendimiento pe
 - Sin ads activos de momento
 ```
 
-- [ ] **Step 2.2: Crear `agencia/marketing-context.md`**
+- [x] **Step 2.2: Crear `agencia/marketing-context.md`**
 
 ```markdown
 # Marketing Context — Agencia (Canal IA+Ecom)
@@ -229,15 +231,15 @@ Cada vídeo = una herramienta o sistema que el espectador puede implementar ese 
 - Casos reales con datos
 
 ## Objetivos
-- 5.000 suscriptores YouTube (actual: 3.241)
-- ER Instagram > 4%
+- 5 clientes/mes (actual: 0, en validación)
+- YouTube: captación de clientes, no volumen (actual: 17 subs)
 - 4 vídeos/mes mínimo
 
 ## Tono
 Directo, útil, sin relleno. Como un amigo que sabe mucho y te lo explica sin complicarlo.
 ```
 
-- [ ] **Step 2.3: Commit**
+- [x] **Step 2.3: Commit**
 
 ```bash
 git add simulia/marketing-context.md agencia/marketing-context.md
@@ -250,7 +252,7 @@ git commit -m "feat: add marketing-context files for skills auto-loading"
 
 > **Nota:** Los comandos `/plugin` dependen de tu versión de Claude Code y del marketplace configurado. Si no funcionan, el método alternativo es añadir las instrucciones de cada skill directamente en `CLAUDE.md` (ver Step 3.5).
 
-- [ ] **Step 3.1: Intentar añadir skills repo al marketplace**
+- [x] **Step 3.1: Intentar añadir skills repo al marketplace**
 
 En Claude Code (terminal integrado o chat):
 ```
@@ -259,7 +261,7 @@ En Claude Code (terminal integrado o chat):
 
 Si da error "command not found" o similar → saltar al Step 3.5 (método alternativo).
 
-- [ ] **Step 3.2: Instalar marketing skills pack** (si Step 3.1 funcionó)
+- [x] **Step 3.2: Instalar marketing skills pack** (si Step 3.1 funcionó)
 
 ```
 /plugin install marketing-skills
@@ -268,7 +270,7 @@ Si da error "command not found" o similar → saltar al Step 3.5 (método altern
 
 Skills que se activan: `ai-seo`, `seo-audit`, `content-strategy`, `content-production`, `social-media-manager`, `social-content`, `competitive-teardown`, `launch-strategy`, `email-sequence`, `paid-ads`, `chief-of-staff`, `founder-coach`, `cmo-advisor`.
 
-- [ ] **Step 3.5: Método alternativo — skills vía CLAUDE.md** (si /plugin no está disponible)
+- [x] **Step 3.5: Método alternativo — skills vía CLAUDE.md** (si /plugin no está disponible)
 
 Añadir al final de `CLAUDE.md`:
 
@@ -290,7 +292,7 @@ Cuando el usuario pida análisis de métricas SaaS → actúa como SaaS metrics 
 Cuando el usuario pida escribir contenido → actúa como content production specialist: brief, borrador, optimización SEO, adaptación por formato y plataforma.
 ```
 
-- [ ] **Step 3.6: Verificar que el contexto funciona**
+- [x] **Step 3.6: Verificar que el contexto funciona**
 
 En el chat de Claude Code escribe:
 ```
@@ -312,7 +314,7 @@ Esperado: Claude lee `os/goals.md` + `os/weekly-agenda.md` y da respuesta estruc
 - Create: `dashboard/.env`
 - Create: `dashboard/state.json`
 
-- [ ] **Step 4.1: Crear `dashboard/package.json`**
+- [x] **Step 4.1: Crear `dashboard/package.json`**
 
 ```json
 {
@@ -332,7 +334,7 @@ Esperado: Claude lee `os/goals.md` + `os/weekly-agenda.md` y da respuesta estruc
 }
 ```
 
-- [ ] **Step 4.2: Instalar dependencias**
+- [x] **Step 4.2: Instalar dependencias**
 
 ```bash
 cd dashboard && npm install
@@ -340,7 +342,7 @@ cd dashboard && npm install
 
 Esperado: `node_modules/` creado, sin errores.
 
-- [ ] **Step 4.3: Añadir `dashboard/` a `.gitignore`**
+- [x] **Step 4.3: Añadir `dashboard/` a `.gitignore`**
 
 Verificar que `claude-brain/.gitignore` incluya:
 ```
@@ -350,7 +352,7 @@ dashboard/.env
 
 Si no existe `.gitignore`, crearlo con esas líneas.
 
-- [ ] **Step 4.4: Crear `dashboard/.env.example`**
+- [x] **Step 4.4: Crear `dashboard/.env.example`**
 
 ```bash
 # YouTube Data API v3
@@ -376,13 +378,13 @@ ANTHROPIC_API_KEY=sk-ant-xxxx
 PORT=3001
 ```
 
-- [ ] **Step 4.5: Crear `dashboard/.env`** (copiar de .env.example, dejar keys vacías por ahora)
+- [x] **Step 4.5: Crear `dashboard/.env`** (copiar de .env.example, dejar keys vacías por ahora)
 
 ```bash
 cp dashboard/.env.example dashboard/.env
 ```
 
-- [ ] **Step 4.6: Crear `dashboard/state.json`** con tus datos reales actuales
+- [x] **Step 4.6: Crear `dashboard/state.json`** con tus datos reales actuales
 
 ```json
 {
@@ -409,19 +411,17 @@ cp dashboard/.env.example dashboard/.env
     },
     "agencia": {
       "status": "active",
-      "color": "green",
-      "objective": "5.000 subs YouTube",
-      "objectiveValue": 5000,
-      "current": "3.241 subs",
-      "currentValue": 3241,
-      "unit": "subs",
-      "progress": 64,
+      "color": "agencia",
+      "objective": "5 clientes/mes",
+      "objectiveValue": 5,
+      "current": "0 clientes",
+      "currentValue": 0,
+      "unit": "clientes",
+      "progress": 0,
       "velocityWeeks": null,
       "velocityDate": null,
       "tasks": [
-        { "id": "a1", "text": "Grabar guión #10 — Bot WhatsApp Shopify", "done": false, "priority": "high" },
-        { "id": "a2", "text": "Publicar carrusel Instagram", "done": false, "priority": "medium" },
-        { "id": "a3", "text": "Responder comentarios YouTube últimos 3 vídeos", "done": false, "priority": "low" }
+        { "id": "a1", "text": "Grabar vídeo largo YT #1", "done": false, "priority": "high" }
       ]
     },
     "mocca": {
@@ -449,7 +449,7 @@ cp dashboard/.env.example dashboard/.env
 }
 ```
 
-- [ ] **Step 4.7: Crear `dashboard/server.js`** — servidor base que sirve estáticos y gestiona state
+- [x] **Step 4.7: Crear `dashboard/server.js`** — servidor base que sirve estáticos y gestiona state
 
 ```javascript
 require('dotenv').config();
@@ -533,7 +533,7 @@ app.listen(PORT, () => {
 });
 ```
 
-- [ ] **Step 4.8: Verificar que el servidor arranca**
+- [x] **Step 4.8: Verificar que el servidor arranca**
 
 ```bash
 cd dashboard && npm start
@@ -546,7 +546,7 @@ Dashboard servidor corriendo en http://localhost:3001
 
 Abrir `http://localhost:3001/api/state` en el browser. Debe devolver el JSON de state.json.
 
-- [ ] **Step 4.9: Commit**
+- [x] **Step 4.9: Commit**
 
 ```bash
 git add dashboard/package.json dashboard/server.js dashboard/.env.example dashboard/state.json
@@ -560,7 +560,7 @@ git commit -m "feat: add dashboard server — Express proxy + state API"
 **Files:**
 - Create: `dashboard/index.html` (estructura inicial con CSS)
 
-- [ ] **Step 5.1: Crear `dashboard/index.html`** — esqueleto con CSS completo
+- [x] **Step 5.1: Crear `dashboard/index.html`** — esqueleto con CSS completo
 
 ```html
 <!DOCTYPE html>
@@ -695,17 +695,17 @@ git commit -m "feat: add dashboard server — Express proxy + state API"
 </html>
 ```
 
-- [ ] **Step 5.2: Verificar en browser**
+- [x] **Step 5.2: Verificar en browser**
 
 Con el servidor corriendo (`npm start` en `dashboard/`):
 Abrir `http://localhost:3001` → debe mostrar "Bloques en construcción..."
 
-- [ ] **Step 5.3: Verificar en iPhone** (misma WiFi)
+- [x] **Step 5.3: Verificar en iPhone** (misma WiFi)
 
 Ir a Ajustes > WiFi > ver IP del Mac (ej: 192.168.1.x).
 Abrir `http://192.168.1.x:3001` en Safari iPhone → debe cargar.
 
-- [ ] **Step 5.4: Commit**
+- [x] **Step 5.4: Commit**
 
 ```bash
 git add dashboard/index.html
@@ -716,7 +716,7 @@ git commit -m "feat: dashboard HTML skeleton with dark theme CSS"
 
 ### Task 6: Bloque 0 — Ritual de inicio de día
 
-- [ ] **Step 6.1: Añadir HTML del ritual** — reemplazar `renderApp()` en index.html
+- [x] **Step 6.1: Añadir HTML del ritual** — reemplazar `renderApp()` en index.html
 
 Añadir dentro de `<style>`:
 ```css
@@ -855,7 +855,7 @@ localStorage.setItem('dashboard_state', JSON.stringify(STATE));
 checkRitual(); // ← cambiar renderApp() por checkRitual()
 ```
 
-- [ ] **Step 6.2: Verificar el ritual**
+- [x] **Step 6.2: Verificar el ritual**
 
 1. Abrir `http://localhost:3001` → debe aparecer pantalla de ritual
 2. Verificar que el timer cuenta desde 2:00
@@ -865,7 +865,7 @@ checkRitual(); // ← cambiar renderApp() por checkRitual()
 6. Recargar página → no debe mostrar el ritual de nuevo (ya completado hoy)
 7. En `state.json` o localStorage verificar que `ritualLastDate` tiene la fecha de hoy
 
-- [ ] **Step 6.3: Commit**
+- [x] **Step 6.3: Commit**
 
 ```bash
 git add dashboard/index.html
@@ -876,7 +876,7 @@ git commit -m "feat: add morning ritual — breath timer + personalized visualiz
 
 ### Task 7: Bloques 1 y 2 — Cabecera + mapa de proyectos
 
-- [ ] **Step 7.1: Añadir CSS de cards y cabecera** dentro de `<style>`:
+- [x] **Step 7.1: Añadir CSS de cards y cabecera** dentro de `<style>`:
 
 ```css
 /* CARDS DE PROYECTOS */
@@ -912,7 +912,7 @@ git commit -m "feat: add morning ritual — breath timer + personalized visualiz
 }
 ```
 
-- [ ] **Step 7.2: Reemplazar `renderDashboard()`** con la versión que pinta bloques 1 y 2:
+- [x] **Step 7.2: Reemplazar `renderDashboard()`** con la versión que pinta bloques 1 y 2:
 
 ```javascript
 function renderDashboard() {
@@ -1004,12 +1004,12 @@ function getWeekNumber() {
 function capitalizeFirst(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 ```
 
-- [ ] **Step 7.3: Verificar**
+- [x] **Step 7.3: Verificar**
 
 Recargar dashboard (tras pasar el ritual o con `ritualLastDate` = hoy en state.json).
 Deben verse: cabecera con fecha + foco + progreso global, y 3 cards de proyectos.
 
-- [ ] **Step 7.4: Commit**
+- [x] **Step 7.4: Commit**
 
 ```bash
 git add dashboard/index.html
@@ -1020,7 +1020,7 @@ git commit -m "feat: add header block and project cards with progress + semaphor
 
 ### Task 8: Bloque 3 — Tareas de la semana
 
-- [ ] **Step 8.1: Añadir CSS de tareas** en `<style>`:
+- [x] **Step 8.1: Añadir CSS de tareas** en `<style>`:
 
 ```css
 .task-item {
@@ -1052,7 +1052,7 @@ git commit -m "feat: add header block and project cards with progress + semaphor
 }
 ```
 
-- [ ] **Step 8.2: Añadir `renderTasks()`** al script:
+- [x] **Step 8.2: Añadir `renderTasks()`** al script:
 
 ```javascript
 function renderTasks(s, a) {
@@ -1103,14 +1103,14 @@ function bindTaskEvents() {
 }
 ```
 
-- [ ] **Step 8.3: Verificar**
+- [x] **Step 8.3: Verificar**
 
 - Debe verse la lista de tareas con indicadores de prioridad y proyecto
 - Hacer clic en una tarea → se tacha + checkbox se pone verde
 - Recargar página → la tarea sigue tachada (localStorage persistió)
 - En `state.json` verificar que `done: true` se escribió
 
-- [ ] **Step 8.4: Commit**
+- [x] **Step 8.4: Commit**
 
 ```bash
 git add dashboard/index.html
@@ -1121,7 +1121,7 @@ git commit -m "feat: add weekly tasks block with checkbox persistence"
 
 ### Task 9: Bloque 4 — Métricas placeholder + Bloque 5b — Captura de ideas
 
-- [ ] **Step 9.1: Añadir CSS de métricas y floating button**:
+- [x] **Step 9.1: Añadir CSS de métricas y floating button**:
 
 ```css
 .metrics-grid {
@@ -1173,7 +1173,7 @@ git commit -m "feat: add weekly tasks block with checkbox persistence"
 }
 ```
 
-- [ ] **Step 9.2: Añadir `renderMetrics()`, `renderIdeaButton()` y funciones al script**:
+- [x] **Step 9.2: Añadir `renderMetrics()`, `renderIdeaButton()` y funciones al script**:
 
 ```javascript
 function renderMetrics() {
@@ -1261,7 +1261,7 @@ async function saveIdea() {
 }
 ```
 
-- [ ] **Step 9.3: Verificar**
+- [x] **Step 9.3: Verificar**
 
 - Bloque de métricas visible con "cargando..." (se conectará con APIs en Fase 4)
 - Botón 💡 visible en esquina inferior derecha
@@ -1269,7 +1269,7 @@ async function saveIdea() {
 - Escribir idea, seleccionar proyecto, guardar → confirmación visual ✓
 - Verificar en `state.json` que la idea se añadió en el array `ideas`
 
-- [ ] **Step 9.4: Commit**
+- [x] **Step 9.4: Commit**
 
 ```bash
 git add dashboard/index.html
@@ -1280,7 +1280,7 @@ git commit -m "feat: add metrics placeholder block + quick idea capture button"
 
 ### Task 10: Bloques 5 y 6 — Chat placeholder + Mentalidad
 
-- [ ] **Step 10.1: Añadir CSS de chat y mentalidad**:
+- [x] **Step 10.1: Añadir CSS de chat y mentalidad**:
 
 ```css
 .chat-messages {
@@ -1308,7 +1308,7 @@ git commit -m "feat: add metrics placeholder block + quick idea capture button"
 }
 ```
 
-- [ ] **Step 10.2: Añadir `renderChat()`, `renderMindset()` y funciones al script**:
+- [x] **Step 10.2: Añadir `renderChat()`, `renderMindset()` y funciones al script**:
 
 ```javascript
 const QUOTES = [
@@ -1409,7 +1409,7 @@ async function saveWeeklyWin(value) {
 }
 ```
 
-- [ ] **Step 10.3: Verificar**
+- [x] **Step 10.3: Verificar**
 
 - Chat muestra mensaje inicial con porcentajes reales
 - Escribir en chat → aparece burbuja + respuesta placeholder
@@ -1418,7 +1418,7 @@ async function saveWeeklyWin(value) {
 - Pulsar "Con energía" / "Dudando" / "Necesito empuje" → respuesta específica aparece
 - Campo "Logro de la semana" → escribir algo, hacer blur → se guarda en state.json
 
-- [ ] **Step 10.4: Commit**
+- [x] **Step 10.4: Commit**
 
 ```bash
 git add dashboard/index.html
@@ -1435,7 +1435,7 @@ git commit -m "feat: add chat UI, mindset block with quotes + state responses"
 - Modify: `dashboard/server.js` — añadir endpoint `/api/chat`
 - Modify: `dashboard/index.html` — conectar `sendChat()` al endpoint real
 
-- [ ] **Step 11.1: Añadir API key de Claude al `.env`**
+- [x] **Step 11.1: Añadir API key de Claude al `.env`**
 
 En `dashboard/.env`:
 ```
@@ -1444,7 +1444,7 @@ ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxx
 
 Obtener en: https://console.anthropic.com
 
-- [ ] **Step 11.2: Añadir endpoint `/api/chat` a `server.js`**
+- [x] **Step 11.2: Añadir endpoint `/api/chat` a `server.js`**
 
 Añadir antes de `app.listen(...)`:
 ```javascript
@@ -1485,7 +1485,7 @@ Responde en español, de forma directa y accionable. Sin relleno. Como un coach 
 });
 ```
 
-- [ ] **Step 11.3: Actualizar `sendChat()` en index.html** para llamar al servidor real
+- [x] **Step 11.3: Actualizar `sendChat()` en index.html** para llamar al servidor real
 
 Reemplazar el bloque `sendChat()`:
 ```javascript
@@ -1524,7 +1524,7 @@ async function sendChat() {
 }
 ```
 
-- [ ] **Step 11.4: Actualizar `getVisualizationText()` para usar Claude API**
+- [x] **Step 11.4: Actualizar `getVisualizationText()` para usar Claude API**
 
 Añadir función `generateVisualization()` en el bloque `<script>`:
 ```javascript
@@ -1558,13 +1558,13 @@ function showVisualization() {
 }
 ```
 
-- [ ] **Step 11.5: Verificar**
+- [x] **Step 11.5: Verificar**
 
 1. Reiniciar servidor: `npm start`
 2. Enviar mensaje en el chat → Claude debe responder con contexto real de los proyectos
 3. Hacer el ritual → la visualización debe ser generada por Claude (no el texto estático)
 
-- [ ] **Step 11.6: Commit**
+- [x] **Step 11.6: Commit**
 
 ```bash
 git add dashboard/server.js dashboard/index.html
@@ -1577,7 +1577,7 @@ git commit -m "feat: integrate Claude API for chat and morning visualization"
 
 ### Task 12: YouTube Data API
 
-- [ ] **Step 12.1: Obtener API key de YouTube**
+- [x] **Step 12.1: Obtener API key de YouTube**
 
 1. Ir a https://console.cloud.google.com
 2. Crear proyecto nuevo: "Dashboard Personal"
@@ -1585,7 +1585,7 @@ git commit -m "feat: integrate Claude API for chat and morning visualization"
 4. Crear credencial → API key
 5. Añadir al `.env`: `YOUTUBE_API_KEY=...` y `YOUTUBE_CHANNEL_ID=UCxxxxx` (ID de tu canal)
 
-- [ ] **Step 12.2: Añadir endpoint `/api/youtube` a `server.js`**
+- [x] **Step 12.2: Añadir endpoint `/api/youtube` a `server.js`**
 
 ```javascript
 app.get('/api/youtube', async (req, res) => {
@@ -1606,7 +1606,7 @@ app.get('/api/youtube', async (req, res) => {
 });
 ```
 
-- [ ] **Step 12.3: Conectar métricas YouTube en el dashboard**
+- [x] **Step 12.3: Conectar métricas YouTube en el dashboard**
 
 Añadir llamada en `renderDashboard()` después de pintar:
 ```javascript
@@ -1630,11 +1630,11 @@ async function loadLiveMetrics() {
 
 Llamar `loadLiveMetrics()` al final de `renderDashboard()`.
 
-- [ ] **Step 12.4: Verificar**
+- [x] **Step 12.4: Verificar**
 
 Recargar dashboard → bloque de métricas debe mostrar suscriptores reales de YouTube.
 
-- [ ] **Step 12.5: Commit**
+- [x] **Step 12.5: Commit**
 
 ```bash
 git add dashboard/server.js dashboard/index.html
@@ -1645,13 +1645,13 @@ git commit -m "feat: integrate YouTube Data API for live subscriber count"
 
 ### Task 13: Stripe API
 
-- [ ] **Step 13.1: Obtener Stripe API key**
+- [x] **Step 13.1: Obtener Stripe API key**
 
 1. Ir a https://dashboard.stripe.com/apikeys
 2. Copiar "Secret key" (modo live)
 3. Añadir al `.env`: `STRIPE_SECRET_KEY=sk_live_xxx`
 
-- [ ] **Step 13.2: Añadir endpoint `/api/stripe` a `server.js`**
+- [x] **Step 13.2: Añadir endpoint `/api/stripe` a `server.js`**
 
 ```javascript
 app.get('/api/stripe', async (req, res) => {
@@ -1687,7 +1687,7 @@ app.get('/api/stripe', async (req, res) => {
 });
 ```
 
-- [ ] **Step 13.3: Conectar métricas Stripe en `loadLiveMetrics()`**
+- [x] **Step 13.3: Conectar métricas Stripe en `loadLiveMetrics()`**
 
 Añadir dentro de `loadLiveMetrics()`:
 ```javascript
@@ -1709,11 +1709,11 @@ Añadir dentro de `loadLiveMetrics()`:
   }
 ```
 
-- [ ] **Step 13.4: Verificar**
+- [x] **Step 13.4: Verificar**
 
 MRR y usuarios activos de Stripe deben aparecer en tiempo real.
 
-- [ ] **Step 13.5: Commit**
+- [x] **Step 13.5: Commit**
 
 ```bash
 git add dashboard/server.js dashboard/index.html
@@ -1724,7 +1724,7 @@ git commit -m "feat: integrate Stripe API for live MRR and active users"
 
 ### Task 14: Instagram Meta Graph API
 
-- [ ] **Step 14.1: Configurar Meta Graph API**
+- [x] **Step 14.1: Configurar Meta Graph API**
 
 1. Ir a https://developers.facebook.com → crear app (tipo "Business")
 2. Añadir producto "Instagram Graph API"
@@ -1736,7 +1736,7 @@ git commit -m "feat: integrate Stripe API for live MRR and active users"
    INSTAGRAM_ACCOUNT_ID=17841xxxxxxx
    ```
 
-- [ ] **Step 14.2: Añadir endpoint `/api/instagram` a `server.js`**
+- [x] **Step 14.2: Añadir endpoint `/api/instagram` a `server.js`**
 
 ```javascript
 app.get('/api/instagram', async (req, res) => {
@@ -1792,7 +1792,7 @@ Añadir al `.env.example`:
 META_APP_TOKEN=
 ```
 
-- [ ] **Step 14.3: Conectar Instagram en `loadLiveMetrics()` + alerta de token**
+- [x] **Step 14.3: Conectar Instagram en `loadLiveMetrics()` + alerta de token**
 
 ```javascript
   // Instagram
@@ -1815,7 +1815,7 @@ META_APP_TOKEN=
   }
 ```
 
-- [ ] **Step 14.4: Commit final**
+- [x] **Step 14.4: Commit final**
 
 ```bash
 git add dashboard/server.js dashboard/index.html
@@ -1826,7 +1826,7 @@ git commit -m "feat: integrate Instagram Meta API with token expiry alert"
 
 ### Task 15: Acceso remoto (opcional)
 
-- [ ] **Step 15.1: Instalar Cloudflare Tunnel** (para acceder desde cualquier sitio, no solo WiFi de casa)
+- [x] **Step 15.1: Instalar Cloudflare Tunnel** (para acceder desde cualquier sitio, no solo WiFi de casa)
 
 ```bash
 # macOS
@@ -1836,11 +1836,11 @@ cloudflared tunnel --url http://localhost:3001
 
 Te dará una URL pública tipo `https://xxx.trycloudflare.com`. Ábrela desde el iPhone con datos móviles.
 
-- [ ] **Step 15.2: Añadir a pantalla de inicio iPhone**
+- [x] **Step 15.2: Añadir a pantalla de inicio iPhone**
 
 Safari → URL del dashboard → Compartir → "Añadir a pantalla de inicio" → nombre "Dashboard"
 
-- [ ] **Step 15.3: Commit final del proyecto**
+- [x] **Step 15.3: Commit final del proyecto**
 
 ```bash
 # Verificar que .env no está incluido antes de añadir
