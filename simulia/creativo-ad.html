@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulia Ad</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    background-color: #3f5056;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Headline */
+  .headline {
+    text-align: center;
+    color: white;
+    margin-bottom: 60px;
+    z-index: 2;
+    position: relative;
+  }
+
+  .headline .sub {
+    font-size: 44px;
+    font-weight: 400;
+    opacity: 0.85;
+    letter-spacing: -0.5px;
+  }
+
+  .headline .main {
+    font-size: 72px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+  }
+
+  /* Phone + badges zone */
+  .scene {
+    position: relative;
+    width: 900px;
+    height: 900px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Phone mockup */
+  .phone {
+    width: 340px;
+    height: 680px;
+    background: #1a1a1a;
+    border-radius: 52px;
+    border: 8px solid #555;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08);
+    z-index: 3;
+  }
+
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 30px;
+    background: #1a1a1a;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+
+  .phone img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top left;
+  }
+
+  /* Metric badges */
+  .badge {
+    position: absolute;
+    background: rgba(255,255,255,0.13);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 100px;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    white-space: nowrap;
+    z-index: 5;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  .badge .icon {
+    font-size: 18px;
+    opacity: 0.8;
+  }
+
+  .badge .label {
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    line-height: 1.1;
+  }
+
+  .badge .value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .badge .arrow {
+    font-size: 18px;
+  }
+
+  .arrow-up { color: #7cdba8; }
+  .arrow-down { color: #e07c7c; }
+
+  /* Badge positions */
+  .b1 { top: 80px; left: 20px; }
+  .b2 { top: 60px; right: 30px; }
+  .b3 { bottom: 200px; left: 10px; }
+  .b4 { bottom: 160px; right: 20px; }
+
+  /* Bottom section */
+  .bottom {
+    margin-top: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    z-index: 2;
+  }
+
+  /* Logo */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: white;
+  }
+
+  .logo-icon {
+    width: 56px;
+    height: 56px;
+    background: #7c9fa6;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+
+  .logo-name {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+
+  /* Trial badge */
+  .trial-badge {
+    background: rgba(124, 159, 166, 0.25);
+    border: 1.5px solid #7c9fa6;
+    border-radius: 100px;
+    padding: 14px 36px;
+    color: #9ecdd4;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* CTA */
+  .cta {
+    background: white;
+    border-radius: 20px;
+    padding: 28px 100px;
+    font-size: 36px;
+    font-weight: 700;
+    color: #3f5056;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .cta-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #7c9fa6, #3f5056);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  /* Subtle background gradient */
+  .bg-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(124,159,166,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<!-- Headline -->
+<div class="headline">
+  <div class="sub">Prepara tu EIR con</div>
+  <div class="main">inteligencia<br>y datos reales</div>
+</div>
+
+<!-- Scene: phone + badges -->
+<div class="scene">
+
+  <!-- Badge 1: Exámenes completados -->
+  <div class="badge b1">
+    <span class="icon">📝</span>
+    <div>
+      <div class="label">Exámenes<br>completados</div>
+      <div class="value">35 <span class="arrow arrow-up">↑</span></div>
+    </div>
+  </div>
+
+  <!-- Badge 2: Puntuación media -->
+  <div class="badge b2">
+    <span class="icon">⭐</span>
+    <div>
+      <div class="label">Puntuación<br>media</div>
+      <div class="value">3.28 <span class="arrow arrow-up">↑</span></div>
+    </div>
+  </div>
+
+  <!-- Phone -->
+  <div class="phone">
+    <img src="plataforma/Captura de pantalla 2026-03-27 a las 13.17.14.png" alt="Simulia Dashboard" />
+  </div>
+
+  <!-- Badge 3: Mejor puntuación -->
+  <div class="badge b3">
+    <span class="icon">🏆</span>
+    <div>
+      <div class="label">Mejor<br>puntuación</div>
+      <div class="value">64.00 <span class="arrow arrow-up">↑</span></div>
+    </div>
+  </div>
+
+  <!-- Badge 4: Contrarreloj -->
+  <div class="badge b4">
+    <span class="icon">⏱</span>
+    <div>
+      <div class="label">Tiempo<br>medio</div>
+      <div class="value">0h 2m <span class="arrow arrow-down">↓</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom -->
+<div class="bottom">
+  <div class="logo">
+    <div class="logo-icon">📚</div>
+    <div class="logo-name">SIMULIA</div>
+  </div>
+
+  <div class="trial-badge">7 DÍAS DE PRUEBA GRATIS</div>
+
+  <div class="cta">
+    <div class="cta-icon">→</div>
+    EMPEZAR GRATIS
+  </div>
+</div>
+
+</body>
+</html>

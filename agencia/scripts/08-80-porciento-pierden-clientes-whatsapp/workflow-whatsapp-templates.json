@@ -1,0 +1,194 @@
+{
+  "name": "Shopify — Auto-responder WhatsApp con Templates de Venta",
+  "nodes": [
+    {
+      "id": "webhook-wa",
+      "name": "Recibir mensaje WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-templates",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "extract-msg",
+      "name": "Extraer mensaje y número",
+      "type": "n8n-nodes-base.code",
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst from = body.From || '';\nconst mensaje = (body.Body || '').toLowerCase().trim();\nconst phone = from.replace('whatsapp:', '');\nreturn [{ json: { phone, mensaje, mensaje_original: body.Body || '' } }];"
+      }
+    },
+    {
+      "id": "classify-intent",
+      "name": "Clasificar intención del mensaje",
+      "type": "n8n-nodes-base.openAi",
+      "position": [680, 300],
+      "parameters": {
+        "operation": "message",
+        "modelId": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Clasifica el mensaje de un cliente de ecommerce en UNA de estas categorías:\n- CONSULTA_PRODUCTO: pregunta por un producto específico, precio, talla, color\n- STOCK: pregunta si hay disponibilidad o unidades\n- ENVIO: pregunta por plazos, costes o formas de envío\n- PROBLEMA_PEDIDO: tiene un problema, queja, devolución o incidencia\n- CIERRE: quiere comprar, pide link o dice que lo quiere\n- OTRO: cualquier otra cosa\n\nResponde SOLO con la categoría, sin explicación."
+            },
+            {
+              "role": "user",
+              "content": "={{$json.mensaje}}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "openai-creds", "name": "OpenAI" }
+      }
+    },
+    {
+      "id": "route-template",
+      "name": "Elegir template por intención",
+      "type": "n8n-nodes-base.switch",
+      "position": [900, 300],
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json.message.content.trim()}}",
+        "rules": {
+          "rules": [
+            { "value2": "CONSULTA_PRODUCTO", "output": 0 },
+            { "value2": "STOCK", "output": 1 },
+            { "value2": "ENVIO", "output": 2 },
+            { "value2": "PROBLEMA_PEDIDO", "output": 3 },
+            { "value2": "CIERRE", "output": 4 }
+          ]
+        },
+        "fallbackOutput": 5
+      }
+    },
+    {
+      "id": "template-consulta",
+      "name": "Template: Consulta producto",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 60],
+      "parameters": {
+        "jsCode": "return [{ json: { reply: '¡Hola! 👋 Cuéntame más sobre el producto que buscas — modelo, talla o color — y te doy toda la info: precio, disponibilidad y link directo para pedirlo en 2 minutos. 🛍️' } }];"
+      }
+    },
+    {
+      "id": "template-stock",
+      "name": "Template: Stock",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 160],
+      "parameters": {
+        "jsCode": "return [{ json: { reply: 'Sí, tenemos stock disponible ahora mismo. ¿Qué talla o variante necesitas? Te confirmo unidades y te mando el link directo para que lo tengas hoy. 📦' } }];"
+      }
+    },
+    {
+      "id": "template-envio",
+      "name": "Template: Envío",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 260],
+      "parameters": {
+        "jsCode": "return [{ json: { reply: 'Enviamos a toda España 🇪🇸 en 24-48h laborables. Envío gratis a partir de 50€. Si lo pides antes de las 14h, mañana lo tienes en casa. ¿Lo pedimos ahora?' } }];"
+      }
+    },
+    {
+      "id": "template-problema",
+      "name": "Template: Problema pedido",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 360],
+      "parameters": {
+        "jsCode": "return [{ json: { reply: 'Entiendo, lo miramos ahora mismo para solucionarlo cuanto antes. 🙏 ¿Me dices tu número de pedido o el email con el que compraste? Lo resuelvo hoy.' } }];"
+      }
+    },
+    {
+      "id": "template-cierre",
+      "name": "Template: Cierre de venta",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 460],
+      "parameters": {
+        "jsCode": "return [{ json: { reply: '¡Perfecto! 🎉 Aquí el link directo para pedirlo: [URL_TIENDA] — en 2 minutos está hecho y mañana lo tienes en casa. Si necesitas ayuda en el proceso, escríbeme. 🛒' } }];"
+      }
+    },
+    {
+      "id": "template-otro",
+      "name": "Template: Respuesta general",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 560],
+      "parameters": {
+        "jsCode": "return [{ json: { reply: '¡Hola! 👋 Gracias por escribirnos. ¿En qué te puedo ayudar? Puedo decirte si tenemos un producto en stock, precio, formas de envío o ayudarte con tu pedido. 😊' } }];"
+      }
+    },
+    {
+      "id": "send-reply",
+      "name": "Enviar respuesta por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1360, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$node['Extraer mensaje y número'].json.phone}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            { "name": "Body", "value": "={{$json.reply}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "http-200",
+      "name": "Respuesta HTTP 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1580, 300],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK"
+      }
+    }
+  ],
+  "connections": {
+    "Recibir mensaje WhatsApp": {
+      "main": [[{ "node": "Extraer mensaje y número", "type": "main", "index": 0 }]]
+    },
+    "Extraer mensaje y número": {
+      "main": [[{ "node": "Clasificar intención del mensaje", "type": "main", "index": 0 }]]
+    },
+    "Clasificar intención del mensaje": {
+      "main": [[{ "node": "Elegir template por intención", "type": "main", "index": 0 }]]
+    },
+    "Elegir template por intención": {
+      "main": [
+        [{ "node": "Template: Consulta producto", "type": "main", "index": 0 }],
+        [{ "node": "Template: Stock", "type": "main", "index": 0 }],
+        [{ "node": "Template: Envío", "type": "main", "index": 0 }],
+        [{ "node": "Template: Problema pedido", "type": "main", "index": 0 }],
+        [{ "node": "Template: Cierre de venta", "type": "main", "index": 0 }],
+        [{ "node": "Template: Respuesta general", "type": "main", "index": 0 }]
+      ]
+    },
+    "Template: Consulta producto": { "main": [[{ "node": "Enviar respuesta por WhatsApp", "type": "main", "index": 0 }]] },
+    "Template: Stock": { "main": [[{ "node": "Enviar respuesta por WhatsApp", "type": "main", "index": 0 }]] },
+    "Template: Envío": { "main": [[{ "node": "Enviar respuesta por WhatsApp", "type": "main", "index": 0 }]] },
+    "Template: Problema pedido": { "main": [[{ "node": "Enviar respuesta por WhatsApp", "type": "main", "index": 0 }]] },
+    "Template: Cierre de venta": { "main": [[{ "node": "Enviar respuesta por WhatsApp", "type": "main", "index": 0 }]] },
+    "Template: Respuesta general": { "main": [[{ "node": "Enviar respuesta por WhatsApp", "type": "main", "index": 0 }]] },
+    "Enviar respuesta por WhatsApp": {
+      "main": [[{ "node": "Respuesta HTTP 200", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": {
+    "description": "Auto-responder WhatsApp que usa IA para clasificar la intención del mensaje (consulta, stock, envío, problema, cierre) y responde con el template de venta adecuado. Basado en los 5 templates del vídeo. Sin inventario — funciona para cualquier tienda.",
+    "credentials_needed": [
+      "TWILIO_ACCOUNT_SID + TWILIO_WHATSAPP_NUMBER",
+      "OpenAI API key (para clasificación con gpt-4o-mini)",
+      "Personalizar URL_TIENDA en el template de cierre"
+    ]
+  }
+}

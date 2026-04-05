@@ -1,0 +1,97 @@
+{
+  "name": "Shopify — Auditoría Agentic Commerce (Preparación para agentes de IA)",
+  "nodes": [
+    {
+      "id": "trigger-schedule",
+      "name": "Ejecutar cada semana",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "weeks", "weeksInterval": 1 }]
+        }
+      }
+    },
+    {
+      "id": "get-products",
+      "name": "Obtener productos de Shopify",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/products.json?limit=250&fields=id,title,body_html,images,variants,tags,metafields",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "analyze-quality",
+      "name": "Analizar calidad para agentes IA",
+      "type": "n8n-nodes-base.code",
+      "position": [700, 300],
+      "parameters": {
+        "jsCode": "const products = $input.first().json.products || [];\n\nconst results = products.map(p => {\n  const title = p.title || '';\n  const desc = p.body_html ? p.body_html.replace(/<[^>]+>/g, '') : '';\n  const hasImages = p.images && p.images.length > 0;\n  const hasVariants = p.variants && p.variants.length > 0;\n  const hasPrice = p.variants && p.variants[0]?.price;\n  const hasTags = p.tags && p.tags.length > 0;\n\n  const issues = [];\n  if (title.length < 20) issues.push('Título demasiado corto (<20 chars)');\n  if (title.length > 70) issues.push('Título demasiado largo para IA (>70 chars)');\n  if (desc.length < 100) issues.push('Descripción pobre (<100 chars)');\n  if (!hasImages) issues.push('Sin imágenes');\n  if (!hasTags) issues.push('Sin tags — los agentes no pueden categorizar');\n  if (!hasPrice) issues.push('Sin precio visible');\n\n  const score = Math.max(0, 100 - (issues.length * 20));\n\n  return {\n    id: p.id,\n    title,\n    score,\n    issues,\n    ready_for_agents: issues.length === 0\n  };\n});\n\nconst notReady = results.filter(p => !p.ready_for_agents);\nconst avgScore = results.reduce((a, b) => a + b.score, 0) / results.length;\n\nreturn [{\n  json: {\n    total: results.length,\n    ready: results.filter(p => p.ready_for_agents).length,\n    not_ready: notReady.length,\n    avg_score: Math.round(avgScore),\n    top_issues: notReady.slice(0, 10).map(p => `• ${p.title}: ${p.issues.join(', ')}`).join('\\n'),\n    all_results: results\n  }\n}];"
+      }
+    },
+    {
+      "id": "build-report",
+      "name": "Generar informe WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "position": [920, 300],
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst emoji = data.avg_score >= 80 ? '🟢' : data.avg_score >= 50 ? '🟡' : '🔴';\n\nconst msg = `${emoji} *AUDITORÍA AGENTIC COMMERCE*\\n` +\n  `Fecha: ${new Date().toLocaleDateString('es-ES')}\\n\\n` +\n  `📦 Productos analizados: ${data.total}\\n` +\n  `✅ Listos para agentes IA: ${data.ready}\\n` +\n  `⚠️ Necesitan mejora: ${data.not_ready}\\n` +\n  `📊 Puntuación media: ${data.avg_score}/100\\n\\n` +\n  `*TOP 10 PRODUCTOS A MEJORAR:*\\n${data.top_issues}\\n\\n` +\n  `👉 Mejora estos primero para aparecer en búsquedas de ChatGPT.`;\n\nreturn [{ json: { message: msg } }];"
+      }
+    },
+    {
+      "id": "send-whatsapp",
+      "name": "Enviar informe por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1140, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$env.OWNER_PHONE}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            { "name": "Body", "value": "={{$json.message}}" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar cada semana": {
+      "main": [[{ "node": "Obtener productos de Shopify", "type": "main", "index": 0 }]]
+    },
+    "Obtener productos de Shopify": {
+      "main": [[{ "node": "Analizar calidad para agentes IA", "type": "main", "index": 0 }]]
+    },
+    "Analizar calidad para agentes IA": {
+      "main": [[{ "node": "Generar informe WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Generar informe WhatsApp": {
+      "main": [[{ "node": "Enviar informe por WhatsApp", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": {
+    "description": "Auditoría semanal automática: analiza todos los productos de Shopify y puntúa su preparación para agentes de IA como ChatGPT (Agentic Commerce). Envía informe por WhatsApp con los productos que necesitan mejora.",
+    "credentials_needed": [
+      "SHOPIFY_STORE — nombre de tu tienda (sin .myshopify.com)",
+      "SHOPIFY_ACCESS_TOKEN — token de app privada de Shopify",
+      "TWILIO_ACCOUNT_SID + TWILIO_WHATSAPP_NUMBER",
+      "OWNER_PHONE — tu número para recibir el informe"
+    ]
+  }
+}

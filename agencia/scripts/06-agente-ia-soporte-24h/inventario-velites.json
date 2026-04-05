@@ -1,0 +1,133 @@
+{
+  "tienda": "Velites Sport",
+  "descripcion": "Tienda online de equipamiento CrossFit y entrenamiento funcional",
+  "url": "velitessport.com",
+  "politicas": {
+    "envio": {
+      "standard": "24-48h laborables en España peninsular",
+      "express": "24h laborables (pedido antes de las 14:00)",
+      "baleares_canarias": "3-5 días laborables",
+      "internacional": "5-10 días laborables",
+      "gratis_desde": "50€"
+    },
+    "devoluciones": {
+      "plazo": "30 días desde la recepción",
+      "condicion": "Producto sin usar, con etiquetas originales",
+      "proceso": "Contactar por email a returns@velitessport.com con número de pedido",
+      "coste": "Gastos de devolución a cargo del cliente salvo defecto de fábrica"
+    },
+    "tallas": {
+      "guia": "Disponible en cada página de producto",
+      "recomendacion": "Si dudas entre dos tallas, elige la mayor para ropa de entrenamiento"
+    }
+  },
+  "categorias": [
+    {
+      "nombre": "Zapatillas CrossFit",
+      "productos": [
+        {
+          "id": "zap-001",
+          "nombre": "Velites Fire 2.0 — Zapatillas CrossFit",
+          "precio": 129.95,
+          "tallas": ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
+          "colores": ["Negro/Rojo", "Blanco/Azul", "Gris/Naranja"],
+          "stock": { "36": 3, "37": 5, "38": 8, "39": 12, "40": 15, "41": 10, "42": 7, "43": 4, "44": 2, "45": 1 },
+          "descripcion": "Zapatilla versátil para CrossFit, levantamiento olímpico y HIIT. Suela plana estable, material transpirable.",
+          "url": "velitessport.com/zapatillas/fire-2"
+        },
+        {
+          "id": "zap-002",
+          "nombre": "Velites Earth 2.0 — Zapatillas Levantamiento",
+          "precio": 149.95,
+          "tallas": ["37", "38", "39", "40", "41", "42", "43", "44"],
+          "colores": ["Negro", "Blanco"],
+          "stock": { "37": 4, "38": 6, "39": 9, "40": 11, "41": 8, "42": 5, "43": 3, "44": 2 },
+          "descripcion": "Zapatilla especializada para levantamiento olímpico. Tacón elevado 0.8cm, suela rígida.",
+          "url": "velitessport.com/zapatillas/earth-2"
+        }
+      ]
+    },
+    {
+      "nombre": "Ropa de Entrenamiento",
+      "productos": [
+        {
+          "id": "ropa-001",
+          "nombre": "Camiseta Velites Performance",
+          "precio": 34.95,
+          "tallas": ["XS", "S", "M", "L", "XL", "XXL"],
+          "colores": ["Negro", "Blanco", "Gris", "Azul Marino"],
+          "stock": { "XS": 20, "S": 35, "M": 40, "L": 38, "XL": 25, "XXL": 12 },
+          "descripcion": "Camiseta técnica para entrenamiento de alta intensidad. Material dry-fit antibacteriano.",
+          "url": "velitessport.com/ropa/camiseta-performance"
+        },
+        {
+          "id": "ropa-002",
+          "nombre": "Shorts Velites Training",
+          "precio": 44.95,
+          "tallas": ["XS", "S", "M", "L", "XL"],
+          "colores": ["Negro", "Gris Oscuro"],
+          "stock": { "XS": 10, "S": 18, "M": 22, "L": 20, "XL": 8 },
+          "descripcion": "Shorts de entrenamiento con bolsillo trasero y cintura elástica ajustable.",
+          "url": "velitessport.com/ropa/shorts-training"
+        }
+      ]
+    },
+    {
+      "nombre": "Accesorios y Equipamiento",
+      "productos": [
+        {
+          "id": "acc-001",
+          "nombre": "Cinturón Levantamiento Velites",
+          "precio": 59.95,
+          "tallas": ["S (65-75cm)", "M (75-90cm)", "L (90-105cm)", "XL (105-120cm)"],
+          "colores": ["Negro"],
+          "stock": { "S": 8, "M": 15, "L": 12, "XL": 5 },
+          "descripcion": "Cinturón de levantamiento 10cm de ancho, cuero genuino, hebilla de palanca.",
+          "url": "velitessport.com/accesorios/cinturon-levantamiento"
+        },
+        {
+          "id": "acc-002",
+          "nombre": "Grip Protector de Manos",
+          "precio": 24.95,
+          "tallas": ["S", "M", "L"],
+          "colores": ["Negro"],
+          "stock": { "S": 30, "M": 45, "L": 25 },
+          "descripcion": "Protector de manos para barras, argollas y cuerda. Cuero natural.",
+          "url": "velitessport.com/accesorios/grip"
+        },
+        {
+          "id": "acc-003",
+          "nombre": "Cuerda de Saltar Speed Rope",
+          "precio": 29.95,
+          "tallas": ["Única (ajustable 2.5-3m)"],
+          "colores": ["Negro/Rojo", "Negro/Azul"],
+          "stock": { "Negro/Rojo": 40, "Negro/Azul": 35 },
+          "descripcion": "Cuerda de velocidad con rodamiento de bolas. Cable de acero revestido.",
+          "url": "velitessport.com/accesorios/speed-rope"
+        }
+      ]
+    }
+  ],
+  "preguntas_frecuentes": [
+    {
+      "pregunta": "¿Cuánto tarda el envío?",
+      "respuesta": "En España peninsular entre 24-48h laborables. Baleares y Canarias 3-5 días. Internacional 5-10 días. Los pedidos antes de las 14:00 salen el mismo día."
+    },
+    {
+      "pregunta": "¿Puedo devolver el producto?",
+      "respuesta": "Tienes 30 días desde la recepción. El producto debe estar sin usar y con las etiquetas originales. Escríbenos a returns@velitessport.com con tu número de pedido."
+    },
+    {
+      "pregunta": "¿Qué talla elijo?",
+      "respuesta": "Tenemos guía de tallas en cada página de producto. Si dudas entre dos tallas, elige la mayor para ropa de entrenamiento. Para zapatillas, si eres entre tallas, sube medio número."
+    },
+    {
+      "pregunta": "¿El envío es gratis?",
+      "respuesta": "Sí, a partir de 50€. Por debajo, el envío cuesta 4.95€ en España peninsular."
+    },
+    {
+      "pregunta": "¿Hacéis descuentos?",
+      "respuesta": "Suscribiéndote a nuestra newsletter recibes un 10% de bienvenida. También hacemos ofertas en Black Friday y temporadas de vuelta al gym."
+    }
+  ]
+}

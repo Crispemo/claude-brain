@@ -1,0 +1,196 @@
+{
+  "name": "Shopify — Bot WhatsApp 24/7 con Stock en Tiempo Real (Twilio + IA)",
+  "nodes": [
+    {
+      "id": "webhook-twilio",
+      "name": "Webhook Twilio WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bot-whatsapp-shopify",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "extract-data",
+      "name": "Extraer mensaje y teléfono",
+      "type": "n8n-nodes-base.code",
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst from = body.From || '';\nconst mensaje = body.Body || '';\nconst phone = from.replace('whatsapp:', '');\nreturn [{ json: { phone, mensaje, timestamp: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "get-shopify-products",
+      "name": "Consultar stock real de Shopify",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 180],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/products.json?limit=100&fields=id,title,body_html,variants,images,tags",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-shopify-policies",
+      "name": "Obtener políticas de la tienda",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 420],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/shop.json?fields=name,email,phone,domain,shipping_policy,refund_policy",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "build-context",
+      "name": "Construir contexto de la tienda",
+      "type": "n8n-nodes-base.code",
+      "position": [920, 300],
+      "parameters": {
+        "jsCode": "const products = $node['Consultar stock real de Shopify'].json.products || [];\nconst shop = $node['Obtener políticas de la tienda'].json.shop || {};\n\nconst productList = products.map(p => {\n  const variants = p.variants || [];\n  const variantInfo = variants.map(v => {\n    const available = v.inventory_quantity > 0 ? `✅ ${v.inventory_quantity} uds` : '❌ Agotado';\n    const varName = [v.option1, v.option2, v.option3].filter(Boolean).join(' / ');\n    return `    - ${varName || 'Único'}: ${v.price}€ | ${available}`;\n  }).join('\\n');\n  \n  const desc = (p.body_html || '').replace(/<[^>]+>/g, '').substring(0, 200);\n  return `PRODUCTO: ${p.title}\\n${variantInfo}\\n  Descripción: ${desc}`;\n}).join('\\n\\n');\n\nconst context = `TIENDA: ${shop.name || ''}\\nDOMINIO: https://${shop.domain || ''}\\n\\nPOLÍTICA ENVÍOS: Envío gratis desde 50€. Entrega en 24-48h laborables en España peninsular.\\nPOLÍTICA DEVOLUCIONES: 30 días desde la recepción. Producto en estado original.\\n\\nCATÁLOGO ACTUALIZADO:\\n${productList}`;\n\nreturn [{ json: { context } }];"
+      }
+    },
+    {
+      "id": "ai-agent",
+      "name": "Agente IA — Responder consulta",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [1140, 300],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node['Extraer mensaje y teléfono'].json.mensaje}}",
+        "options": {
+          "systemMessage": "=Eres el asistente de ventas de la tienda online. Respondes consultas de clientes por WhatsApp.\n\nREGLAS ESTRICTAS:\n- Máximo 4 líneas por respuesta. Nunca más.\n- Tono cercano y directo, como un vendedor que conoce bien la tienda\n- Si el cliente quiere comprar o pide info de producto, incluye SIEMPRE el precio real del catálogo\n- Si el cliente quiere saber si hay stock, díselo directamente con los datos del catálogo\n- Si el cliente quiere el link para comprar: responde con el dominio de la tienda + /products/[handle]\n- Si no tienes la información exacta en el catálogo, di: 'Voy a consultarlo ahora mismo'\n- NUNCA inventes datos. Solo usa lo que está en el catálogo.\n- Si el cliente tiene problema con un pedido: pide el número de pedido y muestra empatía\n\nCATÁLOGO Y POLÍTICAS DE LA TIENDA:\n{{$node['Construir contexto de la tienda'].json.context}}"
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "openai-creds", "name": "OpenAI" }
+      }
+    },
+    {
+      "id": "check-escalate",
+      "name": "¿Necesita intervención humana?",
+      "type": "n8n-nodes-base.if",
+      "position": [1360, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.output}}",
+              "operation": "contains",
+              "value2": "consultarlo"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "send-to-client",
+      "name": "Responder al cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1580, 180],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$node['Extraer mensaje y teléfono'].json.phone}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            { "name": "Body", "value": "={{$json.output}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "alert-owner",
+      "name": "Alerta al dueño (escalado)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1580, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$env.OWNER_PHONE}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            { "name": "Body", "value": "=⚠️ *ESCALADO — responde tú*\\n\\n👤 Cliente: {{$node['Extraer mensaje y teléfono'].json.phone}}\\n💬 Mensaje: {{$node['Extraer mensaje y teléfono'].json.mensaje}}\\n\\nEl bot no tenía la info. Responde directamente a este número." }
+          ]
+        }
+      }
+    },
+    {
+      "id": "webhook-ok",
+      "name": "HTTP 200 Twilio",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1800, 300],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Twilio WhatsApp": {
+      "main": [[{ "node": "Extraer mensaje y teléfono", "type": "main", "index": 0 }]]
+    },
+    "Extraer mensaje y teléfono": {
+      "main": [[
+        { "node": "Consultar stock real de Shopify", "type": "main", "index": 0 },
+        { "node": "Obtener políticas de la tienda", "type": "main", "index": 0 }
+      ]]
+    },
+    "Consultar stock real de Shopify": {
+      "main": [[{ "node": "Construir contexto de la tienda", "type": "main", "index": 0 }]]
+    },
+    "Obtener políticas de la tienda": {
+      "main": [[{ "node": "Construir contexto de la tienda", "type": "main", "index": 0 }]]
+    },
+    "Construir contexto de la tienda": {
+      "main": [[{ "node": "Agente IA — Responder consulta", "type": "main", "index": 0 }]]
+    },
+    "Agente IA — Responder consulta": {
+      "main": [[{ "node": "¿Necesita intervención humana?", "type": "main", "index": 0 }]]
+    },
+    "¿Necesita intervención humana?": {
+      "main": [
+        [{ "node": "Alerta al dueño (escalado)", "type": "main", "index": 0 }],
+        [{ "node": "Responder al cliente", "type": "main", "index": 0 }]
+      ]
+    },
+    "Responder al cliente": {
+      "main": [[{ "node": "HTTP 200 Twilio", "type": "main", "index": 0 }]]
+    },
+    "Alerta al dueño (escalado)": {
+      "main": [[{ "node": "Responder al cliente", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": {
+    "description": "Bot de WhatsApp 24/7 conectado a Shopify en tiempo real. Consulta stock y precios actuales via API de Shopify, responde con IA (GPT-4o), y escala al dueño solo cuando no puede resolver. Diferencial vs video 06: usa API de Shopify en vez de inventario estático.",
+    "credentials_needed": [
+      "SHOPIFY_STORE — nombre de tu tienda (sin .myshopify.com)",
+      "SHOPIFY_ACCESS_TOKEN — token de app privada Shopify (permisos: read_products)",
+      "TWILIO_ACCOUNT_SID + TWILIO_WHATSAPP_NUMBER",
+      "OWNER_PHONE — tu número para escalados",
+      "OpenAI API key"
+    ]
+  }
+}

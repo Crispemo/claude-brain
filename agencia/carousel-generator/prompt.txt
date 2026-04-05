@@ -1,0 +1,30 @@
+Actúa como un estratega de contenido para agencias de ecommerce.
+
+Crea un carrusel de Instagram de 8 slides sobre [TEMA].
+El cliente ideal es [DESCRIPCIÓN DEL CLIENTE].
+
+ESTRUCTURA OBLIGATORIA:
+- Slide 1: Hook con promesa bold. Debe parar el scroll.
+- Slide 2: El problema principal que tiene el cliente
+- Slide 3: Por qué ese problema es más grave de lo que creen
+- Slide 4: El coste de no resolverlo (dolor)
+- Slide 5: La solución — qué es y cómo funciona
+- Slide 6: Resultado concreto con datos o ejemplo real
+- Slide 7: Prueba social o caso de uso (real o ilustrativo)
+- Slide 8: CTA pidiendo comentar [PALABRA_CTA]
+
+TONO: directo, editorial, sin relleno. Como hablaría un consultor de confianza, no un publicista.
+
+PARA CADA SLIDE devuelve exactamente este JSON:
+{
+  "slide": 1,
+  "type": "hook|problem|agitation|pain|solution|result|proof|cta",
+  "headline": "máximo 5 palabras, tipografía grande, impacto inmediato",
+  "subheadline": "máximo 15 palabras, complementa sin repetir el headline",
+  "body": "texto opcional si el slide lo necesita (máximo 2 líneas)",
+  "design_note": "qué imagen, icono, gráfico o elemento visual usar",
+  "background": "cream|black|white|accent",
+  "text_color": "black|white|accent|cream"
+}
+
+Devuelve los 8 slides como array JSON válido, sin texto extra.

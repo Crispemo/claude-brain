@@ -1,0 +1,307 @@
+{
+  "name": "Shopify — Recuperación Carritos Abandonados (Email + WhatsApp + IA)",
+  "nodes": [
+    {
+      "id": "trigger-checkout",
+      "name": "Shopify: Carrito Creado",
+      "type": "n8n-nodes-base.shopifyTrigger",
+      "position": [240, 300],
+      "parameters": {
+        "topic": "checkouts/create"
+      },
+      "credentials": {
+        "shopifyApi": { "id": "shopify-creds", "name": "Shopify API" }
+      }
+    },
+    {
+      "id": "wait-30min",
+      "name": "Esperar 30 minutos",
+      "type": "n8n-nodes-base.wait",
+      "position": [460, 300],
+      "parameters": {
+        "amount": 30,
+        "unit": "minutes"
+      }
+    },
+    {
+      "id": "check-order-completed",
+      "name": "¿Ya compró? (Consultar Shopify)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/orders.json?status=any&since_id=0&checkout_token={{$json.token}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "headers": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "if-already-bought",
+      "name": "¿Completó la compra?",
+      "type": "n8n-nodes-base.if",
+      "position": [900, 300],
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.orders.length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "generate-email-ai",
+      "name": "Generar email personalizado con IA",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [1120, 200],
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Eres un experto en copywriting de ecommerce. Escribes emails de recuperación de carrito en español, tono cercano y sin presión. Máximo 150 palabras. Siempre incluye el nombre del cliente y los productos. Termina con una pregunta abierta sobre si tuvieron algún problema."
+            },
+            {
+              "role": "user",
+              "content": "=Escribe un email de recuperación de carrito para:\nCliente: {{$node['Shopify: Carrito Creado'].json.email}} (nombre: {{$node['Shopify: Carrito Creado'].json.billing_address.first_name}})\nProductos abandonados: {{$node['Shopify: Carrito Creado'].json.line_items.map(i => i.title + ' x' + i.quantity).join(', ')}}\nTotal carrito: {{$node['Shopify: Carrito Creado'].json.total_price}}€\nLink de recuperación: {{$node['Shopify: Carrito Creado'].json.abandoned_checkout_url}}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "openai-creds", "name": "OpenAI" }
+      }
+    },
+    {
+      "id": "send-email-1",
+      "name": "Enviar Email (30 min)",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [1340, 200],
+      "parameters": {
+        "fromEmail": "={{$env.FROM_EMAIL}}",
+        "toEmail": "={{$node['Shopify: Carrito Creado'].json.email}}",
+        "subject": "=¿Todo bien, {{$node['Shopify: Carrito Creado'].json.billing_address.first_name}}? Te guardamos el carrito 🛒",
+        "emailType": "text",
+        "text": "={{$json.message.content}}"
+      },
+      "credentials": {
+        "smtp": { "id": "smtp-creds", "name": "SMTP" }
+      }
+    },
+    {
+      "id": "check-whatsapp",
+      "name": "¿Tiene número de teléfono?",
+      "type": "n8n-nodes-base.if",
+      "position": [1340, 380],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node['Shopify: Carrito Creado'].json.billing_address.phone}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "send-whatsapp-1",
+      "name": "WhatsApp (30 min)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1560, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "To",
+              "value": "=whatsapp:{{$node['Shopify: Carrito Creado'].json.billing_address.phone}}"
+            },
+            {
+              "name": "From",
+              "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}"
+            },
+            {
+              "name": "Body",
+              "value": "=Hola {{$node['Shopify: Carrito Creado'].json.billing_address.first_name}} 👋 Vi que dejaste algo en el carrito. ¿Puedo ayudarte con alguna duda? 🛒 {{$node['Shopify: Carrito Creado'].json.abandoned_checkout_url}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wait-24h",
+      "name": "Esperar 24 horas",
+      "type": "n8n-nodes-base.wait",
+      "position": [1780, 300],
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "check-order-24h",
+      "name": "¿Compró en las últimas 24h?",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [2000, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/orders.json?status=any&checkout_token={{$node['Shopify: Carrito Creado'].json.token}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "headers": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "if-bought-24h",
+      "name": "¿Completó la compra (24h)?",
+      "type": "n8n-nodes-base.if",
+      "position": [2220, 300],
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.orders.length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "send-email-2",
+      "name": "Email final con descuento (24h)",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [2440, 200],
+      "parameters": {
+        "fromEmail": "={{$env.FROM_EMAIL}}",
+        "toEmail": "={{$node['Shopify: Carrito Creado'].json.email}}",
+        "subject": "=Último aviso — tu carrito + 10% de descuento 🎁",
+        "emailType": "html",
+        "html": "=<p>Hola {{$node['Shopify: Carrito Creado'].json.billing_address.first_name}},</p><p>Te guardamos el carrito con un pequeño regalo: usa el código <strong>VUELVE10</strong> y obtén un 10% de descuento en tu pedido.</p><p>👉 <a href='{{$node['Shopify: Carrito Creado'].json.abandoned_checkout_url}}'>Completar mi pedido</a></p><p>Esta oferta expira en 24 horas.</p>"
+      },
+      "credentials": {
+        "smtp": { "id": "smtp-creds", "name": "SMTP" }
+      }
+    },
+    {
+      "id": "send-whatsapp-2",
+      "name": "WhatsApp final (24h)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [2440, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "To",
+              "value": "=whatsapp:{{$node['Shopify: Carrito Creado'].json.billing_address.phone}}"
+            },
+            {
+              "name": "From",
+              "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}"
+            },
+            {
+              "name": "Body",
+              "value": "=Última oportunidad 🎁 Usa el código VUELVE10 para un 10% de descuento. Válido solo hoy: {{$node['Shopify: Carrito Creado'].json.abandoned_checkout_url}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "end-bought",
+      "name": "Fin — Ya compró ✓",
+      "type": "n8n-nodes-base.noOp",
+      "position": [1120, 460],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Shopify: Carrito Creado": {
+      "main": [[{ "node": "Esperar 30 minutos", "type": "main", "index": 0 }]]
+    },
+    "Esperar 30 minutos": {
+      "main": [[{ "node": "¿Ya compró? (Consultar Shopify)", "type": "main", "index": 0 }]]
+    },
+    "¿Ya compró? (Consultar Shopify)": {
+      "main": [[{ "node": "¿Completó la compra?", "type": "main", "index": 0 }]]
+    },
+    "¿Completó la compra?": {
+      "main": [
+        [{ "node": "Fin — Ya compró ✓", "type": "main", "index": 0 }],
+        [
+          { "node": "Generar email personalizado con IA", "type": "main", "index": 0 },
+          { "node": "¿Tiene número de teléfono?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Generar email personalizado con IA": {
+      "main": [[{ "node": "Enviar Email (30 min)", "type": "main", "index": 0 }]]
+    },
+    "¿Tiene número de teléfono?": {
+      "main": [
+        [],
+        [{ "node": "WhatsApp (30 min)", "type": "main", "index": 0 }]
+      ]
+    },
+    "WhatsApp (30 min)": {
+      "main": [[{ "node": "Esperar 24 horas", "type": "main", "index": 0 }]]
+    },
+    "Enviar Email (30 min)": {
+      "main": [[{ "node": "Esperar 24 horas", "type": "main", "index": 0 }]]
+    },
+    "Esperar 24 horas": {
+      "main": [[{ "node": "¿Compró en las últimas 24h?", "type": "main", "index": 0 }]]
+    },
+    "¿Compró en las últimas 24h?": {
+      "main": [[{ "node": "¿Completó la compra (24h)?", "type": "main", "index": 0 }]]
+    },
+    "¿Completó la compra (24h)?": {
+      "main": [
+        [{ "node": "Fin — Ya compró ✓", "type": "main", "index": 0 }],
+        [
+          { "node": "Email final con descuento (24h)", "type": "main", "index": 0 },
+          { "node": "WhatsApp final (24h)", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "meta": {
+    "description": "Recupera carritos abandonados de Shopify con email personalizado por IA + WhatsApp. Secuencia: 30 min + 24h. Para si el cliente compra en cualquier momento.",
+    "credentials_needed": [
+      "SHOPIFY_STORE — nombre de tu tienda (sin .myshopify.com)",
+      "SHOPIFY_ACCESS_TOKEN — Admin API token de Shopify",
+      "TWILIO_ACCOUNT_SID — de tu cuenta Twilio",
+      "TWILIO_WHATSAPP_NUMBER — número Twilio con WhatsApp activado",
+      "FROM_EMAIL — tu email de envío",
+      "OpenAI API key"
+    ]
+  }
+}

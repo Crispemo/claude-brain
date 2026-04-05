@@ -1,0 +1,167 @@
+{
+  "name": "Shopify — Agente IA Soporte 24/7 por WhatsApp",
+  "nodes": [
+    {
+      "id": "webhook-whatsapp",
+      "name": "Recibir mensaje WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-soporte",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "extract-message",
+      "name": "Extraer datos del mensaje",
+      "type": "n8n-nodes-base.code",
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "// Compatible con Twilio WhatsApp webhook\nconst body = $input.first().json.body;\nconst from = body.From || '';\nconst mensaje = body.Body || '';\nconst phone = from.replace('whatsapp:', '');\n\nreturn [{ json: { phone, mensaje, timestamp: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "load-inventory",
+      "name": "Cargar inventario de la tienda",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [680, 200],
+      "parameters": {
+        "filePath": "/data/inventario-velites.json"
+      }
+    },
+    {
+      "id": "parse-inventory",
+      "name": "Parsear inventario JSON",
+      "type": "n8n-nodes-base.code",
+      "position": [900, 200],
+      "parameters": {
+        "jsCode": "const raw = $node['Cargar inventario de la tienda'].json.data;\nconst inventario = JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));\nreturn [{ json: { inventario_texto: JSON.stringify(inventario, null, 2) } }];"
+      }
+    },
+    {
+      "id": "ai-agent",
+      "name": "Agente IA — Procesar consulta",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [1120, 300],
+      "parameters": {
+        "systemMessage": "Eres el asistente virtual de Velites Sport, tienda online de equipamiento CrossFit.\n\nTu objetivo: responder consultas de clientes de forma rápida, precisa y cercana.\n\nREGLAS:\n- Responde SIEMPRE en español\n- Máximo 3-4 líneas por respuesta\n- Tono cercano pero profesional, como un buen vendedor de tienda\n- Si tienes la información, dala directamente. No hagas preguntas innecesarias\n- Si el cliente quiere comprar, incluye SIEMPRE el link directo al producto\n- Si no tienes información exacta, di: 'Voy a consultarlo con el equipo ahora mismo' \n- NUNCA inventes precios, stocks o políticas que no estén en el inventario\n- Si el cliente menciona devolución, problema o queja: muestra empatía y pide el número de pedido\n\nINVENTARIO Y POLÍTICAS:\n{{inventario}}\n\nConsulta del cliente: {{mensaje}}",
+        "promptType": "define",
+        "text": "={{$node['Extraer datos del mensaje'].json.mensaje}}",
+        "options": {
+          "systemMessage": "=Eres el asistente virtual de Velites Sport, tienda online de equipamiento CrossFit.\n\nTu objetivo: responder consultas de clientes de forma rápida, precisa y cercana.\n\nREGLAS:\n- Responde SIEMPRE en español, máximo 3-4 líneas\n- Tono cercano pero profesional\n- Si tienes información, dala directamente sin rodeos\n- Si el cliente quiere comprar, incluye el link directo al producto\n- Si no tienes la info exacta, di: 'Voy a consultarlo ahora mismo' y notifica al equipo\n- NUNCA inventes datos que no estén en el inventario\n- Si mencionan devolución o problema: empatía + pedir número de pedido\n\nINVENTARIO COMPLETO:\n{{$node['Parsear inventario JSON'].json.inventario_texto}}"
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "openai-creds", "name": "OpenAI" }
+      }
+    },
+    {
+      "id": "check-escalate",
+      "name": "¿Requiere escalado a humano?",
+      "type": "n8n-nodes-base.if",
+      "position": [1340, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.output}}",
+              "operation": "contains",
+              "value2": "consultarlo"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "send-response",
+      "name": "Responder al cliente por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1560, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$node['Extraer datos del mensaje'].json.phone}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            { "name": "Body", "value": "={{$json.output}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "notify-owner",
+      "name": "Notificar al dueño (escalado)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1560, 440],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$env.OWNER_PHONE}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            { "name": "Body", "value": "=⚠️ ESCALADO\nCliente: {{$node['Extraer datos del mensaje'].json.phone}}\nConsulta: {{$node['Extraer datos del mensaje'].json.mensaje}}\nEl agente no pudo resolver — necesitas responder tú." }
+          ]
+        }
+      }
+    },
+    {
+      "id": "webhook-response",
+      "name": "Respuesta HTTP 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1780, 300],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK"
+      }
+    }
+  ],
+  "connections": {
+    "Recibir mensaje WhatsApp": {
+      "main": [[{ "node": "Extraer datos del mensaje", "type": "main", "index": 0 }]]
+    },
+    "Extraer datos del mensaje": {
+      "main": [[
+        { "node": "Cargar inventario de la tienda", "type": "main", "index": 0 },
+        { "node": "Agente IA — Procesar consulta", "type": "main", "index": 0 }
+      ]]
+    },
+    "Cargar inventario de la tienda": {
+      "main": [[{ "node": "Parsear inventario JSON", "type": "main", "index": 0 }]]
+    },
+    "Agente IA — Procesar consulta": {
+      "main": [[{ "node": "¿Requiere escalado a humano?", "type": "main", "index": 0 }]]
+    },
+    "¿Requiere escalado a humano?": {
+      "main": [
+        [{ "node": "Notificar al dueño (escalado)", "type": "main", "index": 0 }],
+        [{ "node": "Responder al cliente por WhatsApp", "type": "main", "index": 0 }]
+      ]
+    },
+    "Responder al cliente por WhatsApp": {
+      "main": [[{ "node": "Respuesta HTTP 200", "type": "main", "index": 0 }]]
+    },
+    "Notificar al dueño (escalado)": {
+      "main": [[{ "node": "Responder al cliente por WhatsApp", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": {
+    "description": "Agente IA que responde consultas de clientes por WhatsApp 24/7. Conoce el inventario, políticas de envío y devolución. Escala a humano cuando no puede resolver.",
+    "credentials_needed": [
+      "TWILIO_ACCOUNT_SID + TWILIO_WHATSAPP_NUMBER",
+      "OWNER_PHONE — tu número para escalados",
+      "OpenAI API key",
+      "Archivo inventario-velites.json en /data/ del servidor n8n"
+    ]
+  }
+}

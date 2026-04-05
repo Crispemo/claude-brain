@@ -1,0 +1,240 @@
+{
+  "name": "Shopify — Sistema Post-Venta WhatsApp (4 mensajes automáticos)",
+  "nodes": [
+    {
+      "id": "trigger-fulfilled",
+      "name": "Shopify: Pedido Enviado",
+      "type": "n8n-nodes-base.shopifyTrigger",
+      "position": [240, 300],
+      "parameters": {
+        "topic": "orders/fulfilled"
+      },
+      "credentials": {
+        "shopifyApi": { "id": "shopify-creds", "name": "Shopify API" }
+      }
+    },
+    {
+      "id": "check-phone",
+      "name": "¿Tiene número de WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "position": [460, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.shipping_address.phone || $json.billing_address.phone}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "msg1-envio",
+      "name": "Mensaje 1 — Confirmación de envío",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$json.shipping_address.phone || $json.billing_address.phone}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            {
+              "name": "Body",
+              "value": "=¡Hola {{$json.shipping_address.first_name || $json.billing_address.first_name}}! 🚚 Tu pedido #{{$json.order_number}} ya está en camino. Puedes seguirlo aquí: {{$json.fulfillments[0].tracking_url || 'Te avisamos cuando llegue'}}. ¿Alguna pregunta? Estoy aquí."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wait-1-day",
+      "name": "Esperar 1 día (post-entrega estimada)",
+      "type": "n8n-nodes-base.wait",
+      "position": [900, 200],
+      "parameters": {
+        "amount": 1,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "msg2-check",
+      "name": "Mensaje 2 — Check de entrega",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1120, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$node['Shopify: Pedido Enviado'].json.shipping_address.phone || $node['Shopify: Pedido Enviado'].json.billing_address.phone}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            {
+              "name": "Body",
+              "value": "=Hola {{$node['Shopify: Pedido Enviado'].json.shipping_address.first_name || $node['Shopify: Pedido Enviado'].json.billing_address.first_name}} 👋 ¿Te llegó bien el pedido? Si algo no está perfecto o tienes alguna duda sobre el producto, cuéntame y lo solucionamos ahora mismo 💬"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wait-4-days",
+      "name": "Esperar 4 días más",
+      "type": "n8n-nodes-base.wait",
+      "position": [1340, 200],
+      "parameters": {
+        "amount": 4,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "get-product-category",
+      "name": "Obtener categoría del producto",
+      "type": "n8n-nodes-base.code",
+      "position": [1560, 200],
+      "parameters": {
+        "jsCode": "const lineItems = $node['Shopify: Pedido Enviado'].json.line_items;\nconst primerProducto = lineItems[0];\nconst nombre = primerProducto.title;\nreturn [{ json: { producto: nombre, order_data: $node['Shopify: Pedido Enviado'].json } }];"
+      }
+    },
+    {
+      "id": "generate-tip",
+      "name": "Generar tip personalizado con IA",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [1780, 200],
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Eres el servicio de atención de una tienda online. Escribe un mensaje de WhatsApp corto (máx 3 líneas) dando un tip útil de uso o cuidado para el producto que el cliente acaba de recibir. Tono cercano y genuino, no comercial."
+            },
+            {
+              "role": "user",
+              "content": "=Producto recibido: {{$json.producto}}. Escribe el tip de uso/cuidado en español."
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "openai-creds", "name": "OpenAI" }
+      }
+    },
+    {
+      "id": "msg3-tip",
+      "name": "Mensaje 3 — Tip de uso (día 5)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [2000, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$node['Shopify: Pedido Enviado'].json.shipping_address.phone || $node['Shopify: Pedido Enviado'].json.billing_address.phone}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            { "name": "Body", "value": "={{$json.message.content}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wait-5-days",
+      "name": "Esperar 5 días más",
+      "type": "n8n-nodes-base.wait",
+      "position": [2220, 200],
+      "parameters": {
+        "amount": 5,
+        "unit": "days"
+      }
+    },
+    {
+      "id": "msg4-review",
+      "name": "Mensaje 4 — Pedir reseña (día 10)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [2440, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$node['Shopify: Pedido Enviado'].json.shipping_address.phone || $node['Shopify: Pedido Enviado'].json.billing_address.phone}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            {
+              "name": "Body",
+              "value": "=Hola {{$node['Shopify: Pedido Enviado'].json.shipping_address.first_name || $node['Shopify: Pedido Enviado'].json.billing_address.first_name}} 😊 Espero que estés disfrutando tu pedido. Si te ha gustado la experiencia, nos ayudaría muchísimo dejarnos una reseña: {{$env.REVIEW_URL}} ¡Solo 1 minuto y nos ayuda un montón! Gracias 🙏"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "no-phone",
+      "name": "Sin teléfono — fin",
+      "type": "n8n-nodes-base.noOp",
+      "position": [680, 440],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Shopify: Pedido Enviado": {
+      "main": [[{ "node": "¿Tiene número de WhatsApp?", "type": "main", "index": 0 }]]
+    },
+    "¿Tiene número de WhatsApp?": {
+      "main": [
+        [{ "node": "Mensaje 1 — Confirmación de envío", "type": "main", "index": 0 }],
+        [{ "node": "Sin teléfono — fin", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mensaje 1 — Confirmación de envío": {
+      "main": [[{ "node": "Esperar 1 día (post-entrega estimada)", "type": "main", "index": 0 }]]
+    },
+    "Esperar 1 día (post-entrega estimada)": {
+      "main": [[{ "node": "Mensaje 2 — Check de entrega", "type": "main", "index": 0 }]]
+    },
+    "Mensaje 2 — Check de entrega": {
+      "main": [[{ "node": "Esperar 4 días más", "type": "main", "index": 0 }]]
+    },
+    "Esperar 4 días más": {
+      "main": [[{ "node": "Obtener categoría del producto", "type": "main", "index": 0 }]]
+    },
+    "Obtener categoría del producto": {
+      "main": [[{ "node": "Generar tip personalizado con IA", "type": "main", "index": 0 }]]
+    },
+    "Generar tip personalizado con IA": {
+      "main": [[{ "node": "Mensaje 3 — Tip de uso (día 5)", "type": "main", "index": 0 }]]
+    },
+    "Mensaje 3 — Tip de uso (día 5)": {
+      "main": [[{ "node": "Esperar 5 días más", "type": "main", "index": 0 }]]
+    },
+    "Esperar 5 días más": {
+      "main": [[{ "node": "Mensaje 4 — Pedir reseña (día 10)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": {
+    "description": "4 mensajes automáticos por WhatsApp tras cada pedido Shopify: confirmación envío → check entrega → tip de uso con IA → petición de reseña.",
+    "credentials_needed": [
+      "SHOPIFY_STORE + SHOPIFY_ACCESS_TOKEN",
+      "TWILIO_ACCOUNT_SID + TWILIO_WHATSAPP_NUMBER",
+      "REVIEW_URL — link a tu página de reseñas (Google, Trustpilot...)",
+      "OpenAI API key"
+    ]
+  }
+}

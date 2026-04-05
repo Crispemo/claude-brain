@@ -1,0 +1,360 @@
+{
+  "name": "🎬 Content Factory — Generador de Scripts YouTube",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "⏰ Ejecutar cada día (L-V)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 180],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "form-trigger",
+      "name": "📝 Nueva idea de vídeo",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [240, 420],
+      "webhookId": "content-factory-main-001",
+      "parameters": {
+        "formTitle": "Content Factory — Script manual",
+        "formDescription": "Rellena los campos para generar un script sobre un tema concreto. Llega a Google Drive en ~90 segundos.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "tema",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "ej: recuperar carritos abandonados con n8n"
+            },
+            {
+              "fieldLabel": "tipo",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  { "option": "Tutorial paso a paso" },
+                  { "option": "Problema + Solución" },
+                  { "option": "Tendencia / Urgente" },
+                  { "option": "Comparativa / VS" }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "duracion",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  { "option": "Corto (5-7 min)" },
+                  { "option": "Estándar (10-12 min)" },
+                  { "option": "Largo (15+ min)" }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "normalize-input",
+      "name": "Normalizar entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst isForm = 'tema' in input;\nconst tema = isForm ? input.tema : null;\nconst tipo = isForm ? input.tipo : 'Tutorial paso a paso';\nconst duracion = isForm ? input.duracion : 'Estándar (10-12 min)';\nconst runDate = new Date().toLocaleDateString('es-ES');\nreturn [{ json: { tema, tipo, duracion, isForm, runDate } }];"
+      }
+    },
+    {
+      "id": "get-nacho-channel-id",
+      "name": "YouTube: ID canal Nacho Leo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/youtube/v3/channels",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "part", "value": "id,snippet" },
+            { "name": "forHandle", "value": "Nacho_Leo" },
+            { "name": "key", "value": "AIzaSyBvgaUEM5JG5OD3fGxJ7xV7gyIpQNAbAfg" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "extract-nacho-id",
+      "name": "Extraer ID Nacho Leo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1020, 300],
+      "parameters": {
+        "jsCode": "const items = $input.first().json.items || [];\nconst nacho_leo_id = items[0]?.id || '';\nconst prev = $node['Normalizar entrada'].json;\nreturn [{ json: { nacho_leo_id, tema: prev.tema, tipo: prev.tipo, duracion: prev.duracion, isForm: prev.isForm, runDate: prev.runDate } }];"
+      }
+    },
+    {
+      "id": "get-nacho-videos",
+      "name": "YouTube: Vídeos recientes Nacho Leo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/youtube/v3/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "part", "value": "snippet" },
+            { "name": "channelId", "value": "={{$json.nacho_leo_id}}" },
+            { "name": "type", "value": "video" },
+            { "name": "maxResults", "value": "10" },
+            { "name": "order", "value": "date" },
+            { "name": "key", "value": "AIzaSyBvgaUEM5JG5OD3fGxJ7xV7gyIpQNAbAfg" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "extract-nacho-video-ids",
+      "name": "Extraer IDs vídeos Nacho Leo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300],
+      "parameters": {
+        "jsCode": "const items = $input.first().json.items || [];\nconst nacho_video_ids = items.map(i => i.id?.videoId).filter(Boolean).join(',');\nconst prev = $node['Extraer ID Nacho Leo'].json;\nreturn [{ json: { nacho_video_ids, tema: prev.tema, tipo: prev.tipo, duracion: prev.duracion, isForm: prev.isForm, runDate: prev.runDate, nacho_leo_id: prev.nacho_leo_id } }];"
+      }
+    },
+    {
+      "id": "get-nacho-stats",
+      "name": "YouTube: Stats Nacho Leo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1800, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/youtube/v3/videos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "part", "value": "statistics,snippet" },
+            { "name": "id", "value": "={{$json.nacho_video_ids}}" },
+            { "name": "key", "value": "AIzaSyBvgaUEM5JG5OD3fGxJ7xV7gyIpQNAbAfg" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "format-nacho-context",
+      "name": "Formatear contexto competidor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2060, 300],
+      "parameters": {
+        "jsCode": "const items = $input.first().json.items || [];\nconst prev = $node['Extraer IDs vídeos Nacho Leo'].json;\n\nconst nacho_text = items.map((v, i) => {\n  const views = parseInt(v.statistics?.viewCount || 0).toLocaleString('es');\n  const likes = parseInt(v.statistics?.likeCount || 0).toLocaleString('es');\n  const comments = parseInt(v.statistics?.commentCount || 0).toLocaleString('es');\n  const title = v.snippet?.title || '';\n  const date = (v.snippet?.publishedAt || '').substring(0, 10);\n  const desc = (v.snippet?.description || '').substring(0, 120).replace(/\\n/g, ' ');\n  return (i+1) + '. \"' + title + '\"\\n   Fecha: ' + date + ' | Views: ' + views + ' | Likes: ' + likes + ' | Comentarios: ' + comments + '\\n   Descripción: ' + desc;\n}).join('\\n\\n');\n\nreturn [{ json: { nacho_text, tema: prev.tema, tipo: prev.tipo, duracion: prev.duracion, isForm: prev.isForm, runDate: prev.runDate } }];"
+      }
+    },
+    {
+      "id": "get-my-videos",
+      "name": "YouTube: Mis vídeos (top views)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2320, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/youtube/v3/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "part", "value": "snippet" },
+            { "name": "channelId", "value": "UCGZilJ_tp7URiUy6B4PXhgA" },
+            { "name": "type", "value": "video" },
+            { "name": "maxResults", "value": "15" },
+            { "name": "order", "value": "viewCount" },
+            { "name": "key", "value": "AIzaSyBvgaUEM5JG5OD3fGxJ7xV7gyIpQNAbAfg" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "extract-my-ids",
+      "name": "Extraer IDs mi canal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2580, 300],
+      "parameters": {
+        "jsCode": "const items = $input.first().json.items || [];\nconst my_ids = items.map(i => i.id?.videoId).filter(Boolean).join(',');\nconst prev = $node['Formatear contexto competidor'].json;\nreturn [{ json: { my_ids, nacho_text: prev.nacho_text, tema: prev.tema, tipo: prev.tipo, duracion: prev.duracion, isForm: prev.isForm, runDate: prev.runDate } }];"
+      }
+    },
+    {
+      "id": "get-my-stats",
+      "name": "YouTube: Stats de mi canal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2840, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/youtube/v3/videos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "part", "value": "statistics,snippet" },
+            { "name": "id", "value": "={{$json.my_ids}}" },
+            { "name": "key", "value": "AIzaSyBvgaUEM5JG5OD3fGxJ7xV7gyIpQNAbAfg" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "build-prompt",
+      "name": "Construir prompt definitivo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3100, 300],
+      "parameters": {
+        "jsCode": "const channel_items = $input.first().json.items || [];\nconst prev = $node['Extraer IDs mi canal'].json;\n\n// Format channel stats\nconst sorted = channel_items\n  .map(v => ({\n    titulo: v.snippet?.title || '',\n    views: parseInt(v.statistics?.viewCount || 0),\n    likes: parseInt(v.statistics?.likeCount || 0),\n    fecha: (v.snippet?.publishedAt || '').substring(0, 10)\n  }))\n  .sort((a, b) => b.views - a.views);\n\nconst avgViews = sorted.length ? Math.round(sorted.reduce((s, v) => s + v.views, 0) / sorted.length) : 0;\nconst my_channel_lines = [\n  'Canal automattia — Top vídeos por views:',\n  '  Media: ' + avgViews.toLocaleString('es') + ' views por vídeo'\n];\nsorted.slice(0, 8).forEach((v, i) => {\n  my_channel_lines.push('  ' + (i+1) + '. \"' + v.titulo + '\" — ' + v.views.toLocaleString('es') + ' views (' + v.fecha + ')');\n});\nconst my_channel_text = my_channel_lines.join('\\n');\n\n// Topics the AI is ALLOWED to cover (verified expertise)\nconst temasPermitidos = prev.isForm ? '' :\n  'TEMAS PERMITIDOS (solo puedes elegir de esta lista, son los que realmente dominas):\\n' +\n  '1. Bot WhatsApp 24/7 para Shopify con n8n (responde preguntas, stock real, escalado al dueño)\\n' +\n  '2. Recuperar carritos abandonados automáticamente con n8n + WhatsApp\\n' +\n  '3. Agente IA de soporte 24/7 conectado a Shopify en tiempo real\\n' +\n  '4. Automatizar fichas de productos Shopify con IA (descripciones, SEO)\\n' +\n  '5. Dashboard de ventas Shopify automático con n8n\\n' +\n  '6. Emails y WhatsApp postventa automáticos con n8n\\n' +\n  '7. Recuperar clientes inactivos con WhatsApp Marketing automático\\n' +\n  '8. Gestión de stock y alertas automáticas con n8n\\n' +\n  '9. Integración Shopify + Klaviyo automatizada con n8n\\n' +\n  '10. Crear contenido para redes sociales de tu tienda en automático\\n\\n' +\n  'TEMAS PROHIBIDOS (no tienes experiencia directa o son incorrectos):\\n' +\n  '- Claude Code (es una herramienta de desarrollo, NO de ecommerce)\\n' +\n  '- Herramientas de Anthropic/OpenAI que no sean APIs\\n' +\n  '- Mercado Libre (no es el mercado del canal — España usa Shopify, no ML)\\n' +\n  '- Cualquier herramienta SaaS que no hayas conectado personalmente a Shopify\\n' +\n  '- Estadísticas de ventas de clientes sin evidencia real';\n\n// Verified facts (what can be stated without inventing data)\nconst hechosVerificados =\n  'HECHOS VERIFICADOS que puedes afirmar en el guion:\\n' +\n  '- Abandono de carrito promedio en ecommerce: ~70% (fuente verificada: Baymard Institute)\\n' +\n  '- WhatsApp tiene ~90% de tasa de apertura vs ~20% del email\\n' +\n  '- n8n es open source — self-hosting gratuito, servidor 5-15€/mes\\n' +\n  '- n8n.cloud desde ~20€/mes\\n' +\n  '- Shopify tiene API REST con webhooks nativos\\n' +\n  '- Twilio WhatsApp número Business: ~45€/mes\\n' +\n  '- GPT-4o responde en 1-3 segundos en condiciones normales\\n' +\n  '- n8n tiene nodo nativo de Shopify\\n\\n' +\n  'PROHIBIDO INVENTAR:\\n' +\n  '- Porcentajes de mejora de ventas sin fuente (\"un 30% más de ingresos\")\\n' +\n  '- Resultados de clientes específicos que no puedas verificar\\n' +\n  '- Funcionalidades de n8n o Shopify que no existen en 2025\\n' +\n  '- Frases como \"el X% de tiendas hace Y\" sin fuente real';\n\n// Style guide with embedded example\nconst guiaEstilo =\n  'FORMATO DEL GUION — MUY IMPORTANTE:\\n' +\n  'El guion es un TRANSCRIPT de lo que se dice en cámara. NO es un documento con secciones.\\n' +\n  'En el cuerpo del guion NO hay headers, bullets ni listas. Solo texto hablado con timestamps.\\n\\n' +\n  'EJEMPLO REAL del estilo objetivo (primeros 2 minutos):\\n' +\n  '---\\n' +\n  '[00:00]\\n' +\n  'Si tienes una tienda en Shopify y estás respondiendo mensajes de WhatsApp tú solo, o tienes a alguien en tu equipo haciéndolo, escucha esto. Hay clientes que escriben a las 11 de la noche preguntando por una talla, o si queda stock de algo, y no reciben respuesta. No esperan. Al día siguiente compran en otro sitio. Y no es porque no les gustara tu producto.\\n\\n' +\n  '[00:22]\\n' +\n  'Es porque no estabas. Y el problema no es que no quieras atenderles. Es que es físicamente imposible estar disponible 24 horas al día respondiendo siempre lo mismo. El bot de WhatsApp de n8n que voy a enseñarte hoy no es un chatbot de los que frustran al cliente con respuestas de robot. Es un agente que sabe qué productos tienes, qué stock hay en tiempo real, y puede cerrar la conversación como si fuera una persona de tu equipo.\\n\\n' +\n  '[00:55]\\n' +\n  'Llevo meses montando esto en tiendas Shopify. El resultado más habitual es que el dueño deja de revisar el teléfono cada 20 minutos. Las preguntas por WhatsApp se resuelven solas. Y los clientes reciben respuesta en segundos, no en horas.\\n\\n' +\n  '[01:20]\\n' +\n  'Si quieres que te ayude a montar esto en tu tienda, tengo el link en la descripción. Es una auditoría gratuita de 30 minutos. Solo escríbeme por WhatsApp, pon \"Hola Cris\" y lo hablamos. El link está abajo.\\n\\n' +\n  '[01:35]\\n' +\n  'Ahora sí, vamos al sistema. Lo primero que hay que entender es que n8n actúa como el cerebro que conecta WhatsApp, la API de Shopify, y el modelo de IA. Cuando llega un mensaje, n8n lo procesa, consulta el inventario de tu Shopify en tiempo real, y devuelve la respuesta. Todo en menos de 5 segundos.\\n' +\n  '---\\n\\n' +\n  'CARACTERÍSTICAS DEL ESTILO:\\n' +\n  '- España, forma tú. Sin vosotros. Sin tenés/podés (no es Argentina).\\n' +\n  '- Frases cortas. Si una frase tiene más de 25 palabras, córtala en dos.\\n' +\n  '- PROHIBIDO: \"En este vídeo vamos a ver\", \"Hola soy Cris\", \"no olvides dar like\", \"sin más preámbulo\", \"a continuación\"\\n' +\n  '- Habla desde la experiencia práctica: \"en las tiendas con las que trabajo...\", \"lo que veo más habitual es...\"\\n' +\n  '- Usa \"muchas tiendas\", \"la mayoría de casos\", en lugar de porcentajes inventados\\n' +\n  '- Instrucciones de producción entre corchetes: [PANTALLA — descripción], [PAUSA], [ZOOM IN], etc.\\n' +\n  '- Cuando expliques n8n: nombra los nodos específicos (\"un webhook → código → API de Shopify\")\\n' +\n  '- Cada CTA menciona wa.me/34643135603?text=Hola%20Cris! y auditoría gratuita de 30 min';\n\n// Assemble system prompt\nconst system_prompt =\n  'Eres el ghostwriter de automattia, canal de YouTube en España sobre automatización con n8n e IA para dueños de tiendas Shopify.\\n\\n' +\n  'IDENTIDAD DEL CANAL:\\n' +\n  '- Eslogan: \"Tu negocio no necesita más marketing, necesita mejores sistemas\"\\n' +\n  '- Público: dueños de tiendas Shopify en España, 50k-500k€/año, solos o con equipo pequeño\\n' +\n  '- Posicionamiento: operador con experiencia práctica real, no profesor teórico\\n' +\n  '- Tono: directo, cercano, sin relleno. Como explicarle algo a un colega en una llamada.\\n' +\n  '- CTA: wa.me/34643135603?text=Hola%20Cris! — auditoría gratuita de 30 min\\n\\n' +\n  hechosVerificados + '\\n\\n' +\n  guiaEstilo;\n\n// Assemble user prompt\nconst modo = prev.isForm ? 'MANUAL' : 'AUTOMÁTICO';\nlet temaInstruction;\nif (prev.isForm) {\n  temaInstruction = 'TEMA DEFINIDO: ' + prev.tema + '\\nTipo: ' + prev.tipo + '\\nDuración: ' + prev.duracion;\n} else {\n  temaInstruction = 'MODO AUTOMÁTICO — elige el tema más estratégico de esta semana.\\n' + temasPermitidos + '\\nAnaliza los vídeos del competidor y elige el tema con más tracción en el nicho que también sea de la lista permitida. Escribe en 1 línea: «Tema elegido: [tema] — Razón: [razón].»';\n}\n\nconst user_prompt =\n  '=== EJECUCIÓN ' + modo + ' — ' + prev.runDate + ' ===\\n' +\n  temaInstruction + '\\n\\n' +\n  '=== VÍDEOS RECIENTES @Nacho_Leo (referencia de estilo y temas calientes del nicho) ===\\n' +\n  prev.nacho_text + '\\n\\n' +\n  '=== RENDIMIENTO canal automattia ===\\n' +\n  my_channel_text + '\\n\\n' +\n  '=== GENERA EL GUION COMPLETO ===\\n\\n' +\n  'Estructura del output (en este orden exacto):\\n\\n' +\n  '# GUIÓN: \"[TÍTULO — máx 70 chars, keyword + resultado concreto o urgencia. En español.]\"\\n' +\n  '> Duración: ' + (prev.duracion || 'Estándar (10-12 min)') + ' | Fecha: ' + prev.runDate + '\\n\\n' +\n  '## ANÁLISIS Y ÁNGULO DIFERENCIAL\\n' +\n  '[2-3 líneas específicas: qué cubre el competidor en este tema y qué hace diferente/mejor este vídeo]\\n\\n' +\n  '## THUMBNAIL\\n' +\n  'Texto en pantalla: \"...\"\\n' +\n  'Fondo: ...\\n' +\n  'Postura/expresión: ...\\n\\n' +\n  '---\\n\\n' +\n  '[GUION — MÍNIMO 2.500 PALABRAS DE TEXTO HABLADO]\\n' +\n  '[SIN HEADERS NI BULLETS EN EL CUERPO — SOLO TEXTO HABLADO CON TIMESTAMPS]\\n\\n' +\n  '[00:00]\\n' +\n  '[Hook puro, 15-20 segundos. Nombra el dolor exacto. Sin intro de canal.]\\n\\n' +\n  '[Continúa el guion word for word hasta completar la duración objetivo. Timestamps cada 60-90 segundos. 3 CTAs en ~2min, mitad y final. Instrucciones de producción entre corchetes cuando sean necesarias. Termina con pregunta directa al espectador para comentarios.]\\n\\n' +\n  '---\\n\\n' +\n  '## DESCRIPCIÓN YOUTUBE\\n' +\n  '[Primera línea: keyword + promesa — aparece en búsquedas sin hacer clic]\\n\\n' +\n  '💡 En este vídeo:\\n' +\n  '• [punto 1 concreto]\\n' +\n  '• [punto 2 concreto]\\n' +\n  '• [punto 3 concreto]\\n\\n' +\n  '📥 Workflow gratis: https://automattia.com\\n' +\n  '💬 Auditoría gratuita 30 min: wa.me/34643135603?text=Hola%20Cris!\\n\\n' +\n  '⏱️ ÍNDICE:\\n' +\n  '[timestamps reales del guion]\\n\\n' +\n  '---\\n\\n' +\n  '## TAGS YOUTUBE\\n' +\n  '[15-20 tags separados por comas — del tema primero, del canal después]';\n\nreturn [{ json: { system_prompt, user_prompt, runDate: prev.runDate, tema: prev.tema, isForm: prev.isForm } }];"
+      }
+    },
+    {
+      "id": "openai-generate",
+      "name": "OpenAI: Generar script completo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3360, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o', max_tokens: 8000, temperature: 0.85, messages: [{ role: 'system', content: $json.system_prompt }, { role: 'user', content: $json.user_prompt }] }) }}"
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-creds",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "id": "extract-script",
+      "name": "Extraer script generado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3620, 300],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst script = response.choices?.[0]?.message?.content || 'Error: no se pudo generar el script';\nconst ctx = $node['Construir prompt definitivo'].json;\n\n// Extract title from generated script\nconst titleMatch = script.match(/# GUIÓN:\\s*\"([^\"]+)\"/);\nconst extractedTitle = titleMatch ? titleMatch[1].substring(0, 60) : null;\nconst runDate = ctx.runDate || new Date().toLocaleDateString('es-ES');\nlet doc_title;\nif (extractedTitle) {\n  doc_title = '[SCRIPT] ' + extractedTitle + ' — ' + runDate;\n} else if (ctx.tema) {\n  doc_title = '[SCRIPT] ' + ctx.tema.substring(0, 50) + ' — ' + runDate;\n} else {\n  doc_title = '[SCRIPT AUTO] ' + runDate;\n}\n\nreturn [{ json: { script, doc_title } }];"
+      }
+    },
+    {
+      "id": "create-gdoc",
+      "name": "Crear Google Doc en carpeta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3880, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.doc_title, mimeType: 'application/vnd.google-apps.document', parents: ['1-FPpcxqz3XHiq-e_Vv2iCXsF4W1UlhZm'] }) }}"
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "google-drive-creds",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "id": "insert-content",
+      "name": "Insertar script en el doc",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4140, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://docs.googleapis.com/v1/documents/' + $json.id + ':batchUpdate' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: [{ insertText: { location: { index: 1 }, text: $node['Extraer script generado'].json.script } }] }) }}"
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "google-drive-creds",
+          "name": "Google Drive"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "⏰ Ejecutar cada día (L-V)": {
+      "main": [[{ "node": "Normalizar entrada", "type": "main", "index": 0 }]]
+    },
+    "📝 Nueva idea de vídeo": {
+      "main": [[{ "node": "Normalizar entrada", "type": "main", "index": 0 }]]
+    },
+    "Normalizar entrada": {
+      "main": [[{ "node": "YouTube: ID canal Nacho Leo", "type": "main", "index": 0 }]]
+    },
+    "YouTube: ID canal Nacho Leo": {
+      "main": [[{ "node": "Extraer ID Nacho Leo", "type": "main", "index": 0 }]]
+    },
+    "Extraer ID Nacho Leo": {
+      "main": [[{ "node": "YouTube: Vídeos recientes Nacho Leo", "type": "main", "index": 0 }]]
+    },
+    "YouTube: Vídeos recientes Nacho Leo": {
+      "main": [[{ "node": "Extraer IDs vídeos Nacho Leo", "type": "main", "index": 0 }]]
+    },
+    "Extraer IDs vídeos Nacho Leo": {
+      "main": [[{ "node": "YouTube: Stats Nacho Leo", "type": "main", "index": 0 }]]
+    },
+    "YouTube: Stats Nacho Leo": {
+      "main": [[{ "node": "Formatear contexto competidor", "type": "main", "index": 0 }]]
+    },
+    "Formatear contexto competidor": {
+      "main": [[{ "node": "YouTube: Mis vídeos (top views)", "type": "main", "index": 0 }]]
+    },
+    "YouTube: Mis vídeos (top views)": {
+      "main": [[{ "node": "Extraer IDs mi canal", "type": "main", "index": 0 }]]
+    },
+    "Extraer IDs mi canal": {
+      "main": [[{ "node": "YouTube: Stats de mi canal", "type": "main", "index": 0 }]]
+    },
+    "YouTube: Stats de mi canal": {
+      "main": [[{ "node": "Construir prompt definitivo", "type": "main", "index": 0 }]]
+    },
+    "Construir prompt definitivo": {
+      "main": [[{ "node": "OpenAI: Generar script completo", "type": "main", "index": 0 }]]
+    },
+    "OpenAI: Generar script completo": {
+      "main": [[{ "node": "Extraer script generado", "type": "main", "index": 0 }]]
+    },
+    "Extraer script generado": {
+      "main": [[{ "node": "Crear Google Doc en carpeta", "type": "main", "index": 0 }]]
+    },
+    "Crear Google Doc en carpeta": {
+      "main": [[{ "node": "Insertar script en el doc", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

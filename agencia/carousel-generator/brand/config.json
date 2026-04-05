@@ -1,0 +1,22 @@
+{
+  "colors": {
+    "cream": "#F5F0E8",
+    "black": "#1A1A1A",
+    "white": "#FFFFFF",
+    "accent": "#C4611A",
+    "accent_light": "#E8885A",
+    "text_muted": "#6B6056"
+  },
+  "fonts": {
+    "serif": "Georgia, 'Times New Roman', serif",
+    "serif_google": "Playfair Display",
+    "sans": "'Arial Black', 'Helvetica Neue', sans-serif",
+    "sans_google": "Inter"
+  },
+  "slide_size": {
+    "width": 1080,
+    "height": 1350
+  },
+  "agency_name": "Cristina Peris AI",
+  "agency_handle": "@CristinaPerisAI"
+}

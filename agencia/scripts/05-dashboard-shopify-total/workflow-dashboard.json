@@ -1,0 +1,142 @@
+{
+  "name": "Shopify — Dashboard Semanal Automático (Email HTML con métricas)",
+  "nodes": [
+    {
+      "id": "schedule-monday",
+      "name": "Cada lunes a las 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 8 * * 1" }]
+        }
+      }
+    },
+    {
+      "id": "set-dates",
+      "name": "Calcular fechas de la semana",
+      "type": "n8n-nodes-base.code",
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const hoy = new Date();\nconst hace7dias = new Date(hoy);\nhace7dias.setDate(hace7dias.getDate() - 7);\nconst hace14dias = new Date(hoy);\nhace14dias.setDate(hace14dias.getDate() - 14);\n\nreturn [{\n  json: {\n    fecha_inicio: hace7dias.toISOString(),\n    fecha_fin: hoy.toISOString(),\n    fecha_inicio_anterior: hace14dias.toISOString(),\n    fecha_fin_anterior: hace7dias.toISOString(),\n    semana_label: `${hace7dias.toLocaleDateString('es-ES', {day:'2-digit',month:'short'})} – ${hoy.toLocaleDateString('es-ES', {day:'2-digit',month:'short', year:'numeric'})}`\n  }\n}];"
+      }
+    },
+    {
+      "id": "get-orders-current",
+      "name": "Pedidos esta semana",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/orders.json?status=paid&created_at_min={{$json.fecha_inicio}}&created_at_max={{$json.fecha_fin}}&limit=250&fields=id,total_price,line_items,customer,created_at",
+        "headers": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-orders-previous",
+      "name": "Pedidos semana anterior",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 420],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/orders.json?status=paid&created_at_min={{$node['Calcular fechas de la semana'].json.fecha_inicio_anterior}}&created_at_max={{$node['Calcular fechas de la semana'].json.fecha_fin_anterior}}&limit=250&fields=id,total_price,line_items",
+        "headers": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-low-stock",
+      "name": "Productos con stock bajo",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 620],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/products.json?fields=id,title,variants&limit=250",
+        "headers": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "process-data",
+      "name": "Procesar y calcular KPIs",
+      "type": "n8n-nodes-base.code",
+      "position": [900, 380],
+      "parameters": {
+        "jsCode": "const pedidosActuales = $node['Pedidos esta semana'].json.orders || [];\nconst pedidosAnteriores = $node['Pedidos semana anterior'].json.orders || [];\nconst productos = $node['Productos con stock bajo'].json.products || [];\nconst semana = $node['Calcular fechas de la semana'].json.semana_label;\n\n// KPIs actuales\nconst ventasTotales = pedidosActuales.reduce((s, o) => s + parseFloat(o.total_price), 0);\nconst numPedidos = pedidosActuales.length;\nconst aov = numPedidos > 0 ? ventasTotales / numPedidos : 0;\n\n// KPIs anteriores\nconst ventasAnteriores = pedidosAnteriores.reduce((s, o) => s + parseFloat(o.total_price), 0);\nconst pedidosAntNum = pedidosAnteriores.length;\n\n// Variaciones\nconst varVentas = ventasAnteriores > 0 ? ((ventasTotales - ventasAnteriores) / ventasAnteriores * 100).toFixed(1) : 0;\nconst varPedidos = pedidosAntNum > 0 ? ((numPedidos - pedidosAntNum) / pedidosAntNum * 100).toFixed(1) : 0;\n\n// Top productos\nconst conteoProductos = {};\nfor (const pedido of pedidosActuales) {\n  for (const item of pedido.line_items) {\n    conteoProductos[item.title] = (conteoProductos[item.title] || 0) + item.quantity;\n  }\n}\nconst topProductos = Object.entries(conteoProductos)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5);\n\n// Stock crítico\nconst stockCritico = [];\nfor (const p of productos) {\n  for (const v of p.variants) {\n    if (v.inventory_quantity !== null && v.inventory_quantity <= 10) {\n      stockCritico.push({\n        nombre: p.title,\n        variante: v.title !== 'Default Title' ? v.title : '',\n        stock: v.inventory_quantity\n      });\n    }\n  }\n}\n\n// Ventas por día (últimos 7)\nconst ventasPorDia = {};\nfor (let i = 6; i >= 0; i--) {\n  const d = new Date();\n  d.setDate(d.getDate() - i);\n  ventasPorDia[d.toLocaleDateString('es-ES', {weekday:'short', day:'2-digit'})] = 0;\n}\nfor (const pedido of pedidosActuales) {\n  const dia = new Date(pedido.created_at).toLocaleDateString('es-ES', {weekday:'short', day:'2-digit'});\n  if (ventasPorDia[dia] !== undefined) {\n    ventasPorDia[dia] += parseFloat(pedido.total_price);\n  }\n}\n\nreturn [{\n  json: {\n    semana, ventasTotales: ventasTotales.toFixed(2), numPedidos, aov: aov.toFixed(2),\n    varVentas, varPedidos,\n    ventasAnteriores: ventasAnteriores.toFixed(2), pedidosAntNum,\n    topProductos, stockCritico,\n    ventasPorDia\n  }\n}];"
+      }
+    },
+    {
+      "id": "generate-html",
+      "name": "Generar HTML del dashboard",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 380],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst verde = (v) => parseFloat(v) >= 0 ? '#16a34a' : '#dc2626';\nconst flecha = (v) => parseFloat(v) >= 0 ? '↑' : '↓';\n\nconst barrasHtml = Object.entries(d.ventasPorDia).map(([dia, val]) => {\n  const max = Math.max(...Object.values(d.ventasPorDia));\n  const pct = max > 0 ? (val / max * 100).toFixed(0) : 0;\n  return `<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>\n    <span style='width:60px;font-size:12px;color:#666'>${dia}</span>\n    <div style='background:#e5e7eb;border-radius:4px;flex:1;height:20px'>\n      <div style='background:#2563eb;height:100%;border-radius:4px;width:${pct}%'></div>\n    </div>\n    <span style='font-size:12px;color:#374151;width:60px;text-align:right'>${parseFloat(val).toFixed(0)}€</span>\n  </div>`;\n}).join('');\n\nconst topProdHtml = d.topProductos.map(([nombre, qty], i) =>\n  `<tr><td style='padding:8px;color:#374151'>${i+1}. ${nombre}</td><td style='padding:8px;text-align:right;font-weight:bold'>${qty} uds</td></tr>`\n).join('');\n\nconst stockHtml = d.stockCritico.length > 0\n  ? d.stockCritico.map(s => `<li style='color:#dc2626'>${s.nombre}${s.variante ? ' — '+s.variante : ''}: <strong>${s.stock} uds</strong></li>`).join('')\n  : '<li style=\"color:#16a34a\">✓ Todos los productos con stock suficiente</li>';\n\nconst html = `<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px'>\n<h1 style='color:#111827;border-bottom:3px solid #2563eb;padding-bottom:12px'>📊 Dashboard Semanal — ${d.semana}</h1>\n\n<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0'>\n  <div style='background:white;padding:16px;border-radius:8px;border-left:4px solid #2563eb'>\n    <div style='font-size:12px;color:#6b7280'>VENTAS TOTALES</div>\n    <div style='font-size:28px;font-weight:bold;color:#111827'>${d.ventasTotales}€</div>\n    <div style='font-size:13px;color:${verde(d.varVentas)}'>${flecha(d.varVentas)} ${d.varVentas}% vs semana anterior</div>\n  </div>\n  <div style='background:white;padding:16px;border-radius:8px;border-left:4px solid #7c3aed'>\n    <div style='font-size:12px;color:#6b7280'>PEDIDOS</div>\n    <div style='font-size:28px;font-weight:bold;color:#111827'>${d.numPedidos}</div>\n    <div style='font-size:13px;color:${verde(d.varPedidos)}'>${flecha(d.varPedidos)} ${d.varPedidos}% vs semana anterior</div>\n  </div>\n  <div style='background:white;padding:16px;border-radius:8px;border-left:4px solid #059669'>\n    <div style='font-size:12px;color:#6b7280'>TICKET MEDIO (AOV)</div>\n    <div style='font-size:28px;font-weight:bold;color:#111827'>${d.aov}€</div>\n  </div>\n  <div style='background:white;padding:16px;border-radius:8px;border-left:4px solid #d97706;${d.stockCritico.length > 0 ? 'border-left-color:#dc2626' : ''}'>\n    <div style='font-size:12px;color:#6b7280'>STOCK CRÍTICO</div>\n    <div style='font-size:28px;font-weight:bold;color:${d.stockCritico.length > 0 ? '#dc2626' : '#059669'}'>${d.stockCritico.length}</div>\n    <div style='font-size:13px;color:#6b7280'>productos por debajo del umbral</div>\n  </div>\n</div>\n\n<div style='background:white;padding:16px;border-radius:8px;margin-bottom:12px'>\n  <h3 style='color:#111827;margin-top:0'>Ventas por día</h3>\n  ${barrasHtml}\n</div>\n\n<div style='background:white;padding:16px;border-radius:8px;margin-bottom:12px'>\n  <h3 style='color:#111827;margin-top:0'>Top 5 productos</h3>\n  <table style='width:100%;border-collapse:collapse'>${topProdHtml}</table>\n</div>\n\n<div style='background:white;padding:16px;border-radius:8px'>\n  <h3 style='color:#111827;margin-top:0'>⚠️ Stock crítico</h3>\n  <ul style='margin:0;padding-left:20px'>${stockHtml}</ul>\n</div>\n\n<p style='text-align:center;color:#9ca3af;font-size:12px;margin-top:20px'>Generado automáticamente por n8n — ${new Date().toLocaleString('es-ES')}</p>\n</body></html>`;\n\nreturn [{ json: { html, subject: `📊 Tu tienda esta semana — ${d.semana} | ${d.ventasTotales}€ · ${d.numPedidos} pedidos` } }];"
+      }
+    },
+    {
+      "id": "send-email",
+      "name": "Enviar dashboard por email",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [1340, 380],
+      "parameters": {
+        "fromEmail": "={{$env.FROM_EMAIL}}",
+        "toEmail": "={{$env.OWNER_EMAIL}}",
+        "subject": "={{$json.subject}}",
+        "emailType": "html",
+        "html": "={{$json.html}}"
+      },
+      "credentials": {
+        "smtp": { "id": "smtp-creds", "name": "SMTP" }
+      }
+    }
+  ],
+  "connections": {
+    "Cada lunes a las 8:00": {
+      "main": [[{ "node": "Calcular fechas de la semana", "type": "main", "index": 0 }]]
+    },
+    "Calcular fechas de la semana": {
+      "main": [[
+        { "node": "Pedidos esta semana", "type": "main", "index": 0 },
+        { "node": "Pedidos semana anterior", "type": "main", "index": 0 },
+        { "node": "Productos con stock bajo", "type": "main", "index": 0 }
+      ]]
+    },
+    "Pedidos esta semana": {
+      "main": [[{ "node": "Procesar y calcular KPIs", "type": "main", "index": 0 }]]
+    },
+    "Pedidos semana anterior": {
+      "main": [[{ "node": "Procesar y calcular KPIs", "type": "main", "index": 0 }]]
+    },
+    "Productos con stock bajo": {
+      "main": [[{ "node": "Procesar y calcular KPIs", "type": "main", "index": 0 }]]
+    },
+    "Procesar y calcular KPIs": {
+      "main": [[{ "node": "Generar HTML del dashboard", "type": "main", "index": 0 }]]
+    },
+    "Generar HTML del dashboard": {
+      "main": [[{ "node": "Enviar dashboard por email", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": {
+    "description": "Cada lunes a las 8:00 genera un dashboard HTML con las métricas de la semana (ventas, pedidos, AOV, top productos, stock crítico, ventas por día) y lo envía por email.",
+    "credentials_needed": [
+      "SHOPIFY_STORE + SHOPIFY_ACCESS_TOKEN",
+      "FROM_EMAIL — email remitente",
+      "OWNER_EMAIL — tu email donde recibes el dashboard",
+      "SMTP credentials"
+    ]
+  }
+}

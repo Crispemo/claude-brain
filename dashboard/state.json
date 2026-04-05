@@ -1,0 +1,196 @@
+{
+  "week": "2026-W15",
+  "weekFocus": "🎥 Semana de grabación masiva — 2 semanas de contenido de una vez",
+  "lastUpdated": "2026-04-05",
+  "projects": {
+    "simulia": {
+      "status": "active",
+      "color": "simulia",
+      "objective": "1.000€ MRR",
+      "objectiveValue": 1000,
+      "current": "347€ MRR",
+      "currentValue": 347,
+      "unit": "€ MRR",
+      "progress": 34,
+      "velocityWeeks": null,
+      "velocityDate": null,
+      "tasks": [
+        {
+          "id": "s1",
+          "text": "🎬 Grabar vídeo Simulia #1",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "s2",
+          "text": "🎬 Grabar vídeo Simulia #2",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "s3",
+          "text": "🎬 Grabar vídeo Simulia #3",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "s4",
+          "text": "🎬 Grabar vídeo Simulia #4",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "s5",
+          "text": "✂️ Editar y publicar los 4 vídeos Simulia",
+          "done": false,
+          "priority": "medium"
+        }
+      ]
+    },
+    "agencia": {
+      "status": "active",
+      "color": "agencia",
+      "objective": "5 clientes/mes",
+      "objectiveValue": 5,
+      "current": "0 clientes",
+      "currentValue": 0,
+      "unit": "clientes",
+      "progress": 0,
+      "velocityWeeks": null,
+      "velocityDate": null,
+      "tasks": [
+        {
+          "id": "a1",
+          "text": "🎬 Grabar vídeo largo YT #1",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a2",
+          "text": "🎬 Grabar vídeo largo YT #2",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a3",
+          "text": "🎬 Grabar vídeo largo YT #3",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a4",
+          "text": "🎬 Grabar vídeo largo YT #4",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a5",
+          "text": "🎬 Grabar vídeo largo YT #5",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a6",
+          "text": "🎬 Grabar vídeo largo YT #6",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a7",
+          "text": "📱 Grabar short #1",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a8",
+          "text": "📱 Grabar short #2",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a9",
+          "text": "📱 Grabar short #3",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a10",
+          "text": "📱 Grabar short #4",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a11",
+          "text": "📱 Grabar short #5",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a12",
+          "text": "📱 Grabar short #6",
+          "done": false,
+          "priority": "high"
+        },
+        {
+          "id": "a13",
+          "text": "✂️ Editar 6 vídeos largos YT",
+          "done": false,
+          "priority": "medium"
+        },
+        {
+          "id": "a14",
+          "text": "✂️ Editar 6 shorts",
+          "done": false,
+          "priority": "medium"
+        },
+        {
+          "id": "a15",
+          "text": "📅 Programar vídeos largos en YouTube (2 semanas)",
+          "done": false,
+          "priority": "medium"
+        },
+        {
+          "id": "a16",
+          "text": "📅 Programar shorts + carruseles en todas las RRSS (2 semanas)",
+          "done": false,
+          "priority": "medium"
+        }
+      ]
+    },
+    "mocca": {
+      "status": "paused",
+      "color": "mocca",
+      "objective": "100 reservas pre-lanzamiento",
+      "objectiveValue": 100,
+      "current": "pausado",
+      "currentValue": 0,
+      "unit": "reservas",
+      "progress": 0,
+      "velocityWeeks": null,
+      "velocityDate": null,
+      "tasks": []
+    }
+  },
+  "mindset": {
+    "weekPrinciple": "La semana de producción masiva",
+    "weekPrincipleContext": "Un día de setup + grabación intensiva = 2 semanas de contenido publicado. Eso es apalancamiento real. No se trata de estar ocupado, se trata de multiplicar el trabajo.",
+    "weeklyWin": "",
+    "ritualCompletedToday": false,
+    "ritualLastDate": "2026-04-05"
+  },
+  "ideas": [],
+  "goals": [
+    {
+      "id": 1775420785140,
+      "name": "Carrera 7,5k",
+      "date": "2026-04-26",
+      "emoji": "🏃🏽‍♀️"
+    },
+    {
+      "id": 1775420805963,
+      "name": "Cumple",
+      "date": "2026-06-23",
+      "emoji": "🎂"
+    }
+  ]
+}

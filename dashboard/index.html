@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Dashboard — Cris</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #242424;
+      --border: #2e2e2e;
+      --text: #f0f0f0;
+      --text-muted: #888;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --grey: #555;
+      --radius: 12px;
+      --gap: 16px;
+      /* Colores de proyecto */
+      --simulia: #7da0a7;
+      --agencia: #eab308;
+      --mocca: #6b5c4e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: var(--gap);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    @media (min-width: 768px) {
+      body { max-width: 900px; padding: 24px; }
+      .projects-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+    }
+
+    /* ── RITUAL SCREEN ── */
+    #ritual-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    #ritual-screen.hidden { display: none; }
+    .ritual-title {
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 48px;
+    }
+    .breath-circle-wrap {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin-bottom: 32px;
+    }
+    .breath-circle {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(59,130,246,0.05) 70%);
+      border: 2px solid rgba(59,130,246,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--blue);
+      letter-spacing: 0.05em;
+      transition: transform 4s ease-in-out, background 4s ease-in-out, border-color 4s ease-in-out;
+    }
+    .breath-circle.inhale {
+      transform: scale(1.35);
+      background: radial-gradient(circle, rgba(59,130,246,0.35) 0%, rgba(59,130,246,0.08) 70%);
+      border-color: rgba(59,130,246,0.7);
+    }
+    .breath-circle.hold {
+      transform: scale(1.35);
+      background: radial-gradient(circle, rgba(168,85,247,0.35) 0%, rgba(168,85,247,0.08) 70%);
+      border-color: rgba(168,85,247,0.7);
+    }
+    .breath-circle.exhale {
+      transform: scale(1.0);
+      background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, rgba(59,130,246,0.03) 70%);
+      border-color: rgba(59,130,246,0.25);
+    }
+    #breath-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+    #breath-timer-text {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    #breath-phase {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 16px;
+    }
+    .ritual-skip-btn {
+      margin-top: 40px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 10px 24px;
+      border-radius: 99px;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    /* Visualization phase */
+    #viz-phase {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      max-width: 380px;
+    }
+    #viz-phase.active { display: flex; }
+    .viz-label {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+    #viz-text {
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    #viz-text em {
+      font-style: normal;
+      color: var(--yellow);
+      font-weight: 600;
+    }
+    .ritual-cta {
+      background: var(--blue);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 14px 32px;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      min-height: 48px;
+      width: 100%;
+      max-width: 340px;
+    }
+
+    /* ── DASHBOARD ── */
+    #dashboard { display: none; }
+    #dashboard.visible { display: block; }
+
+    /* ── BLOCK: HEADER ── */
+    .header-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 16px 16px;
+      margin-bottom: var(--gap);
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .week-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .week-date {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .week-focus {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+    .global-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .progress-bar {
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.5s ease;
+    }
+    .progress-fill.green    { background: var(--green); }
+    .progress-fill.yellow   { background: var(--yellow); }
+    .progress-fill.blue     { background: var(--blue); }
+    .progress-fill.grey     { background: var(--grey); }
+    .progress-fill.simulia  { background: var(--simulia); }
+    .progress-fill.agencia  { background: var(--agencia); }
+    .progress-fill.mocca    { background: var(--mocca); }
+
+    /* ── BLOCK: PROJECTS ── */
+    .section-title {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .projects-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    @media (min-width: 480px) {
+      .projects-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .project-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .project-card.paused { opacity: 0.45; }
+    .project-card.card-simulia { border-left-color: var(--simulia); background: linear-gradient(135deg, #1a1a1a 80%, rgba(125,160,167,0.06)); }
+    .project-card.card-agencia { border-left-color: var(--agencia); background: linear-gradient(135deg, #1a1a1a 80%, rgba(234,179,8,0.06)); }
+    .project-card.card-mocca   { border-left-color: var(--mocca);   background: linear-gradient(135deg, #1a1a1a 80%, rgba(107,92,78,0.06)); }
+    .project-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .project-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .semaphore {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .semaphore.green   { background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+    .semaphore.yellow  { background: var(--yellow); box-shadow: 0 0 8px rgba(234,179,8,0.5); }
+    .semaphore.grey    { background: var(--grey); }
+    .semaphore.simulia { background: var(--simulia); box-shadow: 0 0 8px rgba(125,160,167,0.5); }
+    .semaphore.agencia { background: var(--agencia); box-shadow: 0 0 8px rgba(234,179,8,0.5); }
+    .semaphore.mocca   { background: var(--mocca); box-shadow: 0 0 8px rgba(107,92,78,0.5); }
+    .project-current {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .project-objective {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .project-velocity {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+    .project-paused-badge {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--grey);
+      background: var(--surface2);
+      padding: 3px 8px;
+      border-radius: 99px;
+      margin-top: 8px;
+      display: inline-block;
+    }
+
+    /* ── BLOCK: TASKS ── */
+    .tasks-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: var(--gap);
+    }
+    .tasks-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .tasks-count {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      min-height: 44px;
+    }
+    .task-item:last-child { border-bottom: none; }
+    .task-checkbox {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .task-checkbox.done {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .task-checkbox.done::after {
+      content: '';
+      width: 5px;
+      height: 9px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg) translate(-1px, -1px);
+      display: block;
+    }
+    .task-text-wrap { flex: 1; }
+    .task-text {
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--text);
+      transition: color 0.15s;
+    }
+    .task-text.done {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .task-project-badge {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .task-project-badge.simulia  { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .task-project-badge.agencia  { background: rgba(34,197,94,0.15); color: var(--green); }
+    .task-priority-badge {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .task-priority-badge.high   { color: var(--red); }
+    .task-priority-badge.medium { color: var(--yellow); }
+    .task-priority-badge.low    { color: var(--text-muted); }
+    .tasks-progress {
+      margin-top: 14px;
+    }
+
+    /* ── BLOCK: METRICS ── */
+    .metrics-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: var(--gap);
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .metric-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 12px;
+    }
+    .metric-label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+    }
+    .metric-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── BLOCK: CHAT ── */
+    .chat-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: var(--gap);
+    }
+    .chat-messages {
+      min-height: 120px;
+      max-height: 320px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-msg {
+      max-width: 85%;
+      padding: 10px 13px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .chat-msg.claude {
+      background: var(--surface2);
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .chat-msg.user {
+      background: var(--blue);
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg.thinking {
+      background: var(--surface2);
+      color: var(--text-muted);
+      align-self: flex-start;
+      font-style: italic;
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .chat-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      min-height: 44px;
+      font-family: inherit;
+      resize: none;
+    }
+    .chat-input::placeholder { color: var(--text-muted); }
+    .chat-send-btn {
+      background: var(--blue);
+      border: none;
+      border-radius: 10px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    /* ── BLOCK: MINDSET ── */
+    .mindset-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 80px;
+    }
+    .quote-text {
+      font-size: 17px;
+      font-style: italic;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .quote-author {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+    .week-principle-box {
+      background: var(--surface2);
+      border-left: 3px solid var(--purple);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+    .week-principle-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 4px;
+    }
+    .week-principle-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .week-principle-context {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .mindset-state-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .mindset-btn {
+      flex: 1;
+      min-width: 100px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 8px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: center;
+      min-height: 44px;
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .mindset-btn:active { background: var(--border); }
+    .mindset-response {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 16px;
+      display: none;
+    }
+    .mindset-response.visible { display: block; }
+    .weekly-win-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .weekly-win-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      min-height: 44px;
+      resize: none;
+    }
+    .weekly-win-input::placeholder { color: var(--text-muted); }
+    .weekly-win-input:focus { border-color: var(--purple); }
+
+    /* ── IDEA BUTTON + MODAL ── */
+    .idea-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--yellow);
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(234,179,8,0.4);
+      z-index: 100;
+      transition: transform 0.15s;
+    }
+    .idea-fab:active { transform: scale(0.92); }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.hidden { display: none; }
+    .modal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 20px 16px 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .modal-textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: inherit;
+      resize: none;
+      height: 100px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+    .modal-textarea:focus { border-color: var(--yellow); }
+    .modal-select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      margin-bottom: 16px;
+      appearance: none;
+      min-height: 44px;
+    }
+    .modal-save-btn {
+      width: 100%;
+      background: var(--yellow);
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f0f0f;
+      cursor: pointer;
+      min-height: 48px;
+      font-family: inherit;
+    }
+    .modal-save-btn:active { opacity: 0.85; }
+
+    /* ── UTILS ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 14px 0;
+    }
+    .hidden { display: none !important; }
+
+    /* ── GOALS / METAS ── */
+    .goals-block { margin-bottom: var(--gap); }
+    .goals-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; flex-wrap: wrap; }
+    .goal-chip {
+      flex-shrink: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .goal-chip.urgent { border-color: var(--red); }
+    .goal-chip.soon   { border-color: var(--yellow); }
+    .goal-chip.ok     { border-color: var(--simulia); }
+    .goal-days { font-weight: 700; font-size: 17px; }
+    .goal-days.urgent { color: var(--red); }
+    .goal-days.soon   { color: var(--yellow); }
+    .goal-days.ok     { color: var(--simulia); }
+    .goal-add-btn {
+      background: var(--surface2);
+      border: 1px dashed var(--border);
+      border-radius: 20px;
+      padding: 8px 14px;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .goal-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0 0 0 4px; }
+    .goal-modal-date { width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); padding: 12px; font-size: 15px;
+      font-family: inherit; outline: none; margin-bottom: 16px; min-height: 44px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     RITUAL SCREEN (Block 0)
+════════════════════════════════════════════════ -->
+<div id="ritual-screen">
+  <!-- Phase 1: Breathing -->
+  <div id="breath-phase-ui" style="display:flex;flex-direction:column;align-items:center;width:100%;">
+    <p class="ritual-title">Ritual de mañana</p>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <button id="timer-2btn" onclick="setTimerDuration(2)" style="padding:6px 14px;border-radius:20px;border:1px solid var(--blue);background:var(--blue);color:white;font-size:12px;cursor:pointer;">2 min</button>
+      <button id="timer-5btn" onclick="setTimerDuration(5)" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;">5 min</button>
+    </div>
+    <div class="breath-circle-wrap">
+      <div class="breath-circle" id="breath-circle">
+        <span id="breath-label">•••</span>
+      </div>
+    </div>
+    <div id="breath-timer-text">2:00</div>
+    <div id="breath-phase">Preparando…</div>
+    <button class="ritual-skip-btn" onclick="skipMeditation()">Saltar meditación →</button>
+  </div>
+
+  <!-- Phase 2: Visualization -->
+  <div id="viz-phase">
+    <p class="viz-label">Visualización</p>
+    <p id="viz-text"></p>
+    <button class="ritual-cta" onclick="finishRitual()">Estoy listo. A trabajar.</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN DASHBOARD
+════════════════════════════════════════════════ -->
+<div id="dashboard">
+  <!-- All blocks rendered by JS -->
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     IDEA MODAL
+════════════════════════════════════════════════ -->
+<!-- GOAL MODAL -->
+<div class="modal-backdrop hidden" id="goal-modal" onclick="if(event.target===this)closeGoalModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <p class="modal-title">🎯 Nueva meta</p>
+    <input type="text" class="modal-textarea" id="goal-name" placeholder="Nombre de la meta (ej: Carrera 10K)" style="resize:none;height:48px;padding:12px">
+    <input type="date" class="goal-modal-date" id="goal-date">
+    <input type="text" class="modal-textarea" id="goal-emoji" placeholder="Emoji (opcional, ej: 🏃)" style="resize:none;height:48px;padding:12px">
+    <button class="modal-save-btn" onclick="saveGoal()">Añadir meta</button>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="idea-modal" onclick="closeIdeaOnBackdrop(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <p class="modal-title">💡 Capturar idea</p>
+    <textarea class="modal-textarea" id="idea-text" placeholder="¿Qué idea tienes?"></textarea>
+    <select class="modal-select" id="idea-project">
+      <option value="simulia">Simulia</option>
+      <option value="agencia">Agencia</option>
+      <option value="mocca">Mocca</option>
+    </select>
+    <button class="modal-save-btn" onclick="saveIdea()">Guardar idea</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONSTANTS
+════════════════════════════════════════════════ */
+const SERVER = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3001'
+  : window.location.origin;
+let STATE = {};
+
+const QUOTES = [
+  { text: "No pidas que sea más fácil, pide ser mejor.", author: "Jim Rohn" },
+  { text: "La disciplina es el puente entre metas y logros.", author: "Jim Rohn" },
+  { text: "Actúa como si fuera imposible fallar.", author: "Brian Tracy" },
+  { text: "No cuentes los días, haz que los días cuenten.", author: "Brian Tracy" },
+  { text: "La única manera de predecir el futuro es creándolo.", author: "Bob Proctor" },
+  { text: "Tú te conviertes en lo que piensas la mayor parte del tiempo.", author: "Bob Proctor" },
+  { text: "No importa cuántas veces caigas, lo que importa es cuántas veces te levantes.", author: "Ilia Topuria" },
+  { text: "Stay hard.", author: "David Goggins" },
+  { text: "Cada acción que tomas es un voto por la persona que quieres ser.", author: "James Clear" },
+  { text: "El dolor que sientes hoy es la fuerza que sentirás mañana.", author: "Anónimo" },
+  { text: "El éxito no llega a los que esperan. Llega a los que trabajan.", author: "Brian Tracy" },
+  { text: "No busques que las condiciones sean perfectas. Empieza.", author: "Ilia Topuria" }
+];
+
+const MINDSET_RESPONSES = {
+  energia: `¡Eso es! Aprovecha este estado. Empieza por la tarea de mayor impacto — no la más fácil, la que más mueve el marcador. Tienes energía, úsala donde más cuente.`,
+  dudas: `Normal. Topuria no ganó el cinturón sin pasar por momentos de duda. La diferencia es que actuó de todas formas. Elige UNA tarea pequeña, hazla, y verás cómo el estado cambia.`,
+  empuje: `Recuerda por qué empezaste. Llevas un año apostando por algo que la mayoría no se atreve ni a intentar. Enfermero reconvertido a tecnólogo, con 3 proyectos en marcha. Eso no es poco. Es mucho. Ahora a por la siguiente tarea.`
+};
+
+/* ═══════════════════════════════════════════════
+   STATE MANAGEMENT
+════════════════════════════════════════════════ */
+async function loadState() {
+  try {
+    const res = await fetch(`${SERVER}/api/state`);
+    if (!res.ok) throw new Error('server error');
+    STATE = await res.json();
+    localStorage.setItem('dashboard_state', JSON.stringify(STATE));
+  } catch (e) {
+    const cached = localStorage.getItem('dashboard_state');
+    if (cached) {
+      STATE = JSON.parse(cached);
+    } else {
+      // Fallback minimal state
+      STATE = {
+        week: getWeekLabel(),
+        weekFocus: 'Cargando...',
+        projects: {
+          simulia: { status: 'active', color: 'yellow', objective: '1.000€ MRR', objectiveValue: 1000, current: '—', currentValue: 0, unit: '€ MRR', progress: 0, velocityWeeks: null, tasks: [] },
+          agencia: { status: 'active', color: 'green', objective: '5.000 subs', objectiveValue: 5000, current: '—', currentValue: 0, unit: 'subs', progress: 0, velocityWeeks: null, tasks: [] },
+          mocca:   { status: 'paused', color: 'grey', objective: '100 reservas', objectiveValue: 100, current: 'pausado', currentValue: 0, unit: 'reservas', progress: 0, velocityWeeks: null, tasks: [] }
+        },
+        mindset: { weekPrinciple: '', weekPrincipleContext: '', weeklyWin: '', ritualLastDate: '' },
+        ideas: []
+      };
+    }
+  }
+}
+
+async function saveState() {
+  localStorage.setItem('dashboard_state', JSON.stringify(STATE));
+  try {
+    await fetch(`${SERVER}/api/state`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(STATE)
+    });
+  } catch (e) { /* silent fail — already saved to localStorage */ }
+}
+
+/* ═══════════════════════════════════════════════
+   RITUAL (Block 0)
+════════════════════════════════════════════════ */
+let breathInterval = null;
+let breathTimer = null;
+
+function getTodayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function checkRitual() {
+  const lastDate = STATE.mindset && STATE.mindset.ritualLastDate;
+  const today = getTodayStr();
+  if (lastDate === today) {
+    document.getElementById('ritual-screen').classList.add('hidden');
+    renderDashboard();
+    document.getElementById('dashboard').classList.add('visible');
+  } else {
+    renderRitual();
+  }
+}
+
+function renderRitual() {
+  document.getElementById('ritual-screen').classList.remove('hidden');
+  document.getElementById('dashboard').classList.remove('visible');
+  startBreathTimer();
+}
+
+let selectedTimerMinutes = 2;
+
+function setTimerDuration(min) {
+  clearInterval(breathInterval);
+  breathInterval = null;
+  selectedTimerMinutes = min;
+  document.getElementById('timer-2btn').style.background = min === 2 ? 'var(--blue)' : 'transparent';
+  document.getElementById('timer-2btn').style.color = min === 2 ? 'white' : 'var(--text-muted)';
+  document.getElementById('timer-2btn').style.borderColor = min === 2 ? 'var(--blue)' : 'var(--border)';
+  document.getElementById('timer-5btn').style.background = min === 5 ? 'var(--blue)' : 'transparent';
+  document.getElementById('timer-5btn').style.color = min === 5 ? 'white' : 'var(--text-muted)';
+  document.getElementById('timer-5btn').style.borderColor = min === 5 ? 'var(--blue)' : 'var(--border)';
+  document.getElementById('breath-timer-text').textContent = `${min}:00`;
+  const vizPhase = document.getElementById('viz-phase');
+  if (!vizPhase || !vizPhase.classList.contains('active')) {
+    startBreathTimer();
+  }
+}
+
+function startBreathTimer() {
+  const circle = document.getElementById('breath-circle');
+  const label  = document.getElementById('breath-label');
+  const phase  = document.getElementById('breath-phase');
+  const timerText = document.getElementById('breath-timer-text');
+
+  let totalSeconds = selectedTimerMinutes * 60;
+  const CYCLE = 12; // 4 inhale + 4 hold + 4 exhale
+  const phases = [
+    { name: 'INHALA',   cls: 'inhale', dur: 4 },
+    { name: 'AGUANTA',  cls: 'hold',   dur: 4 },
+    { name: 'EXHALA',   cls: 'exhale', dur: 4 },
+  ];
+
+  let elapsed = 0;
+  let phaseIdx = 0;
+  let phaseElapsed = 0;
+
+  function applyPhase(idx) {
+    circle.className = 'breath-circle ' + phases[idx].cls;
+    phase.textContent = phases[idx].name;
+    label.textContent = phases[idx].dur + 's';
+  }
+
+  applyPhase(0);
+
+  breathInterval = setInterval(() => {
+    elapsed++;
+    phaseElapsed++;
+    const rem = totalSeconds - elapsed;
+    const m = Math.floor(rem / 60);
+    const s = rem % 60;
+    timerText.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+
+    if (phaseElapsed >= phases[phaseIdx].dur) {
+      phaseElapsed = 0;
+      phaseIdx = (phaseIdx + 1) % phases.length;
+      applyPhase(phaseIdx);
+    }
+
+    if (elapsed >= totalSeconds) {
+      clearInterval(breathInterval);
+      showVisualization();
+    }
+  }, 1000);
+}
+
+function skipMeditation() {
+  if (breathInterval) clearInterval(breathInterval);
+  showVisualization();
+}
+
+function showVisualization() {
+  document.getElementById('breath-phase-ui').style.display = 'none';
+  const vizPhase = document.getElementById('viz-phase');
+  vizPhase.classList.add('active');
+  document.getElementById('viz-text').innerHTML = getVisualizationText();
+  generateVisualization();
+}
+
+async function generateVisualization() {
+  const el = document.getElementById('viz-text');
+  if (!el) return;
+  el.innerHTML = 'Generando tu visualización...';
+  try {
+    const res = await fetch(`${SERVER}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Genera un párrafo corto de visualización matutina personalizado para mi situación real. Usa los datos de mis proyectos. Evocador, directo, que me motive a empezar. Máximo 80 palabras.',
+        stateContext: { simulia: STATE.projects?.simulia, agencia: STATE.projects?.agencia, weekFocus: STATE.weekFocus }
+      })
+    });
+    const data = await res.json();
+    if (el) el.innerHTML = data.reply;
+  } catch (e) {
+    if (el) el.innerHTML = getVisualizationText(); // Fallback al texto estático
+  }
+}
+
+function getVisualizationText() {
+  const s = STATE.projects && STATE.projects.simulia;
+  const a = STATE.projects && STATE.projects.agencia;
+  const sProg = escapeHtml(String(s ? s.progress : 0));
+  const aProg = escapeHtml(String(a ? a.progress : 0));
+  const sCurrent = escapeHtml(s ? s.current : '—');
+  const aCurrent = escapeHtml(a ? a.current : '—');
+  const focus = escapeHtml(STATE.weekFocus || 'tu semana');
+
+  const sObj = escapeHtml(s ? s.objective : '1.000€ MRR');
+  const aObj = escapeHtml(a ? a.objective : '5 clientes/mes');
+
+  return `Eres Cris. Llevas meses construyendo desde cero, sin atajos.<br><br>
+<em>Simulia</em> — <em>${sCurrent}</em>, al <em>${sProg}%</em> de llegar a <em>${sObj}</em>.<br>
+<em>Agencia</em> — objetivo: <em>${aObj}</em>. Estás validando el modelo ahora mismo.<br><br>
+Esta semana el foco es: <em>${focus}</em>.<br><br>
+Respira. Ya estás aquí. Ahora a ejecutar.`;
+}
+
+async function finishRitual() {
+  if (!STATE.mindset) STATE.mindset = {};
+  STATE.mindset.ritualLastDate = getTodayStr();
+  await saveState();
+  document.getElementById('ritual-screen').classList.add('hidden');
+  renderDashboard();
+  document.getElementById('dashboard').classList.add('visible');
+}
+
+/* ═══════════════════════════════════════════════
+   DASHBOARD RENDER (Blocks 1-6 + 5b)
+════════════════════════════════════════════════ */
+function renderDashboard() {
+  const s = STATE.projects.simulia;
+  const a = STATE.projects.agencia;
+  const m = STATE.projects.mocca;
+
+  // Global progress = avg of active projects only
+  const activeProjects = [s, a].filter(p => p && p.status === 'active');
+  const globalProgress = activeProjects.length
+    ? Math.round(activeProjects.reduce((sum, p) => sum + (p.progress || 0), 0) / activeProjects.length)
+    : 0;
+
+  const dash = document.getElementById('dashboard');
+  dash.innerHTML = `
+    ${renderHeader(globalProgress)}
+    ${renderGoals()}
+    ${renderProjects(s, a, m)}
+    ${renderTasks(s, a)}
+    ${renderMetrics()}
+    ${renderChat()}
+    ${renderMindset()}
+  `;
+
+  renderIdeaButton();
+  bindAllEvents();
+  loadLiveMetrics();
+}
+
+async function loadLiveMetrics() {
+  // YouTube
+  try {
+    const yt = await (await fetch(`${SERVER}/api/youtube`)).json();
+    if (yt.error) throw new Error(yt.error);
+    const ytSubsEl = document.querySelector('.metric-box:nth-child(1) .metric-value');
+    const ytDeltaEl = document.querySelector('.metric-box:nth-child(1) .metric-sub');
+    if (ytSubsEl) ytSubsEl.textContent = yt.subscribers?.toLocaleString('es-ES') || '—';
+    if (ytDeltaEl) ytDeltaEl.textContent = `${yt.videoCount} vídeos totales`;
+    STATE.projects.agencia.currentValue = yt.subscribers;
+    STATE.projects.agencia.current = `${yt.subscribers.toLocaleString('es-ES')} subs`;
+    STATE.projects.agencia.progress = Math.round(yt.subscribers / STATE.projects.agencia.objectiveValue * 100);
+  } catch (e) {
+    const el = document.querySelector('.metric-box:nth-child(1) .metric-sub');
+    if (el) el.textContent = '⚠️ No disponible';
+  }
+
+  // Stripe
+  try {
+    const stripe = await (await fetch(`${SERVER}/api/stripe`)).json();
+    if (stripe.error) throw new Error(stripe.error);
+    const mrrEl = document.querySelector('.metric-box:nth-child(3) .metric-value');
+    const usersEl = document.querySelector('.metric-box:nth-child(3) .metric-sub');
+    const activeEl = document.querySelector('.metric-box:nth-child(4) .metric-value');
+    const newEl = document.querySelector('.metric-box:nth-child(4) .metric-sub');
+    if (mrrEl) mrrEl.textContent = `${stripe.mrr}€`;
+    if (usersEl) usersEl.textContent = `${stripe.activeUsers} activos`;
+    if (activeEl) activeEl.textContent = stripe.activeUsers;
+    if (newEl) { newEl.textContent = `+${stripe.newThisMonth} este mes`; newEl.style.color = 'var(--green)'; }
+    STATE.projects.simulia.currentValue = stripe.mrr;
+    STATE.projects.simulia.current = `${stripe.mrr}€ MRR`;
+    STATE.projects.simulia.progress = Math.round(stripe.mrr / STATE.projects.simulia.objectiveValue * 100);
+  } catch (e) {
+    const el = document.querySelector('.metric-box:nth-child(3) .metric-sub');
+    if (el) el.textContent = '⚠️ No disponible';
+  }
+
+  // YouTube box 2 — total vídeos publicados
+  try {
+    const ytEl = document.querySelector('.metric-box:nth-child(2) .metric-value');
+    const ytSubEl = document.querySelector('.metric-box:nth-child(2) .metric-sub');
+    // Se rellena con datos del mismo fetch de YouTube (ya cargados arriba si fue bien)
+    // Si YT falló, estos quedan en '—'. Si tuvo éxito, los rellenamos aquí también.
+    const yt = await (await fetch(`${SERVER}/api/youtube`)).json();
+    if (!yt.error) {
+      if (ytEl) ytEl.textContent = yt.videoCount?.toLocaleString('es-ES') || '—';
+      if (ytSubEl) ytSubEl.textContent = `${yt.totalViews?.toLocaleString('es-ES') || '—'} vistas totales`;
+    }
+  } catch (e) { /* silencioso — box queda en '—' */ }
+
+  // Update timestamp
+  const tsEl = document.querySelector('.metrics-block .section-title');
+  if (tsEl) {
+    const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    tsEl.textContent = `Métricas en vivo · ${time}`;
+  }
+}
+
+/* ── Goals / Metas ── */
+function renderGoals() {
+  const goals = STATE.goals || [];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const chips = goals.map(g => {
+    const target = new Date(g.date); target.setHours(0,0,0,0);
+    const days = Math.round((target - today) / 86400000);
+    const cls = days <= 3 ? 'urgent' : days <= 14 ? 'soon' : 'ok';
+    const label = days < 0 ? `hace ${Math.abs(days)}d` : days === 0 ? '¡HOY!' : `${days}d`;
+    return `<div class="goal-chip ${cls}">
+      <span>${escapeHtml(g.emoji || '🎯')}</span>
+      <div>
+        <div class="goal-days ${cls}">${label}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${escapeHtml(g.name)}</div>
+      </div>
+      <button class="goal-delete" onclick="deleteGoal(${g.id})" title="Eliminar">×</button>
+    </div>`;
+  }).join('');
+
+  return `<div class="goals-block">
+    <div class="goals-row">
+      ${chips}
+      <button class="goal-add-btn" onclick="openGoalModal()">+ Meta</button>
+    </div>
+  </div>`;
+}
+
+function openGoalModal() {
+  document.getElementById('goal-modal').classList.remove('hidden');
+  const d = new Date(); d.setDate(d.getDate() + 7);
+  document.getElementById('goal-date').value = d.toISOString().split('T')[0];
+  document.getElementById('goal-name').focus();
+}
+function closeGoalModal() {
+  document.getElementById('goal-modal').classList.add('hidden');
+}
+
+async function saveGoal() {
+  const name = document.getElementById('goal-name').value.trim();
+  const date = document.getElementById('goal-date').value;
+  const emoji = document.getElementById('goal-emoji').value.trim() || '🎯';
+  if (!name || !date) return;
+  try {
+    const res = await fetch(`${SERVER}/api/goal`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, date, emoji })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      STATE.goals = STATE.goals || [];
+      STATE.goals.push(data.goal);
+      closeGoalModal();
+      document.getElementById('goal-name').value = '';
+      document.getElementById('goal-emoji').value = '';
+      renderDashboard();
+    }
+  } catch (e) { alert('Error guardando meta'); }
+}
+
+async function deleteGoal(id) {
+  try {
+    await fetch(`${SERVER}/api/goal/${id}`, { method: 'DELETE' });
+    STATE.goals = (STATE.goals || []).filter(g => g.id !== id);
+    renderDashboard();
+  } catch (e) { /* silencioso */ }
+}
+
+/* ── Block 1: Header ── */
+function renderHeader(globalProgress) {
+  const { week, weekFocus } = STATE;
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  const wn = getWeekNumber();
+
+  return `
+  <div class="header-block">
+    <div class="header-top">
+      <span class="week-label">Semana ${wn}</span>
+      <span class="week-date">${dateStr}</span>
+    </div>
+    <div class="week-focus">${weekFocus || '—'}</div>
+    <div class="global-bar-label">
+      <span>Progreso global</span>
+      <span>${globalProgress}%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill yellow" style="width:${globalProgress}%"></div>
+    </div>
+  </div>`;
+}
+
+/* ── Block 2: Projects ── */
+function renderProjects(s, a, m) {
+  return `
+  <div class="section-title" style="margin-bottom:10px">Proyectos</div>
+  <div class="projects-grid" style="margin-bottom:var(--gap)">
+    ${renderProjectCard('simulia', s)}
+    ${renderProjectCard('agencia', a)}
+    ${renderProjectCard('mocca', m)}
+  </div>`;
+}
+
+function renderProjectCard(key, p) {
+  if (!p) return '';
+  const isPaused = p.status === 'paused';
+  const colorClass = p.color || 'grey';
+  const names = { simulia: 'Simulia', agencia: 'Agencia', mocca: 'Mocca' };
+  const name = names[key] || key;
+
+  let body = '';
+  if (isPaused) {
+    body = `
+      <div class="project-current">${p.current}</div>
+      <div class="project-paused-badge">En pausa</div>`;
+  } else {
+    const velocity = p.velocityWeeks
+      ? `<div class="project-velocity">~${p.velocityWeeks} sem para objetivo</div>`
+      : '';
+    body = `
+      <div class="project-current">${p.current}</div>
+      <div class="project-objective">Meta: ${p.objective}</div>
+      <div class="progress-bar">
+        <div class="progress-fill ${key}" style="width:${p.progress || 0}%"></div>
+      </div>
+      ${velocity}`;
+  }
+
+  return `
+  <div class="project-card ${isPaused ? 'paused' : ''} card-${key}">
+    <div class="project-card-header">
+      <span class="project-name" style="color:var(--${key})">${name}</span>
+      <span class="semaphore ${key}"></span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+/* ── Block 3: Tasks ── */
+function renderTasks(s, a) {
+  const allTasks = [];
+
+  if (s && s.tasks) s.tasks.forEach(t => allTasks.push({ ...t, project: 'simulia' }));
+  if (a && a.tasks) a.tasks.forEach(t => allTasks.push({ ...t, project: 'agencia' }));
+
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+  allTasks.sort((a, b) => (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1));
+
+  const done  = allTasks.filter(t => t.done).length;
+  const total = allTasks.length;
+  const pct   = total ? Math.round((done / total) * 100) : 0;
+
+  const priorityLabels = { high: '↑ Alta', medium: '→ Media', low: '↓ Baja' };
+
+  const taskItems = allTasks.map(t => `
+    <div class="task-item" data-task-id="${t.id}" data-task-project="${t.project}">
+      <div class="task-checkbox ${t.done ? 'done' : ''}"></div>
+      <div class="task-text-wrap">
+        <div class="task-text ${t.done ? 'done' : ''}">${t.text}</div>
+        <div class="task-meta">
+          <span class="task-project-badge ${t.project}">${t.project === 'simulia' ? 'Simulia' : 'Agencia'}</span>
+          <span class="task-priority-badge ${t.priority}">${priorityLabels[t.priority] || ''}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+  <div class="tasks-block">
+    <div class="tasks-header">
+      <span class="section-title" style="margin-bottom:0">Tareas esta semana</span>
+      <span class="tasks-count">${done}/${total} hechas</span>
+    </div>
+    ${taskItems || '<p style="color:var(--text-muted);font-size:14px;padding:8px 0">Sin tareas esta semana.</p>'}
+    <div class="tasks-progress">
+      <div class="global-bar-label" style="margin-bottom:6px">
+        <span style="font-size:11px;color:var(--text-muted)">Completado</span>
+        <span style="font-size:11px;color:var(--text-muted)">${pct}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill green" style="width:${pct}%"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── Block 4: Metrics ── */
+function renderMetrics() {
+  return `
+  <div class="metrics-block">
+    <div class="flex-between" style="margin-bottom:12px;">
+      <div class="section-title" style="margin-bottom:0">Métricas en vivo</div>
+      <button onclick="refreshMetrics()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-size:12px;cursor:pointer;">↻ Actualizar</button>
+    </div>
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <div class="metric-label">YouTube Subs</div>
+        <div class="metric-value">—</div>
+        <div class="metric-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">YouTube Vídeos</div>
+        <div class="metric-value">—</div>
+        <div class="metric-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Stripe MRR</div>
+        <div class="metric-value">—</div>
+        <div class="metric-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Usuarios activos</div>
+        <div class="metric-value">—</div>
+        <div class="metric-sub">cargando...</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function refreshMetrics() {
+  loadLiveMetrics();
+}
+
+/* ── Block 5: Chat ── */
+let chatMessages = [];
+
+function renderChat() {
+  const s = STATE.projects && STATE.projects.simulia;
+  const a = STATE.projects && STATE.projects.agencia;
+  const sProg = s ? s.progress : 0;
+  const aProg = a ? a.progress : 0;
+
+  if (chatMessages.length === 0) {
+    chatMessages = [{
+      role: 'claude',
+      text: `Hola Cris. Simulia al <strong>${sProg}%</strong> del MRR objetivo. Agencia: validando modelo de agencia, buscando los primeros <strong>5 clientes/mes</strong>. ¿En qué te ayudo hoy?`
+    }];
+  }
+
+  const messagesHtml = chatMessages.map(msg => `
+    <div class="chat-msg ${msg.role} ${msg.thinking ? 'thinking' : ''}">${msg.text}</div>
+  `).join('');
+
+  return `
+  <div class="chat-block">
+    <div class="section-title" style="margin-bottom:12px">Chat con Claude</div>
+    <div class="chat-messages" id="chat-messages">${messagesHtml}</div>
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chat-input" placeholder="Pregúntame algo..." rows="1"></textarea>
+      <button class="chat-send-btn" onclick="sendChat()" title="Enviar">&#10148;</button>
+    </div>
+  </div>`;
+}
+
+/* ── Block 5b: Idea button ── */
+function renderIdeaButton() {
+  if (!document.getElementById('idea-fab')) {
+    const fab = document.createElement('button');
+    fab.className = 'idea-fab';
+    fab.id = 'idea-fab';
+    fab.innerHTML = '💡';
+    fab.title = 'Capturar idea';
+    fab.onclick = openIdeaModal;
+    document.body.appendChild(fab);
+  }
+}
+
+/* ── Block 6: Mindset ── */
+function renderMindset() {
+  const q = getDailyQuote();
+  const mp = STATE.mindset || {};
+  const weeklyWin = mp.weeklyWin || '';
+  const principle = escapeHtml(mp.weekPrinciple || '');
+  const context   = escapeHtml(mp.weekPrincipleContext || '');
+
+  return `
+  <div class="mindset-block">
+    <div class="section-title" style="margin-bottom:14px">Mentalidad</div>
+
+    <div class="quote-text">"${q.text}"</div>
+    <div class="quote-author">— ${q.author}</div>
+
+    <div class="divider"></div>
+
+    ${principle ? `
+    <div class="week-principle-box">
+      <div class="week-principle-label">Principio de la semana</div>
+      <div class="week-principle-text">${principle}</div>
+      ${context ? `<div class="week-principle-context">${context}</div>` : ''}
+    </div>` : ''}
+
+    <div class="mindset-state-row">
+      <button class="mindset-btn" onclick="mindsetState('energia')">⚡ Con energía</button>
+      <button class="mindset-btn" onclick="mindsetState('dudas')">🌫️ Dudando</button>
+      <button class="mindset-btn" onclick="mindsetState('empuje')">🔥 Necesito empuje</button>
+    </div>
+
+    <div class="mindset-response" id="mindset-response"></div>
+
+    <div class="weekly-win-label">Victoria de la semana</div>
+    <textarea
+      class="weekly-win-input"
+      id="weekly-win-input"
+      placeholder="¿Cuál ha sido tu mayor logro esta semana?"
+      rows="2"
+      onblur="saveWeeklyWin(this.value)"
+    >${weeklyWin}</textarea>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════
+   EVENT BINDING
+════════════════════════════════════════════════ */
+function bindAllEvents() {
+  // Task checkboxes
+  document.querySelectorAll('.task-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const taskId  = item.dataset.taskId;
+      const project = item.dataset.taskProject;
+      const proj = STATE.projects[project];
+      if (!proj) return;
+      const task = proj.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      task.done = !task.done;
+      await saveState();
+
+      // Sync via PATCH endpoint
+      try {
+        await fetch(`${SERVER}/api/task`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project, taskId, done: task.done })
+        });
+      } catch (e) { /* silent */ }
+
+      renderDashboard();
+    });
+  });
+
+  // Chat input — send on Enter (but not Shift+Enter)
+  const chatInput = document.getElementById('chat-input');
+  if (chatInput) {
+    chatInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChat();
+      }
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   CHAT
+════════════════════════════════════════════════ */
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  chatMessages.push({ role: 'user', text: escapeHtml(msg) });
+  const messages = document.getElementById('chat-messages');
+  messages.innerHTML += `<div class="chat-msg user">${escapeHtml(msg)}</div>`;
+  const typingId = 'typing-' + Date.now();
+  messages.innerHTML += `<div class="chat-msg claude" id="${typingId}">...</div>`;
+  messages.scrollTop = messages.scrollHeight;
+
+  try {
+    const res = await fetch(`${SERVER}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: msg,
+        stateContext: {
+          simulia: STATE.projects?.simulia,
+          agencia: STATE.projects?.agencia,
+          weekFocus: STATE.weekFocus
+        }
+      })
+    });
+    const data = await res.json();
+    const replyText = data.reply || data.error;
+    const el = document.getElementById(typingId);
+    if (el) el.textContent = replyText;
+    chatMessages.push({ role: 'claude', text: replyText });
+  } catch (e) {
+    const errText = 'Error conectando con Claude. ¿Está corriendo el servidor?';
+    const el = document.getElementById(typingId);
+    if (el) el.textContent = errText;
+    chatMessages.push({ role: 'claude', text: errText });
+  }
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ═══════════════════════════════════════════════
+   MINDSET
+════════════════════════════════════════════════ */
+function mindsetState(state) {
+  const el = document.getElementById('mindset-response');
+  if (!el) return;
+  el.textContent = MINDSET_RESPONSES[state] || '';
+  el.classList.add('visible');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function saveWeeklyWin(value) {
+  if (!STATE.mindset) STATE.mindset = {};
+  STATE.mindset.weeklyWin = value;
+  await saveState();
+}
+
+/* ═══════════════════════════════════════════════
+   IDEA MODAL
+════════════════════════════════════════════════ */
+function openIdeaModal() {
+  document.getElementById('idea-modal').classList.remove('hidden');
+  document.getElementById('idea-text').focus();
+}
+
+function closeIdeaOnBackdrop(event) {
+  if (event.target === document.getElementById('idea-modal')) {
+    document.getElementById('idea-modal').classList.add('hidden');
+  }
+}
+
+async function saveIdea() {
+  const text    = document.getElementById('idea-text').value.trim();
+  const project = document.getElementById('idea-project').value;
+  if (!text) return;
+
+  try {
+    const res = await fetch(`${SERVER}/api/idea`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, project })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (!STATE.ideas) STATE.ideas = [];
+      STATE.ideas.push(data.idea);
+      localStorage.setItem('dashboard_state', JSON.stringify(STATE));
+    }
+  } catch (e) {
+    // Save locally even if server fails
+    const idea = { id: Date.now(), text, project, date: getTodayStr(), status: 'nueva' };
+    if (!STATE.ideas) STATE.ideas = [];
+    STATE.ideas.push(idea);
+    localStorage.setItem('dashboard_state', JSON.stringify(STATE));
+  }
+
+  document.getElementById('idea-text').value = '';
+  document.getElementById('idea-modal').classList.add('hidden');
+}
+
+/* ═══════════════════════════════════════════════
+   UTILS
+════════════════════════════════════════════════ */
+function getWeekNumber() {
+  const d = new Date();
+  const start = new Date(d.getFullYear(), 0, 1);
+  const diff = d - start + (start.getTimezoneOffset() - d.getTimezoneOffset()) * 60000;
+  return Math.ceil((diff / 86400000 + start.getDay() + 1) / 7);
+}
+
+function getWeekLabel() {
+  const d = new Date();
+  return `${d.getFullYear()}-W${String(getWeekNumber()).padStart(2, '0')}`;
+}
+
+function getDailyQuote() {
+  const d = new Date();
+  const start = new Date(d.getFullYear(), 0, 0);
+  const diff = d - start;
+  const dayOfYear = Math.floor(diff / 86400000);
+  return QUOTES[dayOfYear % QUOTES.length];
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════ */
+(async function init() {
+  await loadState();
+  checkRitual();
+})();
+</script>
+</body>
+</html>

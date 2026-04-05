@@ -1,0 +1,126 @@
+{
+  "name": "Shopify — Alertas de Stock Bajo a WhatsApp",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Cada noche a las 22:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 22 * * *" }]
+        }
+      }
+    },
+    {
+      "id": "get-variants",
+      "name": "Obtener todos los productos de Shopify",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{$env.SHOPIFY_STORE}}.myshopify.com/admin/api/2024-01/products.json?fields=id,title,variants&limit=250",
+        "headers": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{$env.SHOPIFY_ACCESS_TOKEN}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "filter-low-stock",
+      "name": "Filtrar stock crítico (< 10 unidades)",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300],
+      "parameters": {
+        "jsCode": "const UMBRAL = 10;\nconst productos = $input.first().json.products;\nconst criticos = [];\n\nfor (const producto of productos) {\n  for (const variante of producto.variants) {\n    if (variante.inventory_quantity !== null && variante.inventory_quantity <= UMBRAL && variante.inventory_quantity >= 0) {\n      criticos.push({\n        producto_id: producto.id,\n        producto_nombre: producto.title,\n        variante_id: variante.id,\n        variante_titulo: variante.title,\n        stock: variante.inventory_quantity,\n        url: `https://admin.shopify.com/store/${process.env.SHOPIFY_STORE}/products/${producto.id}`\n      });\n    }\n  }\n}\n\nreturn [{ json: { criticos, total: criticos.length, fecha: new Date().toLocaleDateString('es-ES') } }];"
+      }
+    },
+    {
+      "id": "if-hay-criticos",
+      "name": "¿Hay productos críticos?",
+      "type": "n8n-nodes-base.if",
+      "position": [900, 300],
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.total}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "format-message",
+      "name": "Formatear mensaje WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 200],
+      "parameters": {
+        "jsCode": "const { criticos, fecha } = $input.first().json;\n\nlet mensaje = `⚠️ ALERTA DE STOCK — ${fecha}\\n\\n`;\nmensaje += `${criticos.length} producto(s) por debajo del umbral:\\n\\n`;\n\nfor (const item of criticos) {\n  const emoji = item.stock === 0 ? '🔴' : item.stock <= 5 ? '🟠' : '🟡';\n  const varianteTxt = item.variante_titulo !== 'Default Title' ? ` (${item.variante_titulo})` : '';\n  mensaje += `${emoji} *${item.producto_nombre}*${varianteTxt}\\n`;\n  mensaje += `   Stock: ${item.stock} unidades\\n`;\n  mensaje += `   👉 ${item.url}\\n\\n`;\n}\n\nmensaje += `Revisa y repone antes de llegar a 0.`;\n\nreturn [{ json: { mensaje } }];"
+      }
+    },
+    {
+      "id": "send-whatsapp",
+      "name": "Enviar alerta por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1340, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "To", "value": "=whatsapp:{{$env.OWNER_PHONE}}" },
+            { "name": "From", "value": "=whatsapp:{{$env.TWILIO_WHATSAPP_NUMBER}}" },
+            { "name": "Body", "value": "={{$json.mensaje}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "no-criticos",
+      "name": "Sin alertas hoy ✓",
+      "type": "n8n-nodes-base.noOp",
+      "position": [1120, 420],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Cada noche a las 22:00": {
+      "main": [[{ "node": "Obtener todos los productos de Shopify", "type": "main", "index": 0 }]]
+    },
+    "Obtener todos los productos de Shopify": {
+      "main": [[{ "node": "Filtrar stock crítico (< 10 unidades)", "type": "main", "index": 0 }]]
+    },
+    "Filtrar stock crítico (< 10 unidades)": {
+      "main": [[{ "node": "¿Hay productos críticos?", "type": "main", "index": 0 }]]
+    },
+    "¿Hay productos críticos?": {
+      "main": [
+        [{ "node": "Formatear mensaje WhatsApp", "type": "main", "index": 0 }],
+        [{ "node": "Sin alertas hoy ✓", "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatear mensaje WhatsApp": {
+      "main": [[{ "node": "Enviar alerta por WhatsApp", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": true,
+  "meta": {
+    "description": "Revisa el inventario de Shopify cada noche. Si algún producto baja de 10 unidades, envía alerta por WhatsApp con nombre, variante, stock y link directo a Shopify.",
+    "umbral_stock": 10,
+    "credentials_needed": [
+      "SHOPIFY_STORE — nombre de la tienda sin .myshopify.com",
+      "SHOPIFY_ACCESS_TOKEN — Admin API access token",
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_WHATSAPP_NUMBER — número Twilio whatsapp:+14155238886",
+      "OWNER_PHONE — tu número con prefijo whatsapp:+34XXXXXXXXX"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+dashboard/node_modules/
+dashboard/.env
+**/.env
+simulia/plataforma/
+
+# Imágenes generadas (carruseles, outputs)
+agencia/carousel-generator/output/
+agencia/carousel-generator/images/
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.mp4
+**/*.mov
