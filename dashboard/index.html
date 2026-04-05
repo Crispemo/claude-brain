@@ -806,6 +806,82 @@
     .script-gen-output { background: var(--surface2); border-radius: 8px; padding: 12px;
       font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap;
       margin-top: 12px; max-height: 300px; overflow-y: auto; display: none; }
+
+    /* ── HABITS ── */
+    .habits-block { margin-bottom: var(--gap); }
+    .habit-goal-group { margin-bottom: 14px; }
+    .habit-goal-group:last-child { margin-bottom: 0; }
+    .habit-goal-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-muted);
+      margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+    }
+    .habit-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .habit-row:last-child { border-bottom: none; }
+    .habit-check-btn {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid var(--border); background: transparent;
+      color: transparent; cursor: pointer; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.15s; font-family: inherit;
+    }
+    .habit-check-btn.done { border-color: var(--green); background: var(--green); color: white; }
+    .habit-name { flex: 1; font-size: 13px; }
+    .habit-streak { font-size: 12px; font-weight: 700; }
+    .habit-streak.fire { color: #f97316; }
+    .habit-freq-badge {
+      font-size: 10px; color: var(--text-muted);
+      background: var(--surface2); border-radius: 8px; padding: 2px 6px;
+    }
+    .eval-btn {
+      width: 100%; padding: 10px; border-radius: 8px;
+      border: 1px solid var(--purple); background: transparent;
+      color: var(--purple); font-size: 13px; cursor: pointer; margin-top: 14px;
+      font-family: inherit;
+    }
+    .eval-btn:disabled { opacity: 0.5; }
+    .eval-output {
+      margin-top: 10px; padding: 12px; background: var(--surface2);
+      border-radius: 8px; font-size: 13px; line-height: 1.6;
+      color: var(--text); display: none; white-space: pre-wrap;
+    }
+    /* Life goals management */
+    .life-goals-block { margin-bottom: var(--gap); }
+    .lg-item {
+      background: var(--surface2); border-radius: 10px;
+      padding: 12px; margin-bottom: 8px;
+    }
+    .lg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .lg-title { font-size: 14px; font-weight: 600; }
+    .lg-habit-row {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; padding: 4px 0; color: var(--text-muted);
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .lg-habit-row:last-child { border-bottom: none; }
+    .lg-add-habit-btn {
+      width: 100%; padding: 5px; border-radius: 6px;
+      border: 1px dashed var(--border); background: transparent;
+      color: var(--text-muted); font-size: 11px; cursor: pointer;
+      margin-top: 6px; font-family: inherit;
+    }
+    .lg-delete-btn { background: none; border: none; color: var(--border); cursor: pointer; font-size: 14px; padding: 2px 6px; }
+    .lg-delete-btn:hover { color: var(--red); }
+    .lg-add-goal-btn {
+      width: 100%; padding: 10px; border-radius: 8px;
+      border: 1px dashed var(--border); background: transparent;
+      color: var(--text-muted); font-size: 13px; cursor: pointer;
+      font-family: inherit;
+    }
+    .freq-btn {
+      padding: 5px 12px; border-radius: 14px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text-muted); font-size: 12px;
+      cursor: pointer; font-family: inherit;
+    }
+    .freq-btn.active { background: var(--blue); border-color: var(--blue); color: white; }
   </style>
 </head>
 <body>
@@ -871,6 +947,50 @@
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
       <button style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--purple);background:transparent;color:var(--purple);font-size:13px;cursor:pointer" onclick="generateScriptFromModal()">✨ Generar guión con IA</button>
       <div class="script-gen-output" id="script-gen-output"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LIFE GOAL MODAL -->
+<div class="modal-backdrop hidden" id="life-goal-modal" onclick="if(event.target===this)closeLifeGoalModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <p class="modal-title">🎯 Nueva meta de vida</p>
+    <input type="text" class="modal-textarea" id="lg-name-input" placeholder="Ej: Físico fuerte" style="resize:none;height:48px;padding:12px">
+    <input type="text" class="modal-textarea" id="lg-emoji-input" placeholder="Emoji (ej: 💪)" style="resize:none;height:48px;padding:12px">
+    <select class="modal-select" id="lg-category-input" style="margin-bottom:16px">
+      <option value="salud">💊 Salud & Cuerpo</option>
+      <option value="negocio">💼 Negocio</option>
+      <option value="aprendizaje">📚 Aprendizaje</option>
+      <option value="relaciones">❤️ Relaciones</option>
+      <option value="general">🎯 General</option>
+    </select>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeLifeGoalModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveLifeGoal()">Añadir meta</button>
+    </div>
+  </div>
+</div>
+
+<!-- HABIT MODAL -->
+<div class="modal-backdrop hidden" id="habit-modal" onclick="if(event.target===this)closeHabitModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <p class="modal-title">✅ Nuevo hábito</p>
+    <input type="hidden" id="habit-goal-id">
+    <input type="text" class="modal-textarea" id="habit-name-input" placeholder="Ej: Meditación 10min" style="resize:none;height:48px;padding:12px">
+    <input type="text" class="modal-textarea" id="habit-icon-input" placeholder="Emoji (ej: 🧘)" style="resize:none;height:48px;padding:12px">
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px">Frecuencia — días por semana</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="freq-btn active" data-val="7" onclick="selectFreq(this,7)">Diario</button>
+        <button class="freq-btn" data-val="5" onclick="selectFreq(this,5)">5x/sem</button>
+        <button class="freq-btn" data-val="3" onclick="selectFreq(this,3)">3x/sem</button>
+        <button class="freq-btn" data-val="2" onclick="selectFreq(this,2)">2x/sem</button>
+        <button class="freq-btn" data-val="1" onclick="selectFreq(this,1)">1x/sem</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeHabitModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveHabit()">Añadir hábito</button>
     </div>
   </div>
 </div>
@@ -1143,12 +1263,14 @@ function renderDashboard() {
   dash.innerHTML = `
     ${renderHeader(globalProgress)}
     ${renderGoals()}
+    ${renderHabits()}
     ${renderProjects(s, a, m)}
     ${renderTasks(s, a)}
     ${renderPipeline()}
     ${renderMetrics()}
     ${renderChat()}
     ${renderMindset()}
+    ${renderLifeGoals()}
   `;
 
   renderIdeaButton();
@@ -1862,6 +1984,268 @@ function getDailyQuote() {
   const diff = d - start;
   const dayOfYear = Math.floor(diff / 86400000);
   return QUOTES[dayOfYear % QUOTES.length];
+}
+
+/* ═══════════════════════════════════════════════
+   HABITS & LIFE GOALS
+════════════════════════════════════════════════ */
+function isHabitDoneToday(habitId) {
+  const today = getTodayStr();
+  return ((STATE.habitLog || {})[today] || []).includes(habitId);
+}
+
+function getStreak(habitId) {
+  const log = STATE.habitLog || {};
+  const today = getTodayStr();
+  const todayDone = (log[today] || []).includes(habitId);
+  const d = new Date();
+  if (!todayDone) d.setDate(d.getDate() - 1);
+  let streak = 0;
+  for (let i = 0; i < 366; i++) {
+    const ds = d.toISOString().split('T')[0];
+    if ((log[ds] || []).includes(habitId)) { streak++; d.setDate(d.getDate() - 1); }
+    else break;
+  }
+  return streak;
+}
+
+function getWeeklyCount(habitId) {
+  const log = STATE.habitLog || {};
+  const today = new Date();
+  const dow = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+  monday.setHours(0, 0, 0, 0);
+  let count = 0;
+  const d = new Date(monday);
+  while (d <= today) {
+    const ds = d.toISOString().split('T')[0];
+    if ((log[ds] || []).includes(habitId)) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+function renderHabits() {
+  const goals = STATE.lifeGoals || [];
+  if (goals.length === 0) return '';
+
+  const today = new Date();
+  const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const dateLabel = `${DAYS[today.getDay()]} ${today.getDate()} ${MONTHS[today.getMonth()]}`;
+
+  const allHabits = goals.flatMap(g => g.habits || []);
+  const todayDone = allHabits.filter(h => isHabitDoneToday(h.id)).length;
+  const pct = allHabits.length > 0 ? Math.round(todayDone / allHabits.length * 100) : 0;
+  const barColor = pct === 100 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : pct >= 30 ? 'var(--yellow)' : 'var(--red)';
+
+  const groups = goals.map(goal => {
+    const habits = goal.habits || [];
+    if (habits.length === 0) return '';
+    const rows = habits.map(habit => {
+      const done = isHabitDoneToday(habit.id);
+      const streak = getStreak(habit.id);
+      const isDaily = (habit.daysPerWeek || 7) >= 7;
+      const weekCount = isDaily ? null : getWeeklyCount(habit.id);
+      const streakEl = streak > 0
+        ? `<span class="habit-streak fire">🔥${streak}</span>`
+        : `<span class="habit-streak" style="color:var(--border)">—</span>`;
+      const rightEl = isDaily ? streakEl
+        : `<div style="text-align:right">
+             <span class="habit-freq-badge">${weekCount}/${habit.daysPerWeek}×</span>
+             ${streak > 0 ? `<div style="font-size:10px;color:#f97316;margin-top:2px">🔥${streak}</div>` : ''}
+           </div>`;
+      return `<div class="habit-row">
+        <button class="habit-check-btn ${done ? 'done' : ''}" onclick="toggleHabit('${habit.id}')">${done ? '✓' : ''}</button>
+        <span class="habit-name">${escapeHtml(habit.icon || '✅')} ${escapeHtml(habit.name)}</span>
+        ${rightEl}
+      </div>`;
+    }).join('');
+    return `<div class="habit-goal-group">
+      <div class="habit-goal-label">${escapeHtml(goal.emoji)} ${escapeHtml(goal.name)}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  return `<div class="habits-block card" id="habits-section">
+    <div class="flex-between" style="margin-bottom:10px">
+      <div class="section-title" style="margin-bottom:0">✅ Hábitos</div>
+      <span style="font-size:12px;color:var(--text-muted)">${dateLabel} · ${todayDone}/${allHabits.length} (${pct}%)</span>
+    </div>
+    <div style="height:4px;background:var(--border);border-radius:2px;margin-bottom:14px">
+      <div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;transition:width 0.4s"></div>
+    </div>
+    ${groups}
+    <button class="eval-btn" id="eval-habits-btn" onclick="evaluateHabits()">🤖 Evalúame — cómo voy con mis hábitos</button>
+    <div class="eval-output" id="habits-eval-output"></div>
+  </div>`;
+}
+
+function renderLifeGoals() {
+  const goals = STATE.lifeGoals || [];
+
+  const items = goals.map(g => {
+    const habitRows = (g.habits || []).map(h =>
+      `<div class="lg-habit-row">
+        <span>${escapeHtml(h.icon || '✅')} ${escapeHtml(h.name)} <span style="color:var(--border)">· ${h.daysPerWeek >= 7 ? 'diario' : h.daysPerWeek + 'x/sem'}</span></span>
+        <button class="lg-delete-btn" onclick="deleteHabit('${h.id}')">×</button>
+      </div>`
+    ).join('');
+
+    return `<div class="lg-item">
+      <div class="lg-header">
+        <span class="lg-title">${escapeHtml(g.emoji)} ${escapeHtml(g.name)}</span>
+        <button class="lg-delete-btn" onclick="deleteLifeGoal('${g.id}')">× Eliminar meta</button>
+      </div>
+      ${habitRows}
+      <button class="lg-add-habit-btn" onclick="openHabitModal('${g.id}')">+ Añadir hábito</button>
+    </div>`;
+  }).join('');
+
+  return `<div class="life-goals-block card">
+    <div class="section-title">🎯 Metas de vida</div>
+    <div class="life-goals-list">${items}</div>
+    <button class="lg-add-goal-btn" onclick="openLifeGoalModal()">+ Añadir meta de vida</button>
+  </div>`;
+}
+
+async function toggleHabit(habitId) {
+  const today = getTodayStr();
+  STATE.habitLog = STATE.habitLog || {};
+  STATE.habitLog[today] = STATE.habitLog[today] || [];
+  const idx = STATE.habitLog[today].indexOf(habitId);
+  const done = idx === -1;
+  if (done) STATE.habitLog[today].push(habitId);
+  else STATE.habitLog[today].splice(idx, 1);
+  renderDashboard();
+  try {
+    await fetch(`${SERVER}/api/habit-log`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ habitId, done })
+    });
+  } catch (e) { console.error(e); }
+}
+
+async function evaluateHabits() {
+  const btn = document.getElementById('eval-habits-btn');
+  const output = document.getElementById('habits-eval-output');
+  if (!btn || !output) return;
+  btn.textContent = '⏳ Analizando...'; btn.disabled = true;
+
+  const goals = STATE.lifeGoals || [];
+  const habitStats = goals.flatMap(g => (g.habits || []).map(h => ({
+    name: h.name,
+    goal: g.name,
+    doneToday: isHabitDoneToday(h.id),
+    streak: getStreak(h.id),
+    weeklyCount: getWeeklyCount(h.id),
+    daysPerWeek: h.daysPerWeek
+  })));
+
+  try {
+    const res = await fetch(`${SERVER}/api/evaluate-habits`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ habitStats, lifeGoals: goals, weekFocus: STATE.weekFocus })
+    });
+    const data = await res.json();
+    output.style.display = 'block';
+    output.textContent = data.evaluation || data.error || 'Sin respuesta';
+  } catch (e) {
+    output.style.display = 'block';
+    output.textContent = 'Error al conectar con la IA.';
+  }
+  btn.textContent = '🤖 Evalúame — cómo voy con mis hábitos'; btn.disabled = false;
+}
+
+/* Life goal modal */
+function openLifeGoalModal() {
+  document.getElementById('lg-name-input').value = '';
+  document.getElementById('lg-emoji-input').value = '';
+  document.getElementById('life-goal-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('lg-name-input').focus(), 100);
+}
+function closeLifeGoalModal() {
+  document.getElementById('life-goal-modal').classList.add('hidden');
+}
+async function saveLifeGoal() {
+  const name = document.getElementById('lg-name-input').value.trim();
+  const emoji = document.getElementById('lg-emoji-input').value.trim() || '🎯';
+  const category = document.getElementById('lg-category-input').value;
+  if (!name) return;
+  try {
+    const res = await fetch(`${SERVER}/api/life-goal`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, emoji, category })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      STATE.lifeGoals = STATE.lifeGoals || [];
+      STATE.lifeGoals.push(data.goal);
+      closeLifeGoalModal();
+      renderDashboard();
+    }
+  } catch (e) { alert('Error guardando meta'); }
+}
+async function deleteLifeGoal(id) {
+  try {
+    await fetch(`${SERVER}/api/life-goal/${id}`, { method: 'DELETE' });
+    STATE.lifeGoals = (STATE.lifeGoals || []).filter(g => g.id !== id);
+    renderDashboard();
+  } catch (e) { console.error(e); }
+}
+
+/* Habit modal */
+let _habitGoalId = null;
+let _selectedFreq = 7;
+
+function openHabitModal(goalId) {
+  _habitGoalId = goalId;
+  _selectedFreq = 7;
+  document.getElementById('habit-name-input').value = '';
+  document.getElementById('habit-icon-input').value = '';
+  document.getElementById('habit-modal').classList.remove('hidden');
+  // Reset freq buttons
+  document.querySelectorAll('.freq-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.val) === 7);
+  });
+  setTimeout(() => document.getElementById('habit-name-input').focus(), 100);
+}
+function closeHabitModal() {
+  document.getElementById('habit-modal').classList.add('hidden');
+  _habitGoalId = null;
+}
+function selectFreq(btn, val) {
+  _selectedFreq = val;
+  document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+async function saveHabit() {
+  const name = document.getElementById('habit-name-input').value.trim();
+  const icon = document.getElementById('habit-icon-input').value.trim() || '✅';
+  if (!name || !_habitGoalId) return;
+  try {
+    const res = await fetch(`${SERVER}/api/life-goal/${_habitGoalId}/habit`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, icon, daysPerWeek: _selectedFreq })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const goal = (STATE.lifeGoals || []).find(g => g.id === _habitGoalId);
+      if (goal) { goal.habits = goal.habits || []; goal.habits.push(data.habit); }
+      closeHabitModal();
+      renderDashboard();
+    }
+  } catch (e) { alert('Error guardando hábito'); }
+}
+async function deleteHabit(habitId) {
+  try {
+    await fetch(`${SERVER}/api/habit/${habitId}`, { method: 'DELETE' });
+    (STATE.lifeGoals || []).forEach(g => {
+      g.habits = (g.habits || []).filter(h => h.id !== habitId);
+    });
+    renderDashboard();
+  } catch (e) { console.error(e); }
 }
 
 /* ═══════════════════════════════════════════════

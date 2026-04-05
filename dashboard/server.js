@@ -396,6 +396,118 @@ app.delete('/api/goal/:id', (req, res) => {
   }
 });
 
+// POST /api/habit-log — marca/desmarca hábito para hoy
+app.post('/api/habit-log', (req, res) => {
+  try {
+    const { habitId, done } = req.body;
+    if (!habitId) return res.status(400).json({ error: 'habitId requerido' });
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const today = new Date().toISOString().split('T')[0];
+    state.habitLog = state.habitLog || {};
+    state.habitLog[today] = state.habitLog[today] || [];
+    if (done) {
+      if (!state.habitLog[today].includes(habitId)) state.habitLog[today].push(habitId);
+    } else {
+      state.habitLog[today] = state.habitLog[today].filter(h => h !== habitId);
+    }
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/life-goal — añade una meta de vida
+app.post('/api/life-goal', (req, res) => {
+  try {
+    const { name, emoji, category } = req.body;
+    if (!name) return res.status(400).json({ error: 'name requerido' });
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    state.lifeGoals = state.lifeGoals || [];
+    const goal = { id: `lg-${Date.now()}`, name, emoji: emoji || '🎯', category: category || 'general', habits: [] };
+    state.lifeGoals.push(goal);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, goal });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/life-goal/:id — elimina una meta de vida
+app.delete('/api/life-goal/:id', (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    state.lifeGoals = (state.lifeGoals || []).filter(g => g.id !== req.params.id);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/life-goal/:id/habit — añade hábito a una meta
+app.post('/api/life-goal/:id/habit', (req, res) => {
+  try {
+    const { name, icon, daysPerWeek } = req.body;
+    if (!name) return res.status(400).json({ error: 'name requerido' });
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const goal = (state.lifeGoals || []).find(g => g.id === req.params.id);
+    if (!goal) return res.status(404).json({ error: 'Meta no encontrada' });
+    const habit = { id: `h-${Date.now()}`, name, icon: icon || '✅', daysPerWeek: parseInt(daysPerWeek) || 7 };
+    goal.habits = goal.habits || [];
+    goal.habits.push(habit);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, habit });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/habit/:id — elimina un hábito de cualquier meta
+app.delete('/api/habit/:id', (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    (state.lifeGoals || []).forEach(g => {
+      g.habits = (g.habits || []).filter(h => h.id !== req.params.id);
+    });
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/evaluate-habits — IA evalúa los hábitos y da feedback
+app.post('/api/evaluate-habits', async (req, res) => {
+  try {
+    const { habitStats, lifeGoals, weekFocus } = req.body;
+    const goalsText = (lifeGoals || []).map(g =>
+      `${g.emoji} ${g.name}: ${(g.habits || []).map(h => h.name).join(', ')}`
+    ).join('\n');
+    const statsText = (habitStats || []).map(h =>
+      `• ${h.name} (meta: ${h.goal}): hoy=${h.doneToday?'✅':'❌'}, racha=${h.streak}d, semana=${h.weeklyCount}/${h.daysPerWeek}`
+    ).join('\n');
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: `Eres el coach de Cris (26 años, emprendedor digital en transición de enfermero a tecnólogo). Analiza sus hábitos hoy.
+
+METAS DE VIDA:
+${goalsText}
+
+ESTADO DE HÁBITOS (${new Date().toLocaleDateString('es-ES')}):
+${statsText}
+
+FOCO SEMANA: ${weekFocus || '—'}
+
+Dame:
+1. Evaluación honesta en 2 frases (sé directo si va mal)
+2. La acción MÁS IMPORTANTE que debe hacer ahora
+3. Por qué importa a largo plazo (1 frase)
+
+Máximo 120 palabras. Directo. Sin relleno. En español.` }]
+      })
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'Claude API error' });
+    const data = await response.json();
+    res.json({ evaluation: data.content?.[0]?.text || '' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.listen(PORT, () => {
   console.log(`Dashboard servidor corriendo en http://localhost:${PORT}`);
 });
