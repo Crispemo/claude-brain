@@ -120,6 +120,62 @@ Responde en español, de forma directa y accionable. Sin relleno. Como un coach 
   }
 });
 
+// GET /api/youtube/analytics — vistas de los últimos 7 días (requiere OAuth)
+app.get('/api/youtube/analytics', async (req, res) => {
+  try {
+    // 1. Obtener access token con el refresh token
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.YOUTUBE_CLIENT_ID,
+        client_secret: process.env.YOUTUBE_CLIENT_SECRET,
+        refresh_token: process.env.YOUTUBE_REFRESH_TOKEN,
+        grant_type: 'refresh_token'
+      })
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) {
+      return res.status(401).json({ error: 'No se pudo obtener access token', detail: tokenData.error });
+    }
+    const accessToken = tokenData.access_token;
+
+    // 2. Calcular rango de fechas: últimos 7 días
+    const end = new Date(); end.setDate(end.getDate() - 1); // ayer (Analytics no da hoy)
+    const start = new Date(); start.setDate(start.getDate() - 7);
+    const fmt = d => d.toISOString().split('T')[0];
+
+    // 3. Llamar YouTube Analytics API
+    const analyticsUrl = `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${fmt(start)}&endDate=${fmt(end)}&metrics=views,estimatedMinutesWatched,subscribersGained,subscribersLost&dimensions=day&sort=day`;
+    const analyticsRes = await fetch(analyticsUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!analyticsRes.ok) {
+      const err = await analyticsRes.json();
+      return res.status(analyticsRes.status).json({ error: 'Analytics API error', detail: err?.error?.message });
+    }
+    const analytics = await analyticsRes.json();
+
+    // 4. Sumar métricas de los 7 días
+    const rows = analytics.rows || [];
+    const totalViews = rows.reduce((s, r) => s + (r[1] || 0), 0);
+    const totalMinutes = rows.reduce((s, r) => s + (r[2] || 0), 0);
+    const subsGained = rows.reduce((s, r) => s + (r[3] || 0), 0);
+    const subsLost = rows.reduce((s, r) => s + (r[4] || 0), 0);
+
+    res.json({
+      weeklyViews: Math.round(totalViews),
+      weeklyMinutes: Math.round(totalMinutes),
+      subsGained,
+      subsLost,
+      netSubs: subsGained - subsLost,
+      days: rows.map(r => ({ date: r[0], views: r[1] }))
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/youtube', async (req, res) => {
   try {
     const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${process.env.YOUTUBE_CHANNEL_ID}&key=${process.env.YOUTUBE_API_KEY}`;

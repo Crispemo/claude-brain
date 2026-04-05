@@ -1110,18 +1110,23 @@ async function loadLiveMetrics() {
     if (el) el.textContent = '⚠️ No disponible';
   }
 
-  // YouTube box 2 — total vídeos publicados
+  // YouTube Analytics box 2 — vistas últimos 7 días
   try {
-    const ytEl = document.querySelector('.metric-box:nth-child(2) .metric-value');
-    const ytSubEl = document.querySelector('.metric-box:nth-child(2) .metric-sub');
-    // Se rellena con datos del mismo fetch de YouTube (ya cargados arriba si fue bien)
-    // Si YT falló, estos quedan en '—'. Si tuvo éxito, los rellenamos aquí también.
-    const yt = await (await fetch(`${SERVER}/api/youtube`)).json();
-    if (!yt.error) {
-      if (ytEl) ytEl.textContent = yt.videoCount?.toLocaleString('es-ES') || '—';
-      if (ytSubEl) ytSubEl.textContent = `${yt.totalViews?.toLocaleString('es-ES') || '—'} vistas totales`;
+    const ytaEl = document.querySelector('.metric-box:nth-child(2) .metric-value');
+    const ytaSubEl = document.querySelector('.metric-box:nth-child(2) .metric-sub');
+    const yta = await (await fetch(`${SERVER}/api/youtube/analytics`)).json();
+    if (!yta.error) {
+      if (ytaEl) ytaEl.textContent = yta.weeklyViews?.toLocaleString('es-ES') || '—';
+      const netLabel = yta.netSubs >= 0 ? `▲${yta.netSubs} subs` : `▼${Math.abs(yta.netSubs)} subs`;
+      if (ytaSubEl) ytaSubEl.textContent = `7 días · ${netLabel}`;
+    } else {
+      if (ytaEl) ytaEl.textContent = '—';
+      if (ytaSubEl) ytaSubEl.textContent = yta.detail || '⚠️ Analytics no disponible';
     }
-  } catch (e) { /* silencioso — box queda en '—' */ }
+  } catch (e) {
+    const el = document.querySelector('.metric-box:nth-child(2) .metric-sub');
+    if (el) el.textContent = '⚠️ No disponible';
+  }
 
   // Update timestamp
   const tsEl = document.querySelector('.metrics-block .section-title');
@@ -1332,7 +1337,7 @@ function renderMetrics() {
         <div class="metric-sub">cargando...</div>
       </div>
       <div class="metric-box">
-        <div class="metric-label">YouTube Vídeos</div>
+        <div class="metric-label">YT Vistas / 7d</div>
         <div class="metric-value">—</div>
         <div class="metric-sub">cargando...</div>
       </div>
