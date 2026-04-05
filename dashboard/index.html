@@ -977,6 +977,44 @@
       background: var(--surface2); color: var(--text); font-size: 12px;
       cursor: pointer; font-family: inherit;
     }
+
+    /* ── BOTTOM NAV ── */
+    body { padding-bottom: 70px; }
+    #bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface); border-top: 1px solid var(--border);
+      display: flex; z-index: 200; padding: 0;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bnav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 10px 4px 8px;
+      background: none; border: none; color: var(--text-muted);
+      font-size: 10px; font-family: inherit; cursor: pointer; gap: 3px;
+      transition: color 0.15s;
+    }
+    .bnav-btn .bnav-icon { font-size: 20px; line-height: 1; }
+    .bnav-btn.active { color: var(--blue); }
+    .bnav-btn.active .bnav-icon { transform: translateY(-1px); }
+
+    /* ── NOTION-STYLE improvements ── */
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-muted);
+      margin-bottom: 12px; margin-top: 4px; padding-left: 2px;
+    }
+    .tab-page { animation: fadein 0.18s ease; }
+    @keyframes fadein { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+    .card { border-radius: 10px; background: var(--surface); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 12px; }
+    .page-title {
+      font-size: 22px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.3px;
+    }
+    .page-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+
+    /* Remove old @media body max-width restriction so tabs can use full width */
+    @media (min-width: 768px) {
+      #bottom-nav { max-width: 600px; left: 50%; transform: translateX(-50%); border-radius: 0; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    }
   </style>
 </head>
 <body>
@@ -1387,34 +1425,148 @@ async function finishRitual() {
 /* ═══════════════════════════════════════════════
    DASHBOARD RENDER (Blocks 1-6 + 5b)
 ════════════════════════════════════════════════ */
-function renderDashboard() {
-  const s = STATE.projects.simulia;
-  const a = STATE.projects.agencia;
-  const m = STATE.projects.mocca;
+let currentTab = 'hoy';
 
-  // Global progress = avg of active projects only
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else {
+    const b = document.querySelector(`.bnav-btn[data-tab="${tab}"]`);
+    if (b) b.classList.add('active');
+  }
+  renderTabContent();
+}
+
+function renderDashboard() {
+  renderTabContent();
+  renderIdeaButton();
+}
+
+function renderTabContent() {
+  const s = STATE.projects?.simulia || {};
+  const a = STATE.projects?.agencia || {};
+  const m = STATE.projects?.mocca || {};
+
   const activeProjects = [s, a].filter(p => p && p.status === 'active');
   const globalProgress = activeProjects.length
     ? Math.round(activeProjects.reduce((sum, p) => sum + (p.progress || 0), 0) / activeProjects.length)
     : 0;
 
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  const wn = getWeekNumber();
+
+  let pageTitle = '';
+  let pageContent = '';
+
+  switch(currentTab) {
+    case 'hoy':
+      pageTitle = `Semana ${wn} · ${globalProgress}%`;
+      pageContent = `
+        <div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:20px">
+          <div style="height:100%;width:${globalProgress}%;background:var(--blue);border-radius:2px;transition:width 0.4s"></div>
+        </div>
+        <div class="page-subtitle">${dateStr} · ${escapeHtml(STATE.weekFocus||'')}</div>
+        ${renderGoals()}
+        ${renderHabits()}
+        ${renderTasks(s, a)}
+      `;
+      break;
+    case 'proyectos':
+      pageTitle = 'Proyectos';
+      pageContent = `${renderProjects(s, a, m)}${renderMetrics()}`;
+      break;
+    case 'contenido':
+      pageTitle = 'Contenido';
+      pageContent = renderContenidoTab();
+      break;
+    case 'chat':
+      pageTitle = 'Claude';
+      pageContent = renderChat();
+      break;
+    case 'sistema':
+      pageTitle = 'Sistema';
+      pageContent = `${renderMindset()}${renderLifeGoals()}`;
+      break;
+  }
+
   const dash = document.getElementById('dashboard');
   dash.innerHTML = `
-    ${renderHeader(globalProgress)}
-    ${renderGoals()}
-    ${renderHabits()}
-    ${renderProjects(s, a, m)}
-    ${renderTasks(s, a)}
-    ${renderPipeline()}
-    ${renderMetrics()}
-    ${renderChat()}
-    ${renderMindset()}
-    ${renderLifeGoals()}
+    <div class="tab-page">
+      <div class="page-title">${pageTitle}</div>
+      ${pageContent}
+    </div>
   `;
 
-  renderIdeaButton();
   bindAllEvents();
-  loadLiveMetrics();
+  if (currentTab === 'proyectos') loadLiveMetrics();
+}
+
+function renderContenidoTab() {
+  const scripts = STATE.scripts || [];
+  const pub = scripts.filter(s => s.status === 'publicado').length;
+  const pct = scripts.length > 0 ? Math.round(pub / scripts.length * 100) : 0;
+
+  // Group scripts by status for list view
+  const sections = PIPELINE_STAGES.map(stage => {
+    const items = scripts.filter(s => s.status === stage);
+    if (items.length === 0) return '';
+    const rows = items.map(s => {
+      const nextStage = PIPELINE_STAGES[PIPELINE_STAGES.indexOf(stage) + 1];
+      const advBtn = nextStage
+        ? `<button class="pc-btn advance" onclick="advanceScript('${s.id}','${nextStage}')">→ ${PIPELINE_LABELS[nextStage]}</button>`
+        : `<span style="font-size:10px;color:var(--green)">✓ Publicado</span>`;
+      const readBtn = s.folder
+        ? `<button class="pc-btn" style="border-color:var(--simulia);color:var(--simulia)" onclick="openScriptViewer('${s.id}','${s.folder}','${escapeHtml(s.title)}')">📄</button>`
+        : '';
+      const genBtn = `<button class="pc-btn gen" onclick="openScriptGen('${s.id}')">✨</button>`;
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;color:${PROJECT_COLORS[s.project]||'var(--text-muted)'};font-weight:600;text-transform:uppercase;font-size:10px;margin-bottom:2px">${s.project} · ${TYPE_ICONS[s.type]||''} ${s.type}</div>
+          <div style="font-size:13px;line-height:1.4">${escapeHtml(s.title)}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;padding-top:2px">${readBtn}${genBtn}${advBtn}</div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:16px">
+      <div class="section-label" style="color:${stage==='publicado'?'var(--green)':stage==='editado'?'var(--blue)':stage==='grabado'?'var(--yellow)':'var(--text-muted)'}">${PIPELINE_LABELS[stage]} · ${items.length}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="flex-between" style="margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600">Pipeline · ${pub}/${scripts.length} publicados</span>
+        <button class="pipeline-add-btn" style="width:auto;padding:4px 10px;margin:0;font-size:11px" onclick="openScriptModal()">+ Script</button>
+      </div>
+      <div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:16px">
+        <div style="height:100%;width:${pct}%;background:var(--green);border-radius:2px;transition:width 0.4s"></div>
+      </div>
+      ${sections || '<div style="color:var(--text-muted);font-size:13px">No hay scripts</div>'}
+    </div>
+    <div class="card">
+      <div class="section-label">✨ Generar guión con IA</div>
+      <input type="text" id="sg-title" class="modal-textarea" placeholder="Título del vídeo" style="resize:none;height:44px;padding:10px;margin-bottom:10px;font-size:13px">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <select class="modal-select" id="sg-project" style="flex:1">
+          <option value="agencia">📹 Agencia</option>
+          <option value="simulia">🏥 Simulia</option>
+        </select>
+        <select class="modal-select" id="sg-type" style="flex:1">
+          <option value="largo">🎥 Largo</option>
+          <option value="short">📱 Short</option>
+        </select>
+      </div>
+      <button style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--purple);color:white;font-size:13px;cursor:pointer;font-family:inherit" onclick="generateFromSidebar()">✨ Generar</button>
+      <div id="sg-output" style="margin-top:14px;font-size:13px;line-height:1.6;white-space:pre-wrap;display:none;background:var(--surface2);border-radius:8px;padding:12px;max-height:400px;overflow-y:auto"></div>
+    </div>
+    <div class="card">
+      <div class="section-label">💡 Ideas de vídeo</div>
+      ${renderSidebarIdeas()}
+    </div>
+  `;
 }
 
 async function loadLiveMetrics() {
@@ -1731,7 +1883,6 @@ function renderHeader(globalProgress) {
       <span class="week-label">Semana ${wn}</span>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="week-date">${dateStr}</span>
-        <button class="sidebar-trigger" onclick="openSidebar()">📋 Contenido</button>
       </div>
     </div>
     <div class="week-focus">${weekFocus || '—'}</div>
@@ -2625,5 +2776,22 @@ async function deleteHabit(habitId) {
   checkRitual();
 })();
 </script>
+<div id="bottom-nav">
+  <button class="bnav-btn active" data-tab="hoy" onclick="switchTab('hoy',this)">
+    <span class="bnav-icon">🏠</span><span>Hoy</span>
+  </button>
+  <button class="bnav-btn" data-tab="proyectos" onclick="switchTab('proyectos',this)">
+    <span class="bnav-icon">📊</span><span>Proyectos</span>
+  </button>
+  <button class="bnav-btn" data-tab="contenido" onclick="switchTab('contenido',this)">
+    <span class="bnav-icon">📋</span><span>Contenido</span>
+  </button>
+  <button class="bnav-btn" data-tab="chat" onclick="switchTab('chat',this)">
+    <span class="bnav-icon">💬</span><span>Chat</span>
+  </button>
+  <button class="bnav-btn" data-tab="sistema" onclick="switchTab('sistema',this)">
+    <span class="bnav-icon">⚙️</span><span>Sistema</span>
+  </button>
+</div>
 </body>
 </html>
