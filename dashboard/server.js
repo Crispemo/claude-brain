@@ -600,6 +600,162 @@ Máximo 120 palabras. Directo. Sin relleno. En español.` }]
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/tiktok-log — guarda métricas manuales de TikTok por semana
+app.post('/api/tiktok-log', (req, res) => {
+  try {
+    const { account, week, views, followers, likes, comments, topVideo, notes } = req.body;
+    if (!account || !week) return res.status(400).json({ error: 'account y week requeridos' });
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    state.tiktokLog = state.tiktokLog || {};
+    state.tiktokLog[account] = state.tiktokLog[account] || [];
+    const existing = state.tiktokLog[account].findIndex(e => e.week === week);
+    const entry = { week, views: views || 0, followers: followers || 0, likes: likes || 0, comments: comments || 0, topVideo: topVideo || '', notes: notes || '', updatedAt: new Date().toISOString() };
+    if (existing >= 0) state.tiktokLog[account][existing] = entry;
+    else state.tiktokLog[account].push(entry);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, entry });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/tiktok-analysis — Claude analiza métricas TikTok y genera plan semanal
+app.post('/api/tiktok-analysis', async (req, res) => {
+  try {
+    const { account, project } = req.body;
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const logs = (state.tiktokLog || {})[account] || [];
+    if (logs.length === 0) return res.status(400).json({ error: 'No hay datos de TikTok para analizar' });
+
+    const last = logs[logs.length - 1];
+    const prev = logs[logs.length - 2] || null;
+    const viewsDelta = prev ? last.views - prev.views : null;
+    const followersDelta = prev ? last.followers - prev.followers : null;
+
+    const projectCtx = project === 'simulia'
+      ? `Canal TikTok de SIMULIA (@simulia o cuenta EIR/oposiciones). Audiencia: enfermeros/as preparando oposiciones EIR/OPE en España. Objetivo: captar suscriptores para simulia.es. Contenido que funciona: preguntas tipo test, errores comunes en oposiciones, tips de estudio, comparativas de temario.`
+      : `Canal TikTok de AGENCIA (@CristinaPerisAI). Audiencia: dueños de tiendas online Shopify. Objetivo: captar clientes para agencia de automatización. Contenido que funciona: WhatsApp+Shopify, n8n automations, problemas concretos de ecommerce.`;
+
+    const prompt = `Eres el social media manager de Cris. Analiza las métricas de TikTok y genera el plan de la próxima semana.
+
+CONTEXTO DEL CANAL:
+${projectCtx}
+
+MÉTRICAS SEMANA ACTUAL (${last.week}):
+- Views: ${last.views.toLocaleString()}${viewsDelta !== null ? ` (${viewsDelta >= 0 ? '+' : ''}${viewsDelta} vs semana anterior)` : ''}
+- Seguidores: ${last.followers.toLocaleString()}${followersDelta !== null ? ` (${followersDelta >= 0 ? '+' : ''}${followersDelta})` : ''}
+- Likes: ${last.likes} | Comentarios: ${last.comments}
+- Vídeo top: "${last.topVideo || 'no especificado'}"
+- Notas: ${last.notes || '—'}
+
+${prev ? `MÉTRICAS SEMANA ANTERIOR (${prev.week}):
+- Views: ${prev.views.toLocaleString()} | Seguidores: ${prev.followers.toLocaleString()}` : ''}
+
+Dame exactamente:
+1. **Qué funcionó esta semana** (1-2 frases, basado en los datos)
+2. **Qué NO funcionó** (1 frase directa)
+3. **3 vídeos concretos para la próxima semana** — para cada uno: título exacto + hook de apertura (primeros 5 segundos)
+4. **Una decisión de formato** (¿doblar en frecuencia? ¿cambiar horario? ¿distinto gancho?)
+
+Máximo 250 palabras. Directo, accionable. En español.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 600, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'Claude API error' });
+    const data = await response.json();
+    res.json({ analysis: data.content?.[0]?.text || '' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/weekly-briefing — Claude genera el plan completo de la semana en autopiloto
+app.post('/api/weekly-briefing', async (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+
+    // Recopilar todo el contexto disponible
+    const simulia = state.projects?.simulia;
+    const agencia = state.projects?.agencia;
+
+    const pendingScripts = (state.scripts || [])
+      .filter(s => s.status === 'pendiente')
+      .map(s => `- [${s.project}] "${s.title}"`)
+      .join('\n') || '— ninguno pendiente';
+
+    const inProgressScripts = (state.scripts || [])
+      .filter(s => ['grabado', 'editado'].includes(s.status))
+      .map(s => `- [${s.status}] "${s.title}"`)
+      .join('\n') || '— ninguno';
+
+    const today = new Date().toISOString().split('T')[0];
+    const habitsToday = (state.habitLog || {})[today] || [];
+    const allHabits = (state.lifeGoals || []).flatMap(g => g.habits || []);
+    const habitsSummary = allHabits.map(h => `${h.icon} ${h.name}: ${habitsToday.includes(h.id) ? '✅ hecho' : '⬜ pendiente'}`).join(' | ');
+
+    const upcomingGoals = (state.goals || [])
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 3)
+      .map(g => { const days = Math.ceil((new Date(g.date) - new Date()) / 86400000); return `${g.emoji} ${g.name}: en ${days} días`; })
+      .join(' | ');
+
+    // TikTok último dato disponible
+    const tiktokAccounts = state.tiktokLog || {};
+    const tiktokSummary = Object.entries(tiktokAccounts).map(([acc, logs]) => {
+      const last = logs[logs.length - 1];
+      return last ? `@${acc}: ${last.views.toLocaleString()} views, ${last.followers.toLocaleString()} followers (${last.week})` : '';
+    }).filter(Boolean).join(' | ') || '— sin datos TikTok';
+
+    const prompt = `Eres el chief-of-staff y coach de Cris (26 años, ex-enfermero, primer año en tecnología).
+
+ESTADO DE SUS PROYECTOS:
+
+SIMULIA (plataforma oposiciones enfermería):
+- MRR: ${simulia?.current} — objetivo: ${simulia?.objective} (${simulia?.progress}%)
+- Tareas pendientes: ${(simulia?.tasks || []).filter(t => !t.done).map(t => t.text).join(', ') || '—'}
+
+AGENCIA (canal IA+ecom, ICP = dueños Shopify):
+- ${agencia?.current} — objetivo: ${agencia?.objective}
+- Scripts listos para grabar:\n${pendingScripts}
+- Scripts en producción:\n${inProgressScripts}
+
+MÉTRICAS TikTok:
+${tiktokSummary}
+
+HÁBITOS HOY (${today}):
+${habitsSummary || '— sin registros'}
+
+PRÓXIMAS FECHAS IMPORTANTES:
+${upcomingGoals || '—'}
+
+FOCO SEMANA: ${state.weekFocus || '—'}
+
+Genera el BRIEFING DE SEMANA COMPLETO con:
+
+## 🎯 LAS 3 ACCIONES MÁS IMPORTANTES ESTA SEMANA
+(en orden de impacto real en los objetivos, con el motivo)
+
+## 📹 SIGUIENTE VÍDEO A GRABAR
+(el más urgente del pipeline, con el por qué específico ahora)
+
+## 💡 UNA DECISIÓN QUE TIENES QUE TOMAR
+(algo que llevas aplazando, directamente)
+
+## 💪 FRASE DE ARRANQUE
+(personalizada a su situación real, estilo Topuria/Rohn — sin patetismo, con fuerza)
+
+Máximo 300 palabras. Directo. Sin relleno. En español.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 700, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'Claude API error' });
+    const data = await response.json();
+    res.json({ briefing: data.content?.[0]?.text || '' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.listen(PORT, () => {
   console.log(`Dashboard servidor corriendo en http://localhost:${PORT}`);
 });

@@ -1468,6 +1468,7 @@ function renderTabContent() {
           <div style="height:100%;width:${globalProgress}%;background:var(--blue);border-radius:2px;transition:width 0.4s"></div>
         </div>
         <div class="page-subtitle">${dateStr} · ${escapeHtml(STATE.weekFocus||'')}</div>
+        ${renderWeeklyBriefing()}
         ${renderGoals()}
         ${renderHabits()}
         ${renderTasks(s, a)}
@@ -1487,7 +1488,7 @@ function renderTabContent() {
       break;
     case 'sistema':
       pageTitle = 'Sistema';
-      pageContent = `${renderMindset()}${renderLifeGoals()}`;
+      pageContent = `${renderMindset()}${renderTikTokSection()}${renderLifeGoals()}`;
       break;
   }
 
@@ -2068,6 +2069,182 @@ function renderIdeaButton() {
     fab.title = 'Capturar idea';
     fab.onclick = openIdeaModal;
     document.body.appendChild(fab);
+  }
+}
+
+/* ── Weekly Briefing ── */
+function renderWeeklyBriefing() {
+  const cached = sessionStorage.getItem('weeklyBriefing');
+  const content = cached
+    ? `<div id="briefing-content" style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap">${escapeHtml(cached)}</div>`
+    : `<div id="briefing-content" style="color:var(--text-muted);font-size:13px">Genera el plan de esta semana con un toque.</div>`;
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-label">⚡ BRIEFING DE SEMANA</div>
+      <button id="briefing-btn" onclick="generateWeeklyBriefing()" style="background:var(--blue);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Generar plan</button>
+    </div>
+    ${content}
+  </div>`;
+}
+
+async function generateWeeklyBriefing() {
+  const btn = document.getElementById('briefing-btn');
+  const content = document.getElementById('briefing-content');
+  if (btn) { btn.textContent = 'Generando...'; btn.disabled = true; }
+  try {
+    const res = await fetch('/api/weekly-briefing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    const data = await res.json();
+    if (data.briefing) {
+      sessionStorage.setItem('weeklyBriefing', data.briefing);
+      if (content) content.innerHTML = `<div style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap">${escapeHtml(data.briefing)}</div>`;
+    } else {
+      if (content) content.textContent = data.error || 'Error generando briefing';
+    }
+  } catch (e) {
+    if (content) content.textContent = 'Error de conexión';
+  } finally {
+    if (btn) { btn.textContent = 'Actualizar plan'; btn.disabled = false; }
+  }
+}
+
+/* ── TikTok Section ── */
+function renderTikTokSection() {
+  const tiktokLog = STATE.tiktokLog || {};
+  const accounts = Object.keys(tiktokLog);
+  const currentWeek = getWeekNumber();
+
+  const accountCards = accounts.map(acc => {
+    const logs = tiktokLog[acc] || [];
+    const last = logs[logs.length - 1];
+    const prev = logs[logs.length - 2];
+    if (!last) return '';
+    const vDelta = prev ? last.views - prev.views : null;
+    const fDelta = prev ? last.followers - prev.followers : null;
+    return `
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--text)">@${escapeHtml(acc)}</div>
+            <div style="font-size:11px;color:var(--text-muted)">Semana ${last.week}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:600">${last.views.toLocaleString()} views ${vDelta !== null ? `<span style="font-size:10px;color:${vDelta>=0?'var(--green)':'var(--red)'}">${vDelta>=0?'+':''}${vDelta}</span>` : ''}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${last.followers.toLocaleString()} seguidores ${fDelta !== null ? `<span style="color:${fDelta>=0?'var(--green)':'var(--red)'}">${fDelta>=0?'+':''}${fDelta}</span>` : ''}</div>
+          </div>
+        </div>
+        ${last.topVideo ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">🏆 "${escapeHtml(last.topVideo)}"</div>` : ''}
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="pc-btn" onclick="openTiktokLog('${acc}')" style="font-size:11px">+ Actualizar</button>
+          <button class="pc-btn gen" onclick="analyzeTiktok('${acc}')" style="font-size:11px">✨ Analizar</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const addAccountBtn = `<button class="pc-btn" onclick="openTiktokLog('')" style="font-size:11px;margin-top:8px">+ Añadir cuenta TikTok</button>`;
+
+  const analysisArea = `<div id="tiktok-analysis" style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-top:8px"></div>`;
+
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-label" style="margin-bottom:12px">🎵 TIKTOK</div>
+    ${accountCards || `<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">Sin datos — añade tu primera cuenta.</div>`}
+    ${addAccountBtn}
+    ${analysisArea}
+  </div>
+
+  <div id="tiktok-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeTiktokModal()">
+    <div style="background:var(--card);border-radius:16px 16px 0 0;padding:24px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto">
+      <div style="font-size:15px;font-weight:700;margin-bottom:16px">📊 Datos TikTok</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input id="tt-account" placeholder="Cuenta (ej: cristinaperisai)" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px">
+        <input id="tt-week" type="week" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px">
+        <input id="tt-views" type="number" placeholder="Views de la semana" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px">
+        <input id="tt-followers" type="number" placeholder="Seguidores totales" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px">
+        <input id="tt-likes" type="number" placeholder="Likes de la semana" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px">
+        <input id="tt-topvideo" placeholder="Vídeo más visto (título)" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px">
+        <select id="tt-project" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px">
+          <option value="agencia">Agencia (@CristinaPerisAI)</option>
+          <option value="simulia">Simulia</option>
+        </select>
+        <input id="tt-notes" placeholder="Notas (opcional)" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px">
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button onclick="saveTiktokLog()" style="flex:1;background:var(--blue);border:none;color:#fff;padding:12px;border-radius:8px;font-weight:600;cursor:pointer">Guardar</button>
+          <button onclick="closeTiktokModal()" style="flex:1;background:var(--border);border:none;color:var(--text);padding:12px;border-radius:8px;cursor:pointer">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openTiktokLog(account) {
+  const modal = document.getElementById('tiktok-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  const accInput = document.getElementById('tt-account');
+  if (accInput && account) accInput.value = account;
+  const weekInput = document.getElementById('tt-week');
+  if (weekInput) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const week = getWeekNumber().toString().padStart(2, '0');
+    weekInput.value = `${year}-W${week}`;
+  }
+}
+
+function closeTiktokModal() {
+  const modal = document.getElementById('tiktok-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveTiktokLog() {
+  const account = document.getElementById('tt-account')?.value?.trim();
+  const week = document.getElementById('tt-week')?.value?.replace('W', '').replace('-', '-W').split('-W').map((p,i) => i===0 ? p : p.padStart(2,'0')).join('-W');
+  const views = parseInt(document.getElementById('tt-views')?.value) || 0;
+  const followers = parseInt(document.getElementById('tt-followers')?.value) || 0;
+  const likes = parseInt(document.getElementById('tt-likes')?.value) || 0;
+  const topVideo = document.getElementById('tt-topvideo')?.value?.trim();
+  const project = document.getElementById('tt-project')?.value || 'agencia';
+  const notes = document.getElementById('tt-notes')?.value?.trim();
+  const weekRaw = document.getElementById('tt-week')?.value;
+
+  if (!account || !weekRaw) { alert('Cuenta y semana son obligatorios'); return; }
+
+  try {
+    const res = await fetch('/api/tiktok-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account, week: weekRaw, views, followers, likes, topVideo, project, notes })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      STATE.tiktokLog = STATE.tiktokLog || {};
+      STATE.tiktokLog[account] = STATE.tiktokLog[account] || [];
+      const existing = STATE.tiktokLog[account].findIndex(e => e.week === weekRaw);
+      if (existing >= 0) STATE.tiktokLog[account][existing] = data.entry;
+      else STATE.tiktokLog[account].push(data.entry);
+      closeTiktokModal();
+      renderDashboard();
+    }
+  } catch (e) { alert('Error guardando datos TikTok'); }
+}
+
+async function analyzeTiktok(account) {
+  const area = document.getElementById('tiktok-analysis');
+  if (area) area.textContent = 'Analizando...';
+  const project = (STATE.tiktokLog?.[account]?.[0]) ? 'agencia' : 'simulia';
+  try {
+    const res = await fetch('/api/tiktok-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account, project })
+    });
+    const data = await res.json();
+    if (area) area.innerHTML = data.analysis
+      ? `<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;margin-top:4px;white-space:pre-wrap;font-size:12px;line-height:1.6">${escapeHtml(data.analysis)}</div>`
+      : `<span style="color:var(--red)">${data.error || 'Error'}</span>`;
+  } catch (e) {
+    if (area) area.textContent = 'Error de conexión';
   }
 }
 
