@@ -1,7 +1,7 @@
 # Objetivos — Q2 2026
 
 ## SIMULIA — Objetivo: 1.000€ MRR
-- **Actual:** 347€ MRR (34%)
+- **Actual:** 59€ MRR (6%) — 9 usuarios activos
 - **Fecha límite:** 30 junio 2026
 - **Métricas clave:**
   - Usuarios activos: 23 → objetivo 60

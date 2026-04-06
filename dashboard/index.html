@@ -1664,7 +1664,7 @@ function renderContenidoTab() {
         </select>
       </div>
       <button style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--purple);color:white;font-size:13px;cursor:pointer;font-family:inherit" onclick="generateFromSidebar()">✨ Generar</button>
-      <div id="sg-output" style="margin-top:14px;font-size:13px;line-height:1.6;white-space:pre-wrap;display:none;background:var(--surface2);border-radius:8px;padding:12px;max-height:400px;overflow-y:auto"></div>
+      <div id="sg-output" style="margin-top:14px;font-size:13px;line-height:1.6;display:none;background:var(--surface2);border-radius:8px;padding:12px;max-height:500px;overflow-y:auto"></div>
     </div>
     <div class="card">
       <div class="section-label">💡 Ideas de vídeo</div>
@@ -2214,7 +2214,7 @@ function renderIdeaButton() { /* no-op: idea capture moved to sidebar */ }
 function renderWeeklyBriefing() {
   const cached = sessionStorage.getItem('weeklyBriefing');
   const content = cached
-    ? `<div id="briefing-content" style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap">${escapeHtml(cached)}</div>`
+    ? `<div id="briefing-content" style="font-size:13px;line-height:1.7;color:var(--text)">${renderMd(cached)}</div>`
     : `<div id="briefing-content" style="color:var(--text-muted);font-size:13px">Genera el plan de esta semana con un toque.</div>`;
   return `
   <div class="card" style="margin-bottom:16px">
@@ -2235,7 +2235,7 @@ async function generateWeeklyBriefing() {
     const data = await res.json();
     if (data.briefing) {
       sessionStorage.setItem('weeklyBriefing', data.briefing);
-      if (content) content.innerHTML = `<div style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap">${escapeHtml(data.briefing)}</div>`;
+      if (content) content.innerHTML = `<div style="font-size:13px;line-height:1.7;color:var(--text)">${renderMd(data.briefing)}</div>`;
     } else {
       if (content) content.textContent = data.error || 'Error generando briefing';
     }
@@ -2379,7 +2379,7 @@ async function analyzeTiktok(account) {
     });
     const data = await res.json();
     if (area) area.innerHTML = data.analysis
-      ? `<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;margin-top:4px;white-space:pre-wrap;font-size:12px;line-height:1.6">${escapeHtml(data.analysis)}</div>`
+      ? `<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;margin-top:4px;font-size:12px;line-height:1.6">${renderMd(data.analysis)}</div>`
       : `<span style="color:var(--red)">${data.error || 'Error'}</span>`;
   } catch (e) {
     if (area) area.textContent = 'Error de conexión';
@@ -2515,6 +2515,29 @@ async function sendChat() {
 
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Lightweight markdown renderer for Claude output
+function renderMd(text) {
+  if (!text) return '';
+  let html = escapeHtml(text);
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--text)">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 style="font-size:14px;font-weight:700;margin:16px 0 8px;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:4px">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 style="font-size:16px;font-weight:800;margin:0 0 14px;color:var(--text)">$1</h1>');
+  // Bold + italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:700">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em style="color:var(--text-muted)">$1</em>');
+  // Numbered list
+  html = html.replace(/^\d+\. (.+)$/gm, '<div style="display:flex;gap:8px;margin:6px 0"><span style="color:var(--blue);font-weight:700;min-width:14px">·</span><span>$1</span></div>');
+  // Bullet list
+  html = html.replace(/^[-•] (.+)$/gm, '<div style="display:flex;gap:8px;margin:4px 0"><span style="color:var(--text-muted);min-width:14px">–</span><span>$1</span></div>');
+  // Horizontal rule
+  html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
+  // Line breaks (double newline = paragraph gap)
+  html = html.replace(/\n\n/g, '<div style="height:8px"></div>');
+  html = html.replace(/\n/g, '<br>');
+  return html;
 }
 
 /* ═══════════════════════════════════════════════
@@ -2710,7 +2733,7 @@ function renderSidebarGenerar() {
       <option value="short">📱 Short (60s)</option>
     </select>
     <button style="width:100%;padding:12px;border-radius:8px;border:none;background:var(--purple);color:white;font-size:14px;cursor:pointer;font-family:inherit" onclick="generateFromSidebar()">✨ Generar guión con IA</button>
-    <div id="sg-output" style="margin-top:16px;font-size:13px;line-height:1.6;white-space:pre-wrap;display:none;background:var(--surface2);border-radius:8px;padding:12px;max-height:400px;overflow-y:auto"></div>
+    <div id="sg-output" style="margin-top:16px;font-size:13px;line-height:1.6;display:none;background:var(--surface2);border-radius:8px;padding:12px;max-height:500px;overflow-y:auto"></div>
   </div>`;
 }
 
@@ -2728,7 +2751,7 @@ async function generateFromSidebar() {
       body: JSON.stringify({ title, project, type })
     });
     const data = await res.json();
-    out.textContent = data.script || data.error || 'Sin respuesta';
+    out.innerHTML = data.script ? renderMd(data.script) : (data.error || 'Sin respuesta');
   } catch (e) { out.textContent = 'Error al generar guión.'; }
 }
 
@@ -2985,7 +3008,7 @@ async function evaluateHabits() {
     });
     const data = await res.json();
     output.style.display = 'block';
-    output.textContent = data.evaluation || data.error || 'Sin respuesta';
+    output.innerHTML = data.evaluation ? renderMd(data.evaluation) : (data.error || 'Sin respuesta');
   } catch (e) {
     output.style.display = 'block';
     output.textContent = 'Error al conectar con la IA.';
@@ -3173,7 +3196,7 @@ async function runContentResearch() {
     });
     const data = await res.json();
     if (area) area.innerHTML = data.research
-      ? `<div style="white-space:pre-wrap;background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">${escapeHtml(data.research)}</div>`
+      ? `<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">${renderMd(data.research)}</div>`
       : `<span style="color:var(--red)">${data.error || 'Error'}</span>`;
   } catch (e) {
     if (area) area.textContent = 'Error de conexión al servidor.';
@@ -3283,7 +3306,7 @@ async function getBrownieCoaching() {
     const res = await fetch(`${SERVER}/api/brownie/coaching`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     const data = await res.json();
     if (area) area.innerHTML = data.coaching
-      ? `<div style="white-space:pre-wrap;line-height:1.6">${escapeHtml(data.coaching)}</div>`
+      ? `<div style="line-height:1.6">${renderMd(data.coaching)}</div>`
       : `<span style="color:var(--red)">${data.error || 'Error'}</span>`;
   } catch (e) { if (area) area.textContent = 'Error de conexión.'; }
 }
