@@ -36,14 +36,55 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: var(--gap);
-      max-width: 480px;
-      margin: 0 auto;
+      display: flex;
     }
-    @media (min-width: 768px) {
-      body { max-width: 900px; padding: 24px; }
-      .projects-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+
+    /* ── SIDEBAR LAYOUT ── */
+    #sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 220px;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100; overflow-y: auto;
+      scrollbar-width: none;
     }
+    #sidebar::-webkit-scrollbar { display: none; }
+    .sidebar-logo {
+      padding: 20px 16px 16px; font-size: 15px; font-weight: 700;
+      color: var(--text); letter-spacing: -0.3px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 9px; flex-shrink: 0;
+    }
+    .sidebar-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted);
+      padding: 16px 16px 6px; flex-shrink: 0;
+    }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 9px; padding: 8px 12px;
+      font-size: 13px; color: var(--text-muted); cursor: pointer;
+      border-radius: 6px; margin: 1px 6px; transition: background 0.1s, color 0.1s;
+      user-select: none;
+    }
+    .sidebar-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .sidebar-item.active { background: rgba(59,130,246,0.12); color: var(--blue); font-weight: 600; }
+    .sidebar-item .si-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+    .sidebar-divider { height: 1px; background: var(--border); margin: 8px 12px; flex-shrink: 0; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-footer {
+      padding: 12px 16px; font-size: 11px; color: var(--text-muted);
+      border-top: 1px solid var(--border); flex-shrink: 0; line-height: 1.6;
+    }
+    .sidebar-mrr-value { font-size: 15px; font-weight: 700; color: var(--text); }
+    .sidebar-project-dot {
+      display: inline-block; width: 6px; height: 6px;
+      border-radius: 50%; margin-right: 5px;
+    }
+
+    /* ── MAIN CONTENT ── */
+    #main-content {
+      margin-left: 220px; flex: 1; min-height: 100vh;
+      padding: 32px 48px; max-width: none;
+    }
+    .projects-grid { grid-template-columns: 1fr 1fr 1fr !important; }
 
     /* ── RITUAL SCREEN ── */
     #ritual-screen {
@@ -978,25 +1019,6 @@
       cursor: pointer; font-family: inherit;
     }
 
-    /* ── BOTTOM NAV ── */
-    body { padding-bottom: 70px; }
-    #bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: var(--surface); border-top: 1px solid var(--border);
-      display: flex; z-index: 200; padding: 0;
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    .bnav-btn {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 10px 4px 8px;
-      background: none; border: none; color: var(--text-muted);
-      font-size: 10px; font-family: inherit; cursor: pointer; gap: 3px;
-      transition: color 0.15s;
-    }
-    .bnav-btn .bnav-icon { font-size: 20px; line-height: 1; }
-    .bnav-btn.active { color: var(--blue); }
-    .bnav-btn.active .bnav-icon { transform: translateY(-1px); }
-
     /* ── NOTION-STYLE improvements ── */
     .section-label {
       font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
@@ -1011,10 +1033,9 @@
     }
     .page-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
 
-    /* Remove old @media body max-width restriction so tabs can use full width */
-    @media (min-width: 768px) {
-      #bottom-nav { max-width: 600px; left: 50%; transform: translateX(-50%); border-radius: 0; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
-    }
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   </style>
 </head>
 <body>
@@ -1049,10 +1070,58 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <span style="font-size:20px">⚡</span>
+    <div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:-0.2px">Cris OS</div>
+      <div style="font-size:10px;color:var(--text-muted);font-weight:400">Centro de mando</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">Workspace</div>
+  <div class="sidebar-item active" data-tab="hoy" onclick="switchTab('hoy')">
+    <span class="si-icon">🏠</span> Hoy
+  </div>
+  <div class="sidebar-item" data-tab="proyectos" onclick="switchTab('proyectos')">
+    <span class="si-icon">📊</span> Proyectos
+  </div>
+  <div class="sidebar-item" data-tab="contenido" onclick="switchTab('contenido')">
+    <span class="si-icon">📹</span> Contenido
+  </div>
+  <div class="sidebar-item" data-tab="chat" onclick="switchTab('chat')">
+    <span class="si-icon">💬</span> Claude
+  </div>
+  <div class="sidebar-item" data-tab="sistema" onclick="switchTab('sistema')">
+    <span class="si-icon">⚙️</span> Sistema
+  </div>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section-label">Acciones rápidas</div>
+  <div class="sidebar-item" onclick="openIdeaModal ? openIdeaModal() : null">
+    <span class="si-icon">💡</span> Nueva idea
+  </div>
+  <div class="sidebar-item" onclick="switchTab('chat')">
+    <span class="si-icon">✨</span> Chat con Claude
+  </div>
+
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-footer" id="sidebar-footer">
+    <div style="margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Proyectos activos</div>
+    <div style="margin-bottom:3px"><span class="sidebar-project-dot" style="background:var(--simulia)"></span><span style="color:var(--text)">Simulia</span> <span id="sf-mrr" style="float:right">—</span></div>
+    <div><span class="sidebar-project-dot" style="background:var(--agencia)"></span><span style="color:var(--text)">Agencia</span> <span id="sf-clients" style="float:right">0 cli.</span></div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════
      MAIN DASHBOARD
 ════════════════════════════════════════════════ -->
+<div id="main-content">
 <div id="dashboard">
   <!-- All blocks rendered by JS -->
+</div>
 </div>
 
 <!-- ═══════════════════════════════════════════════
@@ -1427,20 +1496,28 @@ async function finishRitual() {
 ════════════════════════════════════════════════ */
 let currentTab = 'hoy';
 
-function switchTab(tab, btn) {
+function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  else {
-    const b = document.querySelector(`.bnav-btn[data-tab="${tab}"]`);
-    if (b) b.classList.add('active');
-  }
+  document.querySelectorAll('.sidebar-item[data-tab]').forEach(el => el.classList.remove('active'));
+  const active = document.querySelector(`.sidebar-item[data-tab="${tab}"]`);
+  if (active) active.classList.add('active');
   renderTabContent();
 }
 
 function renderDashboard() {
   renderTabContent();
-  renderIdeaButton();
+  updateSidebarFooter();
+}
+
+function updateSidebarFooter() {
+  const mrr = document.getElementById('sf-mrr');
+  const clients = document.getElementById('sf-clients');
+  if (mrr && STATE.projects?.simulia?.current) {
+    mrr.textContent = STATE.projects.simulia.current.replace(' MRR', '');
+  }
+  if (clients && STATE.projects?.agencia?.current) {
+    clients.textContent = STATE.projects.agencia.current;
+  }
 }
 
 function renderTabContent() {
@@ -1462,21 +1539,34 @@ function renderTabContent() {
 
   switch(currentTab) {
     case 'hoy':
-      pageTitle = `Semana ${wn} · ${globalProgress}%`;
+      pageTitle = `Semana ${wn}`;
       pageContent = `
-        <div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:20px">
-          <div style="height:100%;width:${globalProgress}%;background:var(--blue);border-radius:2px;transition:width 0.4s"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+          <div style="flex:1;height:4px;background:var(--border);border-radius:2px">
+            <div style="height:100%;width:${globalProgress}%;background:var(--blue);border-radius:2px;transition:width 0.4s"></div>
+          </div>
+          <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">${globalProgress}% global</span>
         </div>
-        <div class="page-subtitle">${dateStr} · ${escapeHtml(STATE.weekFocus||'')}</div>
-        ${renderWeeklyBriefing()}
-        ${renderGoals()}
-        ${renderHabits()}
-        ${renderTasks(s, a)}
+        <div class="page-subtitle" style="margin-bottom:24px">${dateStr} · ${escapeHtml(STATE.weekFocus||'')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+          <div>
+            ${renderWeeklyBriefing()}
+            ${renderGoals()}
+          </div>
+          <div>
+            ${renderHabits()}
+            ${renderTasks(s, a)}
+          </div>
+        </div>
       `;
       break;
     case 'proyectos':
       pageTitle = 'Proyectos';
-      pageContent = `${renderProjects(s, a, m)}${renderMetrics()}`;
+      pageContent = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+          <div>${renderProjects(s, a, m)}</div>
+          <div>${renderMetrics()}</div>
+        </div>`;
       break;
     case 'contenido':
       pageTitle = 'Contenido';
@@ -1488,14 +1578,18 @@ function renderTabContent() {
       break;
     case 'sistema':
       pageTitle = 'Sistema';
-      pageContent = `${renderMindset()}${renderTikTokSection()}${renderLifeGoals()}`;
+      pageContent = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+          <div>${renderMindset()}${renderTikTokSection()}</div>
+          <div>${renderLifeGoals()}</div>
+        </div>`;
       break;
   }
 
   const dash = document.getElementById('dashboard');
   dash.innerHTML = `
     <div class="tab-page">
-      <div class="page-title">${pageTitle}</div>
+      <div class="page-title" style="font-size:26px;font-weight:800;margin-bottom:2px;letter-spacing:-0.5px">${pageTitle}</div>
       ${pageContent}
     </div>
   `;
@@ -2059,18 +2153,8 @@ function renderChat() {
   </div>`;
 }
 
-/* ── Block 5b: Idea button ── */
-function renderIdeaButton() {
-  if (!document.getElementById('idea-fab')) {
-    const fab = document.createElement('button');
-    fab.className = 'idea-fab';
-    fab.id = 'idea-fab';
-    fab.innerHTML = '💡';
-    fab.title = 'Capturar idea';
-    fab.onclick = openIdeaModal;
-    document.body.appendChild(fab);
-  }
-}
+/* ── Block 5b: Idea button (sidebar replaces FAB) ── */
+function renderIdeaButton() { /* no-op: idea capture moved to sidebar */ }
 
 /* ── Weekly Briefing ── */
 function renderWeeklyBriefing() {
@@ -2953,22 +3037,5 @@ async function deleteHabit(habitId) {
   checkRitual();
 })();
 </script>
-<div id="bottom-nav">
-  <button class="bnav-btn active" data-tab="hoy" onclick="switchTab('hoy',this)">
-    <span class="bnav-icon">🏠</span><span>Hoy</span>
-  </button>
-  <button class="bnav-btn" data-tab="proyectos" onclick="switchTab('proyectos',this)">
-    <span class="bnav-icon">📊</span><span>Proyectos</span>
-  </button>
-  <button class="bnav-btn" data-tab="contenido" onclick="switchTab('contenido',this)">
-    <span class="bnav-icon">📋</span><span>Contenido</span>
-  </button>
-  <button class="bnav-btn" data-tab="chat" onclick="switchTab('chat',this)">
-    <span class="bnav-icon">💬</span><span>Chat</span>
-  </button>
-  <button class="bnav-btn" data-tab="sistema" onclick="switchTab('sistema',this)">
-    <span class="bnav-icon">⚙️</span><span>Sistema</span>
-  </button>
-</div>
 </body>
 </html>

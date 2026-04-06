@@ -376,7 +376,18 @@
       "h-python"
     ]
   },
-  "tiktokLog": {},
+  "tiktokLog": {
+    "simulia": [
+      { "week": "2025-W27", "views": 15000, "followers": 0, "likes": 400, "comments": 40, "topVideo": "Viral Jul 2 (12.533 views)", "project": "simulia", "notes": "Primer viral masivo. Spike de 12.533 en un día — OPE verano", "updatedAt": "2025-07-07T00:00:00.000Z" },
+      { "week": "2025-W32", "views": 12000, "followers": 150, "likes": 250, "comments": 15, "topVideo": "Contenido agosto (base 100-3000/día)", "project": "simulia", "notes": "Período estable post-viral. Pico Aug 17: 3.015 views", "updatedAt": "2025-08-11T00:00:00.000Z" },
+      { "week": "2025-W37", "views": 11200, "followers": 200, "likes": 320, "comments": 108, "topVideo": "Sep 8-10: 4550+3402+2455 views", "project": "simulia", "notes": "Segundo spike. Sep 8: 4.550 views, 134 likes. Convocatorias OPE Q4", "updatedAt": "2025-09-10T00:00:00.000Z" },
+      { "week": "2025-W45", "views": 19800, "followers": 380, "likes": 680, "comments": 309, "topVideo": "Nov 11: 8.125 views, 309 comentarios — récord engagement", "project": "simulia", "notes": "Viral #3 — anuncio EIR 2026. 309 comentarios es el día más engaged de toda la historia del canal", "updatedAt": "2025-11-17T00:00:00.000Z" },
+      { "week": "2025-W49", "views": 28000, "followers": 620, "likes": 820, "comments": 298, "topVideo": "Dic 1: 9.799 views, 298 comentarios — pico máximo absoluto", "project": "simulia", "notes": "Viral #4 — el mayor día de toda la historia. Dic 11: 7.945 views. Diciembre = mes más fuerte del canal", "updatedAt": "2025-12-14T00:00:00.000Z" },
+      { "week": "2026-W03", "views": 5200, "followers": 680, "likes": 180, "comments": 133, "topVideo": "Ene 21: 671 views, 133 comentarios (altísimo engagement)", "project": "simulia", "notes": "Base estable 200-700/día en enero. Ene 21 destaca por comentarios (resolución dudas EIR)", "updatedAt": "2026-01-25T00:00:00.000Z" },
+      { "week": "2026-W10", "views": 8200, "followers": 700, "likes": 230, "comments": 25, "topVideo": "Mar 4: 2.678 views, 73 likes — spike por fecha OPE confirmada", "project": "simulia", "notes": "Spike marzo: nueva fecha OPE confirmada. Resto de mes 50-960 views/día", "updatedAt": "2026-03-10T00:00:00.000Z" },
+      { "week": "2026-W14", "views": 110, "followers": 700, "likes": 2, "comments": 0, "topVideo": "Abr 1-4: 17-33 views/día", "project": "simulia", "notes": "CUENTA DORMIDA — sin contenido. Urgente reactivar antes de pico mayo", "updatedAt": "2026-04-04T00:00:00.000Z" }
+    ]
+  },
   "goals": [
     {
       "id": 1775420785140,
