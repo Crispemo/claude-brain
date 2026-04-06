@@ -600,6 +600,189 @@ Máximo 120 palabras. Directo. Sin relleno. En español.` }]
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/gratitude — devuelve el log de agradecimiento
+app.get('/api/gratitude', (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    res.json(state.gratitudeLog || {});
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/gratitude — guarda entradas de agradecimiento para hoy
+app.post('/api/gratitude', (req, res) => {
+  try {
+    const { entries } = req.body; // array de strings
+    if (!Array.isArray(entries)) return res.status(400).json({ error: 'entries debe ser un array' });
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const today = new Date().toISOString().split('T')[0];
+    state.gratitudeLog = state.gratitudeLog || {};
+    state.gratitudeLog[today] = entries.filter(e => typeof e === 'string' && e.trim());
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, date: today, entries: state.gratitudeLog[today] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/youtube/videos — top vídeos del canal para research
+app.get('/api/youtube/videos', async (req, res) => {
+  try {
+    // Obtener lista de vídeos del canal (últimos 20)
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${process.env.YOUTUBE_CHANNEL_ID}&type=video&order=viewCount&maxResults=20&key=${process.env.YOUTUBE_API_KEY}`;
+    const searchRes = await fetch(searchUrl);
+    if (!searchRes.ok) return res.status(searchRes.status).json({ error: 'YouTube API error' });
+    const searchData = await searchRes.json();
+    const videoIds = (searchData.items || []).map(i => i.id.videoId).join(',');
+    if (!videoIds) return res.json({ videos: [] });
+
+    // Obtener estadísticas de esos vídeos
+    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${process.env.YOUTUBE_API_KEY}`;
+    const statsRes = await fetch(statsUrl);
+    const statsData = await statsRes.json();
+    const videos = (statsData.items || []).map(v => ({
+      id: v.id,
+      title: v.snippet.title,
+      publishedAt: v.snippet.publishedAt,
+      thumbnail: v.snippet.thumbnails?.medium?.url,
+      views: parseInt(v.statistics.viewCount || 0),
+      likes: parseInt(v.statistics.likeCount || 0),
+      comments: parseInt(v.statistics.commentCount || 0),
+      engagement: v.statistics.viewCount > 0
+        ? ((parseInt(v.statistics.likeCount || 0) + parseInt(v.statistics.commentCount || 0)) / parseInt(v.statistics.viewCount) * 100).toFixed(2)
+        : '0'
+    })).sort((a, b) => b.views - a.views);
+    res.json({ videos });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/content-research — Claude analiza los vídeos top y genera ideas de parte 2 + nuevos ángulos
+app.post('/api/content-research', async (req, res) => {
+  try {
+    const { videos, project } = req.body;
+    if (!videos || videos.length === 0) return res.status(400).json({ error: 'No hay vídeos para analizar' });
+
+    const videoList = videos.slice(0, 10).map((v, i) =>
+      `${i+1}. "${v.title}" → ${v.views.toLocaleString()} views, ${v.likes} likes, ${v.comments} comentarios, ER: ${v.engagement}%`
+    ).join('\n');
+
+    const projectCtx = project === 'simulia'
+      ? 'Canal Simulia — oposiciones enfermería EIR/OPE. Audiencia: enfermeros preparando oposiciones.'
+      : 'Canal @CristinaPerisAI — IA aplicada a ecommerce/Shopify. Audiencia: dueños de tiendas online. Objetivo: captar clientes para agencia.';
+
+    const prompt = `Eres un content strategist experto en YouTube. Analiza el rendimiento de estos vídeos y genera una estrategia de contenido.
+
+CONTEXTO DEL CANAL:
+${projectCtx}
+
+VÍDEOS ORDENADOS POR VISTAS (top 10):
+${videoList}
+
+Genera exactamente esto:
+
+## 🏆 LO QUE FUNCIONA (patrones de los top vídeos)
+(2-3 patrones concretos: tipo de hook, tema, formato, longitud del título...)
+
+## 📹 PARTE 2 / EXPANSIONES URGENTES
+Para los 3 vídeos con más vistas, sugiere una "Parte 2" o ángulo de expansión concreto con título exacto.
+
+## 💡 3 IDEAS DE VÍDEO NUEVAS BASADAS EN LOS DATOS
+(Títulos exactos + por qué van a funcionar basándose en el historial)
+
+## ⚠️ LO QUE NO DEBERÍAS REPETIR
+(Tipo de contenido con bajo rendimiento y por qué)
+
+Máximo 350 palabras. Directo. En español.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 700, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'Claude API error' });
+    const data = await response.json();
+    res.json({ research: data.content?.[0]?.text || '' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/brownie/training — guarda sesión de entrenamiento de Brownie
+app.post('/api/brownie/training', (req, res) => {
+  try {
+    const { skill, duration, result, notes } = req.body;
+    if (!skill) return res.status(400).json({ error: 'skill requerido' });
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    if (!state.brownie) state.brownie = { profile: { name: 'Brownie', issues: [], goals: [] }, trainingLog: [], notes: [] };
+    const entry = { id: `bt-${Date.now()}`, date: new Date().toISOString().split('T')[0], skill, duration: duration || 10, result: result || 'bien', notes: notes || '' };
+    state.brownie.trainingLog = state.brownie.trainingLog || [];
+    state.brownie.trainingLog.unshift(entry);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, entry });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/brownie/note — añade nota de aprendizaje de Brownie
+app.post('/api/brownie/note', (req, res) => {
+  try {
+    const { text, tags } = req.body;
+    if (!text) return res.status(400).json({ error: 'text requerido' });
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    if (!state.brownie) state.brownie = { profile: { name: 'Brownie', issues: [], goals: [] }, trainingLog: [], notes: [] };
+    const note = { id: `bn-${Date.now()}`, date: new Date().toISOString().split('T')[0], text, tags: tags || [] };
+    state.brownie.notes = state.brownie.notes || [];
+    state.brownie.notes.unshift(note);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true, note });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/brownie/note/:id
+app.delete('/api/brownie/note/:id', (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    if (state.brownie) state.brownie.notes = (state.brownie.notes || []).filter(n => n.id !== req.params.id);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/brownie/coaching — Claude da consejo de entrenamiento basado en historial
+app.post('/api/brownie/coaching', async (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const brownie = state.brownie || {};
+    const recentSessions = (brownie.trainingLog || []).slice(0, 5)
+      .map(s => `• ${s.date} — "${s.skill}" (${s.result}) ${s.notes ? '— ' + s.notes : ''}`).join('\n') || '— sin sesiones registradas';
+    const recentNotes = (brownie.notes || []).slice(0, 5)
+      .map(n => `• ${n.date}: ${n.text}`).join('\n') || '— sin notas';
+
+    const prompt = `Eres un experto en educación canina, especialmente en perros con problemas de frustración social y falta de autocontrol.
+
+PERFIL DEL PERRO:
+- Nombre: Brownie
+- Problemas principales: ${(brownie.profile?.issues || []).join(', ')}
+- Objetivos del entrenamiento: ${(brownie.profile?.goals || []).join(', ')}
+
+ÚLTIMAS SESIONES DE ENTRENAMIENTO:
+${recentSessions}
+
+NOTAS Y APRENDIZAJES:
+${recentNotes}
+
+Dame exactamente:
+1. **Análisis rápido** — qué está funcionando / qué no (basado en el historial)
+2. **Ejercicio concreto para HOY** — pasos exactos, duración, qué buscar
+3. **Un consejo clave** para el problema de frustración social o autocontrol
+
+Máximo 200 palabras. Práctico, directo, basado en evidencia. En español.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'Claude API error' });
+    const data = await response.json();
+    res.json({ coaching: data.content?.[0]?.text || '' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // POST /api/tiktok-log — guarda métricas manuales de TikTok por semana
 app.post('/api/tiktok-log', (req, res) => {
   try {

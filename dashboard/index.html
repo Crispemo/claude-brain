@@ -1097,6 +1097,9 @@
   <div class="sidebar-item" data-tab="sistema" onclick="switchTab('sistema')">
     <span class="si-icon">⚙️</span> Sistema
   </div>
+  <div class="sidebar-item" data-tab="brownie" onclick="switchTab('brownie')">
+    <span class="si-icon">🐶</span> Brownie
+  </div>
 
   <div class="sidebar-divider"></div>
   <div class="sidebar-section-label">Acciones rápidas</div>
@@ -1542,18 +1545,20 @@ function renderTabContent() {
       pageTitle = `Semana ${wn}`;
       pageContent = `
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
-          <div style="flex:1;height:4px;background:var(--border);border-radius:2px">
+          <div style="flex:1;height:3px;background:var(--border);border-radius:2px">
             <div style="height:100%;width:${globalProgress}%;background:var(--blue);border-radius:2px;transition:width 0.4s"></div>
           </div>
-          <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">${globalProgress}% global</span>
+          <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">${globalProgress}% global</span>
         </div>
-        <div class="page-subtitle" style="margin-bottom:24px">${dateStr} · ${escapeHtml(STATE.weekFocus||'')}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+        <div class="page-subtitle" style="margin-bottom:20px">${dateStr} · ${escapeHtml(STATE.weekFocus||'')}</div>
+        <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:20px;align-items:start">
           <div>
             ${renderWeeklyBriefing()}
-            ${renderGoals()}
+            ${renderMindset()}
+            ${renderGratitude()}
           </div>
           <div>
+            ${renderGoals()}
             ${renderHabits()}
             ${renderTasks(s, a)}
           </div>
@@ -1564,8 +1569,8 @@ function renderTabContent() {
       pageTitle = 'Proyectos';
       pageContent = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-          <div>${renderProjects(s, a, m)}</div>
-          <div>${renderMetrics()}</div>
+          <div>${renderProjects(s, a, m)}${renderTikTokSection()}</div>
+          <div>${renderMetrics()}${renderYouTubeResearch()}</div>
         </div>`;
       break;
     case 'contenido':
@@ -1580,9 +1585,13 @@ function renderTabContent() {
       pageTitle = 'Sistema';
       pageContent = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-          <div>${renderMindset()}${renderTikTokSection()}</div>
           <div>${renderLifeGoals()}</div>
+          <div></div>
         </div>`;
+      break;
+    case 'brownie':
+      pageTitle = '🐶 Brownie';
+      pageContent = renderBrownie();
       break;
   }
 
@@ -1665,66 +1674,61 @@ function renderContenidoTab() {
 }
 
 async function loadLiveMetrics() {
-  // YouTube
-  try {
-    const yt = await (await fetch(`${SERVER}/api/youtube`)).json();
-    if (yt.error) throw new Error(yt.error);
-    const ytSubsEl = document.querySelector('.metric-box:nth-child(1) .metric-value');
-    const ytDeltaEl = document.querySelector('.metric-box:nth-child(1) .metric-sub');
-    if (ytSubsEl) ytSubsEl.textContent = yt.subscribers?.toLocaleString('es-ES') || '—';
-    if (ytDeltaEl) ytDeltaEl.textContent = `${yt.videoCount} vídeos totales`;
-    STATE.projects.agencia.currentValue = yt.subscribers;
-    STATE.projects.agencia.current = `${yt.subscribers.toLocaleString('es-ES')} subs`;
-    STATE.projects.agencia.progress = Math.round(yt.subscribers / STATE.projects.agencia.objectiveValue * 100);
-  } catch (e) {
-    const el = document.querySelector('.metric-box:nth-child(1) .metric-sub');
-    if (el) el.textContent = '⚠️ No disponible';
-  }
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
   // Stripe
   try {
     const stripe = await (await fetch(`${SERVER}/api/stripe`)).json();
-    if (stripe.error) throw new Error(stripe.error);
-    const mrrEl = document.querySelector('.metric-box:nth-child(3) .metric-value');
-    const usersEl = document.querySelector('.metric-box:nth-child(3) .metric-sub');
-    const activeEl = document.querySelector('.metric-box:nth-child(4) .metric-value');
-    const newEl = document.querySelector('.metric-box:nth-child(4) .metric-sub');
-    if (mrrEl) mrrEl.textContent = `${stripe.mrr}€`;
-    if (usersEl) usersEl.textContent = `${stripe.activeUsers} activos`;
-    if (activeEl) activeEl.textContent = stripe.activeUsers;
-    if (newEl) { newEl.textContent = `+${stripe.newThisMonth} este mes`; newEl.style.color = 'var(--green)'; }
-    STATE.projects.simulia.currentValue = stripe.mrr;
-    STATE.projects.simulia.current = `${stripe.mrr}€ MRR`;
-    STATE.projects.simulia.progress = Math.round(stripe.mrr / STATE.projects.simulia.objectiveValue * 100);
-  } catch (e) {
-    const el = document.querySelector('.metric-box:nth-child(3) .metric-sub');
-    if (el) el.textContent = '⚠️ No disponible';
-  }
+    if (!stripe.error) {
+      set('m-mrr', `${stripe.mrr}€`);
+      set('m-mrr-sub', `objetivo: ${STATE.projects?.simulia?.objective || '1.000€'}`);
+      set('m-users', stripe.activeUsers);
+      set('m-users-sub', `activos ahora`);
+      set('m-new', `+${stripe.newThisMonth}`);
+      STATE.projects.simulia.currentValue = stripe.mrr;
+      STATE.projects.simulia.current = `${stripe.mrr}€ MRR`;
+      STATE.projects.simulia.progress = Math.round(stripe.mrr / (STATE.projects.simulia.objectiveValue || 1000) * 100);
+      updateSidebarFooter();
+    }
+  } catch (e) { set('m-mrr-sub', '⚠️ No disponible'); }
 
-  // YouTube Analytics box 2 — vistas últimos 7 días
+  // YouTube básico
   try {
-    const ytaEl = document.querySelector('.metric-box:nth-child(2) .metric-value');
-    const ytaSubEl = document.querySelector('.metric-box:nth-child(2) .metric-sub');
+    const yt = await (await fetch(`${SERVER}/api/youtube`)).json();
+    if (!yt.error) {
+      set('m-subs', yt.subscribers?.toLocaleString('es-ES') || '—');
+      set('m-subs-sub', `de ${STATE.projects?.agencia?.objective || '5 clientes/mes'}`);
+      set('m-totalviews', yt.totalViews?.toLocaleString('es-ES') || '—');
+      set('m-videos-sub', `${yt.videoCount} vídeos publicados`);
+      set('m-videocount', yt.videoCount || '—');
+    }
+  } catch (e) { set('m-subs-sub', '⚠️ No disponible'); }
+
+  // YouTube Analytics (OAuth)
+  try {
     const yta = await (await fetch(`${SERVER}/api/youtube/analytics`)).json();
     if (!yta.error) {
-      if (ytaEl) ytaEl.textContent = yta.weeklyViews?.toLocaleString('es-ES') || '—';
-      const netLabel = yta.netSubs >= 0 ? `▲${yta.netSubs} subs` : `▼${Math.abs(yta.netSubs)} subs`;
-      if (ytaSubEl) ytaSubEl.textContent = `7 días · ${netLabel}`;
+      set('m-weekviews', yta.weeklyViews?.toLocaleString('es-ES') || '—');
+      set('m-weekviews-sub', `últimos 7 días`);
+      const net = yta.netSubs >= 0 ? `+${yta.netSubs}` : `${yta.netSubs}`;
+      set('m-netsubs', net);
+      set('m-netsubs-sub', yta.netSubs >= 0 ? 'creciendo ▲' : 'bajando ▼');
+      set('m-watchtime', yta.weeklyMinutes?.toLocaleString('es-ES') || '—');
     } else {
-      if (ytaEl) ytaEl.textContent = '—';
-      if (ytaSubEl) ytaSubEl.textContent = yta.detail || '⚠️ Analytics no disponible';
+      set('m-weekviews-sub', yta.detail || '⚠️ Analytics no disponible');
     }
-  } catch (e) {
-    const el = document.querySelector('.metric-box:nth-child(2) .metric-sub');
-    if (el) el.textContent = '⚠️ No disponible';
-  }
+  } catch (e) { set('m-weekviews-sub', '⚠️ No disponible'); }
 
-  // Update timestamp
-  const tsEl = document.querySelector('.metrics-block .section-title');
-  if (tsEl) {
-    const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    tsEl.textContent = `Métricas en vivo · ${time}`;
-  }
+  // Instagram
+  try {
+    const ig = await (await fetch(`${SERVER}/api/instagram`)).json();
+    if (!ig.error) {
+      set('m-igfollowers', ig.followers?.toLocaleString('es-ES') || '—');
+      set('m-igfollowers-sub', `${ig.mediaCount} posts`);
+      set('m-iger', ig.engagementRate ? `${ig.engagementRate}%` : '—');
+      set('m-igtoken', ig.tokenDaysLeft != null ? `${ig.tokenDaysLeft}d` : '—');
+    }
+  } catch (e) { set('m-igfollowers-sub', '⚠️ No disponible'); }
 }
 
 /* ── Content Pipeline ── */
@@ -2093,26 +2097,76 @@ function renderMetrics() {
       <div class="section-title" style="margin-bottom:0">Métricas en vivo</div>
       <button onclick="refreshMetrics()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-size:12px;cursor:pointer;">↻ Actualizar</button>
     </div>
-    <div class="metrics-grid">
+
+    <div class="section-label" style="margin-top:4px">Simulia — Stripe</div>
+    <div class="metrics-grid" style="margin-bottom:16px">
       <div class="metric-box">
-        <div class="metric-label">YouTube Subs</div>
-        <div class="metric-value">—</div>
-        <div class="metric-sub">cargando...</div>
-      </div>
-      <div class="metric-box">
-        <div class="metric-label">YT Vistas / 7d</div>
-        <div class="metric-value">—</div>
-        <div class="metric-sub">cargando...</div>
-      </div>
-      <div class="metric-box">
-        <div class="metric-label">Stripe MRR</div>
-        <div class="metric-value">—</div>
-        <div class="metric-sub">cargando...</div>
+        <div class="metric-label">MRR</div>
+        <div class="metric-value" id="m-mrr">—</div>
+        <div class="metric-sub" id="m-mrr-sub">cargando...</div>
       </div>
       <div class="metric-box">
         <div class="metric-label">Usuarios activos</div>
-        <div class="metric-value">—</div>
-        <div class="metric-sub">cargando...</div>
+        <div class="metric-value" id="m-users">—</div>
+        <div class="metric-sub" id="m-users-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Nuevos este mes</div>
+        <div class="metric-value" id="m-new">—</div>
+        <div class="metric-sub">vs obj. 12/mes</div>
+      </div>
+    </div>
+
+    <div class="section-label">Agencia — YouTube</div>
+    <div class="metrics-grid" style="margin-bottom:16px">
+      <div class="metric-box">
+        <div class="metric-label">Suscriptores</div>
+        <div class="metric-value" id="m-subs">—</div>
+        <div class="metric-sub" id="m-subs-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Vistas totales</div>
+        <div class="metric-value" id="m-totalviews">—</div>
+        <div class="metric-sub" id="m-videos-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Vistas / 7 días</div>
+        <div class="metric-value" id="m-weekviews">—</div>
+        <div class="metric-sub" id="m-weekviews-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Subs ganados / 7d</div>
+        <div class="metric-value" id="m-netsubs">—</div>
+        <div class="metric-sub" id="m-netsubs-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Watch time / 7d</div>
+        <div class="metric-value" id="m-watchtime">—</div>
+        <div class="metric-sub">minutos</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Vídeos subidos</div>
+        <div class="metric-value" id="m-videocount">—</div>
+        <div class="metric-sub">total canal</div>
+      </div>
+    </div>
+
+    <div class="section-label">Instagram</div>
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <div class="metric-label">Seguidores</div>
+        <div class="metric-value" id="m-igfollowers">—</div>
+        <div class="metric-sub" id="m-igfollowers-sub">cargando...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Engagement Rate</div>
+        <div class="metric-value" id="m-iger">—</div>
+        <div class="metric-sub">últimos 10 posts</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Token IG</div>
+        <div class="metric-value" id="m-igtoken">—</div>
+        <div class="metric-sub">días restantes</div>
       </div>
     </div>
   </div>`;
@@ -3025,6 +3079,264 @@ async function deleteHabit(habitId) {
     (STATE.lifeGoals || []).forEach(g => {
       g.habits = (g.habits || []).filter(h => h.id !== habitId);
     });
+    renderDashboard();
+  } catch (e) { console.error(e); }
+}
+
+/* ── Gratitude ── */
+function renderGratitude() {
+  const today = getTodayStr();
+  const log = STATE.gratitudeLog || {};
+  const todayEntries = log[today] || [];
+  const inputRows = todayEntries.length === 0
+    ? ['', '', '']
+    : [...todayEntries, ...(todayEntries.length < 3 ? Array(3 - todayEntries.length).fill('') : [])];
+
+  const pastDays = Object.entries(log)
+    .filter(([d]) => d !== today)
+    .sort(([a],[b]) => b.localeCompare(a))
+    .slice(0, 5);
+
+  const pastHtml = pastDays.length > 0
+    ? `<details style="margin-top:10px"><summary style="font-size:11px;color:var(--text-muted);cursor:pointer;list-style:none">▸ Días anteriores (${pastDays.length})</summary>
+      ${pastDays.map(([d, entries]) => `
+        <div style="margin-top:8px;padding:8px;background:rgba(255,255,255,0.02);border-radius:6px">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">${d}</div>
+          ${entries.map(e => `<div style="font-size:12px;color:var(--text);line-height:1.5">• ${escapeHtml(e)}</div>`).join('')}
+        </div>`).join('')}
+      </details>` : '';
+
+  return `
+  <div class="card" style="margin-bottom:12px">
+    <div class="section-label" style="margin-bottom:10px">🙏 AGRADECIMIENTOS HOY</div>
+    <div id="gratitude-inputs">
+      ${inputRows.slice(0,3).map((v, i) => `
+        <input id="gratitude-${i}" value="${escapeHtml(v)}" placeholder="Agradezco..." style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;margin-bottom:6px;font-family:inherit">
+      `).join('')}
+    </div>
+    <button onclick="saveGratitude()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;width:100%">Guardar agradecimientos</button>
+    ${pastHtml}
+  </div>`;
+}
+
+async function saveGratitude() {
+  const entries = [0,1,2].map(i => document.getElementById(`gratitude-${i}`)?.value?.trim()).filter(Boolean);
+  if (entries.length === 0) return;
+  try {
+    const res = await fetch(`${SERVER}/api/gratitude`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      STATE.gratitudeLog = STATE.gratitudeLog || {};
+      STATE.gratitudeLog[getTodayStr()] = data.entries;
+      const btn = event.target;
+      btn.textContent = '✓ Guardado';
+      setTimeout(() => { btn.textContent = 'Guardar agradecimientos'; }, 1500);
+    }
+  } catch (e) { console.error(e); }
+}
+
+/* ── YouTube Research ── */
+function renderYouTubeResearch() {
+  return `
+  <div class="card" style="margin-top:16px">
+    <div class="section-label" style="margin-bottom:10px">🔬 RESEARCH DE CONTENIDO</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">Analiza qué vídeos han funcionado mejor y genera ideas de continuación o nuevos ángulos.</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <select id="research-project" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);font-size:12px">
+        <option value="agencia">Agencia (@CristinaPerisAI)</option>
+        <option value="simulia">Simulia</option>
+      </select>
+      <button onclick="runContentResearch()" style="background:var(--blue);border:none;color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap">🔬 Analizar</button>
+    </div>
+    <div id="research-result" style="font-size:12px;color:var(--text-muted);line-height:1.6"></div>
+  </div>`;
+}
+
+async function runContentResearch() {
+  const project = document.getElementById('research-project')?.value || 'agencia';
+  const area = document.getElementById('research-result');
+  if (area) area.innerHTML = '<span style="color:var(--text-muted)">Cargando vídeos del canal...</span>';
+  try {
+    const vtRes = await fetch(`${SERVER}/api/youtube/videos`);
+    const vtData = await vtRes.json();
+    if (!vtData.videos || vtData.videos.length === 0) {
+      if (area) area.textContent = 'No se encontraron vídeos o la API no está disponible.';
+      return;
+    }
+    if (area) area.innerHTML = '<span style="color:var(--text-muted)">Analizando con Claude...</span>';
+    const res = await fetch(`${SERVER}/api/content-research`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videos: vtData.videos, project })
+    });
+    const data = await res.json();
+    if (area) area.innerHTML = data.research
+      ? `<div style="white-space:pre-wrap;background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">${escapeHtml(data.research)}</div>`
+      : `<span style="color:var(--red)">${data.error || 'Error'}</span>`;
+  } catch (e) {
+    if (area) area.textContent = 'Error de conexión al servidor.';
+  }
+}
+
+/* ── Brownie ── */
+function renderBrownie() {
+  const brownie = STATE.brownie || {};
+  const profile = brownie.profile || {};
+  const training = (brownie.trainingLog || []).slice(0, 8);
+  const notes = (brownie.notes || []).slice(0, 10);
+
+  const resultColor = { 'bien': 'var(--green)', 'regular': 'var(--yellow)', 'mal': 'var(--red)' };
+
+  const trainingRows = training.length > 0
+    ? training.map(s => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <div style="width:8px;height:8px;border-radius:50%;background:${resultColor[s.result]||'var(--text-muted)'};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600">${escapeHtml(s.skill)}</div>
+          ${s.notes ? `<div style="font-size:11px;color:var(--text-muted)">${escapeHtml(s.notes)}</div>` : ''}
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);white-space:nowrap">${s.date} · ${s.duration}min</div>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:var(--text-muted)">Sin sesiones registradas aún.</div>';
+
+  const noteRows = notes.length > 0
+    ? notes.map(n => `
+      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div style="font-size:12px;line-height:1.5;flex:1">${escapeHtml(n.text)}</div>
+          <button onclick="deleteBrownieNote('${n.id}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0 0 0 8px;flex-shrink:0">✕</button>
+        </div>
+        ${n.tags?.length > 0 ? `<div style="margin-top:4px">${n.tags.map(t => `<span style="font-size:10px;background:rgba(255,255,255,0.06);border-radius:4px;padding:2px 6px;margin-right:4px">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${n.date}</div>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:var(--text-muted)">Sin notas aún.</div>';
+
+  return `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+    <div>
+      <!-- Perfil + Coaching -->
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="font-size:36px">🐶</div>
+          <div>
+            <div style="font-size:18px;font-weight:700">${profile.name || 'Brownie'}</div>
+            <div style="font-size:11px;color:var(--text-muted)">Entrenamiento + educación canina</div>
+          </div>
+        </div>
+        <div class="section-label" style="margin-bottom:6px">PROBLEMAS EN TRABAJO</div>
+        ${(profile.issues || []).map(i => `<div style="font-size:12px;color:var(--yellow);margin-bottom:3px">⚠️ ${escapeHtml(i)}</div>`).join('')}
+        <div class="section-label" style="margin-top:12px;margin-bottom:6px">OBJETIVOS</div>
+        ${(profile.goals || []).map(g => `<div style="font-size:12px;margin-bottom:3px">• ${escapeHtml(g)}</div>`).join('')}
+      </div>
+
+      <!-- Consejo IA -->
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="section-label" style="margin-bottom:0">🧠 CONSEJO DE HOY</div>
+          <button onclick="getBrownieCoaching()" style="background:var(--blue);border:none;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">Generar</button>
+        </div>
+        <div id="brownie-coaching" style="font-size:12px;color:var(--text-muted);line-height:1.6">Pulsa "Generar" para recibir consejo personalizado basado en tu historial.</div>
+      </div>
+
+      <!-- Nueva sesión -->
+      <div class="card">
+        <div class="section-label" style="margin-bottom:10px">➕ NUEVA SESIÓN</div>
+        <input id="bt-skill" placeholder="Ejercicio (ej: Sentado, Quieto, Paseo...)" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;margin-bottom:8px;font-family:inherit">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <select id="bt-result" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px;color:var(--text);font-size:12px">
+            <option value="bien">✅ Bien</option>
+            <option value="regular">🟡 Regular</option>
+            <option value="mal">❌ Mal</option>
+          </select>
+          <input id="bt-duration" type="number" value="10" min="1" placeholder="Min" style="width:70px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px;color:var(--text);font-size:12px;text-align:center">
+        </div>
+        <input id="bt-notes" placeholder="Notas de la sesión..." style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;margin-bottom:8px;font-family:inherit">
+        <button onclick="saveBrownieTraining()" style="width:100%;background:var(--green);border:none;color:#000;padding:9px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Guardar sesión</button>
+      </div>
+    </div>
+
+    <div>
+      <!-- Historial sesiones -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:10px">📋 HISTORIAL SESIONES</div>
+        ${trainingRows}
+      </div>
+
+      <!-- Notas / Aprendizajes -->
+      <div class="card">
+        <div class="section-label" style="margin-bottom:10px">📝 NOTAS Y APRENDIZAJES</div>
+        <textarea id="brownie-note-input" placeholder="Escribe un aprendizaje, comportamiento observado, técnica que funcionó..." rows="3" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;margin-bottom:6px;font-family:inherit;resize:vertical"></textarea>
+        <input id="brownie-note-tags" placeholder="Tags separados por comas (ej: autocontrol, frustración)" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;margin-bottom:8px;font-family:inherit">
+        <button onclick="saveBrownieNote()" style="width:100%;background:none;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:12px;cursor:pointer;margin-bottom:12px">Guardar nota</button>
+        ${noteRows}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function getBrownieCoaching() {
+  const area = document.getElementById('brownie-coaching');
+  if (area) area.textContent = 'Analizando historial...';
+  try {
+    const res = await fetch(`${SERVER}/api/brownie/coaching`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await res.json();
+    if (area) area.innerHTML = data.coaching
+      ? `<div style="white-space:pre-wrap;line-height:1.6">${escapeHtml(data.coaching)}</div>`
+      : `<span style="color:var(--red)">${data.error || 'Error'}</span>`;
+  } catch (e) { if (area) area.textContent = 'Error de conexión.'; }
+}
+
+async function saveBrownieTraining() {
+  const skill = document.getElementById('bt-skill')?.value?.trim();
+  const result = document.getElementById('bt-result')?.value || 'bien';
+  const duration = parseInt(document.getElementById('bt-duration')?.value) || 10;
+  const notes = document.getElementById('bt-notes')?.value?.trim();
+  if (!skill) return;
+  try {
+    const res = await fetch(`${SERVER}/api/brownie/training`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skill, result, duration, notes })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (!STATE.brownie) STATE.brownie = { trainingLog: [], notes: [] };
+      STATE.brownie.trainingLog = STATE.brownie.trainingLog || [];
+      STATE.brownie.trainingLog.unshift(data.entry);
+      document.getElementById('bt-skill').value = '';
+      document.getElementById('bt-notes').value = '';
+      renderDashboard();
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function saveBrownieNote() {
+  const text = document.getElementById('brownie-note-input')?.value?.trim();
+  const tagsRaw = document.getElementById('brownie-note-tags')?.value?.trim();
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  if (!text) return;
+  try {
+    const res = await fetch(`${SERVER}/api/brownie/note`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, tags })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (!STATE.brownie) STATE.brownie = { trainingLog: [], notes: [] };
+      STATE.brownie.notes = STATE.brownie.notes || [];
+      STATE.brownie.notes.unshift(data.note);
+      document.getElementById('brownie-note-input').value = '';
+      document.getElementById('brownie-note-tags').value = '';
+      renderDashboard();
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function deleteBrownieNote(id) {
+  try {
+    await fetch(`${SERVER}/api/brownie/note/${id}`, { method: 'DELETE' });
+    if (STATE.brownie) STATE.brownie.notes = (STATE.brownie.notes || []).filter(n => n.id !== id);
     renderDashboard();
   } catch (e) { console.error(e); }
 }
