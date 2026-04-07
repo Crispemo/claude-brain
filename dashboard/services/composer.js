@@ -50,8 +50,8 @@ function renderClip(screenPath, facePath, segment, assPath, outputPath) {
     const { start, end } = segment;
     const duration = end - start;
 
-    // Escape assPath for ffmpeg subtitles filter (single quotes and backslashes)
-    const escapedAss = assPath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "'\\''");
+    // Escape assPath for ffmpeg subtitles filter (convert backslashes and colons)
+    const escapedAss = assPath.replace(/\\/g, '/').replace(/:/g, '\\:');
 
     const args = [
       '-y',
@@ -78,7 +78,6 @@ function renderClip(screenPath, facePath, segment, assPath, outputPath) {
       '-c:a', 'aac',
       '-b:a', '192k',
       '-movflags', '+faststart',
-      '-t', String(duration),
       outputPath
     ];
 
