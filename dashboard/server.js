@@ -1122,6 +1122,140 @@ app.get('/api/ce/scripts', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ═══════════════════════════════════════════════
+// CONTENT ENGINE — Video Clipper module
+// ═══════════════════════════════════════════════
+const { transcribeAudio, formatTranscriptForClaude } = require('./services/whisper');
+const { buildAssFile } = require('./services/ass-generator');
+const { extractAudio, renderClip } = require('./services/composer');
+const { selectClips } = require('./services/claude');
+
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const OUTPUT_DIR = path.join(__dirname, 'output');
+const OUTPUT_INDEX = path.join(OUTPUT_DIR, 'index.json');
+
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+// In-memory job queue
+const clipJobs = new Map();
+
+function createClipJob() {
+  const id = crypto.randomUUID();
+  clipJobs.set(id, { id, status: 'pending', progress: 0, message: 'Iniciando...' });
+  return id;
+}
+
+function updateClipJob(id, patch) {
+  const job = clipJobs.get(id);
+  if (job) Object.assign(job, patch);
+}
+
+// Multer for video uploads
+const videoUpload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOADS_DIR,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `${Date.now()}-${file.fieldname}${ext}`);
+    }
+  }),
+  limits: { fileSize: 4 * 1024 * 1024 * 1024 } // 4GB
+});
+
+app.post('/api/ce/clips/process',
+  videoUpload.fields([{ name: 'screen', maxCount: 1 }, { name: 'face', maxCount: 1 }]),
+  (req, res) => {
+    if (!req.files?.screen || !req.files?.face) {
+      return res.status(400).json({ error: 'Se requieren los dos vídeos: screen y face' });
+    }
+    const jobId = createClipJob();
+    res.json({ jobId });
+
+    const screenPath = req.files.screen[0].path;
+    const facePath = req.files.face[0].path;
+    runClipPipeline(jobId, screenPath, facePath);
+  }
+);
+
+async function runClipPipeline(jobId, screenPath, facePath) {
+  try {
+    updateClipJob(jobId, { status: 'running', progress: 5, message: 'Extrayendo audio...' });
+    const audioPath = facePath.replace(path.extname(facePath), '-audio.wav');
+    await extractAudio(facePath, audioPath);
+
+    updateClipJob(jobId, { progress: 20, message: 'Transcribiendo con Whisper (puede tardar varios minutos)...' });
+    const whisperJson = await transcribeAudio(audioPath);
+    fs.unlinkSync(audioPath);
+
+    updateClipJob(jobId, { progress: 50, message: 'Seleccionando mejores momentos con IA...' });
+    const transcriptText = formatTranscriptForClaude(whisperJson);
+    const segments = await selectClips(transcriptText);
+
+    updateClipJob(jobId, { progress: 55, message: `Renderizando ${segments.length} clips...` });
+
+    const date = new Date().toISOString().slice(0, 10);
+    const clips = [];
+
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      const clipId = `${date}-clip-${String(i + 1).padStart(2, '0')}`;
+      const assPath = path.join(UPLOADS_DIR, `${clipId}.ass`);
+      const outputPath = path.join(OUTPUT_DIR, `${clipId}.mp4`);
+
+      // Build ASS for this segment only (filter whisper segments within range)
+      const segmentWhisper = {
+        segments: whisperJson.segments.filter(s => s.end > seg.start && s.start < seg.end)
+      };
+      const assContent = buildAssFile(segmentWhisper, seg.start);
+      fs.writeFileSync(assPath, assContent);
+
+      await renderClip(screenPath, facePath, seg, assPath, outputPath);
+      fs.unlinkSync(assPath);
+
+      const duration = Math.round(seg.end - seg.start);
+      clips.push({ filename: `${clipId}.mp4`, titulo: seg.titulo, duration, date });
+
+      const progress = 55 + Math.round(((i + 1) / segments.length) * 40);
+      updateClipJob(jobId, { progress, message: `Clip ${i + 1}/${segments.length} listo` });
+    }
+
+    // Cleanup uploads
+    try { fs.unlinkSync(screenPath); } catch (_) {}
+    try { fs.unlinkSync(facePath); } catch (_) {}
+
+    // Save to index
+    let index = [];
+    if (fs.existsSync(OUTPUT_INDEX)) {
+      try { index = JSON.parse(fs.readFileSync(OUTPUT_INDEX, 'utf8')); } catch (_) {}
+    }
+    index = [...clips, ...index];
+    fs.writeFileSync(OUTPUT_INDEX, JSON.stringify(index, null, 2));
+
+    updateClipJob(jobId, { status: 'done', progress: 100, message: `${clips.length} clips generados`, clips });
+  } catch (err) {
+    console.error('[VideoClipper] Pipeline error:', err);
+    updateClipJob(jobId, { status: 'error', message: err.message });
+  }
+}
+
+app.get('/api/ce/clips/status/:jobId', (req, res) => {
+  const job = clipJobs.get(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Job no encontrado' });
+  res.json(job);
+});
+
+app.get('/api/ce/clips', (req, res) => {
+  if (!fs.existsSync(OUTPUT_INDEX)) return res.json([]);
+  try {
+    res.json(JSON.parse(fs.readFileSync(OUTPUT_INDEX, 'utf8')));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.use('/output', express.static(OUTPUT_DIR));
+
 app.listen(PORT, () => {
   console.log(`Dashboard servidor corriendo en http://localhost:${PORT}`);
 });
