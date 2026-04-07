@@ -1100,6 +1100,12 @@
   <div class="sidebar-item" data-tab="brownie" onclick="switchTab('brownie')">
     <span class="si-icon">🐶</span> Brownie
   </div>
+  <div class="sidebar-item" data-tab="python" onclick="switchTab('python')">
+    <span class="si-icon">🐍</span> Python
+  </div>
+  <div class="sidebar-item" data-tab="scripts" onclick="switchTab('scripts')">
+    <span class="si-icon">📝</span> Scripts IA
+  </div>
 
   <div class="sidebar-divider"></div>
   <div class="sidebar-section-label">Acciones rápidas</div>
@@ -1586,12 +1592,20 @@ function renderTabContent() {
       pageContent = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
           <div>${renderLifeGoals()}</div>
-          <div></div>
+          <div>${renderCronStatus()}</div>
         </div>`;
       break;
     case 'brownie':
       pageTitle = '🐶 Brownie';
       pageContent = renderBrownie();
+      break;
+    case 'python':
+      pageTitle = '🐍 Python';
+      pageContent = renderPython();
+      break;
+    case 'scripts':
+      pageTitle = '📝 Scripts IA';
+      pageContent = renderScriptsIA();
       break;
   }
 
@@ -1604,7 +1618,144 @@ function renderTabContent() {
   `;
 
   bindAllEvents();
+  if (currentTab === 'scripts') ceLoadHistory();
   if (currentTab === 'proyectos') loadLiveMetrics();
+  if (currentTab === 'sistema') loadCronStatus().then(() => {
+    const el = document.getElementById('cron-briefing-output');
+    const lastEl = document.getElementById('cron-last-run');
+    const nextEl = document.getElementById('cron-next-run');
+    if (el && cronStatusCache?.lastBriefing) el.innerHTML = renderMd(cronStatusCache.lastBriefing);
+    if (lastEl && cronStatusCache?.lastRun) lastEl.textContent = new Date(cronStatusCache.lastRun).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    if (nextEl && cronStatusCache?.nextRun) nextEl.textContent = new Date(cronStatusCache.nextRun).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  });
+}
+
+// ═══════════════════════════════════════════════
+// SCRIPTS IA TAB
+// ═══════════════════════════════════════════════
+function renderScriptsIA() {
+  return `
+    <p class="page-subtitle">Pega una URL de YouTube, Instagram o artículo. La IA genera el script adaptado a tu voz de Agencia.</p>
+
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <input type="text" id="ce-url-input" placeholder="https://youtube.com/watch?v=..." style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;font-family:inherit;outline:none">
+      <button id="ce-generate-btn" onclick="ceGenerateScript()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">Generar script</button>
+    </div>
+
+    <div id="ce-status" style="display:none;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px"></div>
+
+    <div id="ce-output" style="display:none;margin-bottom:28px">
+      ${['INTRO','CTA TEMPRANO','CONTENIDO','CIERRE + CTA'].map(label => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--yellow)">${label}</span>
+            <button onclick="ceCopySection('${label}')" style="font-size:11px;padding:4px 10px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:5px;cursor:pointer">Copiar</button>
+          </div>
+          <textarea id="ce-section-${label.replace(/\s+/g,'-').replace(/[^\w-]/g,'')}" style="width:100%;border:none;background:transparent;color:var(--text);padding:14px;min-height:80px;resize:vertical;font-size:14px;line-height:1.6;font-family:inherit"></textarea>
+        </div>`).join('')}
+      <div style="display:flex;gap:10px">
+        <button onclick="ceCopyAll()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer">Copiar todo</button>
+        <button onclick="ceClear()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer">Limpiar</button>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Scripts guardados</div>
+    <div id="ce-history" style="display:flex;flex-direction:column;gap:8px">
+      <div style="color:var(--text-muted);font-size:13px">Cargando...</div>
+    </div>
+  `;
+}
+
+function ceGetSectionId(label) {
+  return 'ce-section-' + label.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+}
+
+function escapeHtmlCe(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+async function ceGenerateScript() {
+  const url = document.getElementById('ce-url-input')?.value?.trim();
+  if (!url) return;
+  const btn = document.getElementById('ce-generate-btn');
+  const status = document.getElementById('ce-status');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+  status.style.display = 'block';
+  status.style.background = 'rgba(59,130,246,0.1)';
+  status.style.color = 'var(--blue)';
+  status.style.border = '1px solid rgba(59,130,246,0.2)';
+  status.textContent = 'Extrayendo contenido y generando script... (30-60 segundos)';
+  document.getElementById('ce-output').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/ce/scripts/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error desconocido');
+    status.style.display = 'none';
+    ceRenderScript(data.script);
+    ceLoadHistory();
+  } catch (err) {
+    status.style.background = 'rgba(239,68,68,0.1)';
+    status.style.color = 'var(--red)';
+    status.style.border = '1px solid rgba(239,68,68,0.2)';
+    status.textContent = 'Error: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generar script';
+  }
+}
+
+function ceRenderScript(script) {
+  ['INTRO','CTA TEMPRANO','CONTENIDO','CIERRE + CTA'].forEach(label => {
+    const el = document.getElementById(ceGetSectionId(label));
+    if (el) el.value = script[label] || '';
+  });
+  document.getElementById('ce-output').style.display = 'block';
+}
+
+function ceCopySection(label) {
+  const el = document.getElementById(ceGetSectionId(label));
+  if (el) navigator.clipboard.writeText(el.value);
+}
+
+function ceCopyAll() {
+  const all = ['INTRO','CTA TEMPRANO','CONTENIDO','CIERRE + CTA'].map(l => {
+    const el = document.getElementById(ceGetSectionId(l));
+    return el ? `[${l}]\n${el.value}` : '';
+  }).filter(Boolean).join('\n\n');
+  navigator.clipboard.writeText(all);
+}
+
+function ceClear() {
+  document.getElementById('ce-output').style.display = 'none';
+  const inp = document.getElementById('ce-url-input');
+  if (inp) inp.value = '';
+  document.getElementById('ce-status').style.display = 'none';
+}
+
+async function ceLoadHistory() {
+  const container = document.getElementById('ce-history');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/ce/scripts');
+    const list = await res.json();
+    if (!list.length) {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Sin scripts guardados aún.</div>';
+      return;
+    }
+    container.innerHTML = list.map(item => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px" title="${escapeHtmlCe(item.url)}">${escapeHtmlCe(item.url)}</span>
+        <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;margin-left:12px">${escapeHtmlCe(item.date)}</span>
+      </div>`).join('');
+  } catch (e) { console.error('ceLoadHistory error:', e); }
 }
 
 function renderContenidoTab() {
@@ -3137,12 +3288,12 @@ function renderGratitude() {
         <input id="gratitude-${i}" value="${escapeHtml(v)}" placeholder="Agradezco..." style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:12px;margin-bottom:6px;font-family:inherit">
       `).join('')}
     </div>
-    <button onclick="saveGratitude()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;width:100%">Guardar agradecimientos</button>
+    <button onclick="saveGratitude(this)" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;width:100%">Guardar agradecimientos</button>
     ${pastHtml}
   </div>`;
 }
 
-async function saveGratitude() {
+async function saveGratitude(btn) {
   const entries = [0,1,2].map(i => document.getElementById(`gratitude-${i}`)?.value?.trim()).filter(Boolean);
   if (entries.length === 0) return;
   try {
@@ -3154,7 +3305,6 @@ async function saveGratitude() {
     if (data.ok) {
       STATE.gratitudeLog = STATE.gratitudeLog || {};
       STATE.gratitudeLog[getTodayStr()] = data.entries;
-      const btn = event.target;
       btn.textContent = '✓ Guardado';
       setTimeout(() => { btn.textContent = 'Guardar agradecimientos'; }, 1500);
     }
@@ -3362,6 +3512,374 @@ async function deleteBrownieNote(id) {
     if (STATE.brownie) STATE.brownie.notes = (STATE.brownie.notes || []).filter(n => n.id !== id);
     renderDashboard();
   } catch (e) { console.error(e); }
+}
+
+/* ═══════════════════════════════════════════════
+   PYTHON LEARNING PAGE
+════════════════════════════════════════════════ */
+
+const PYTHON_CURRICULUM = [
+  {
+    level: 1,
+    title: 'Variables y tipos de datos',
+    icon: '📦',
+    color: '#3b82f6',
+    description: 'La base de todo: guardar información en cajas con nombre.',
+    concepts: [
+      { name: 'Variables', example: 'nombre = "Cris"\nedad = 26\naltura = 1.80' },
+      { name: 'Tipos: str, int, float, bool', example: 'texto = "hola"   # str\nnumero = 42      # int\ndecimal = 3.14   # float\nverdad = True    # bool' },
+      { name: 'type() e input()', example: 'x = 10\nprint(type(x))  # <class \'int\'>\nnombre = input("¿Cómo te llamas? ")' },
+      { name: 'Conversión de tipos', example: 'edad_str = "26"\nedad_int = int(edad_str)\nprecio = float("9.99")' },
+    ]
+  },
+  {
+    level: 2,
+    title: 'Operadores y expresiones',
+    icon: '🔢',
+    color: '#22c55e',
+    description: 'Hacer cálculos y comparaciones con los datos.',
+    concepts: [
+      { name: 'Aritméticos', example: 'suma = 5 + 3       # 8\nresto = 10 - 4     # 6\nproducto = 3 * 4   # 12\ndivision = 9 / 2   # 4.5\nentera = 9 // 2    # 4\nmodulo = 9 % 2     # 1\npotencia = 2 ** 8  # 256' },
+      { name: 'Comparación', example: 'print(5 > 3)    # True\nprint(5 == 5)   # True\nprint(5 != 4)   # True\nprint(5 >= 5)   # True' },
+      { name: 'Lógicos (and, or, not)', example: 'x = 10\nprint(x > 5 and x < 20)   # True\nprint(x < 5 or x > 8)     # True\nprint(not x == 10)         # False' },
+    ]
+  },
+  {
+    level: 3,
+    title: 'Booleanos y condicionales',
+    icon: '🔀',
+    color: '#a855f7',
+    description: 'Tomar decisiones en el código según condiciones.',
+    concepts: [
+      { name: 'if / else', example: 'edad = 20\nif edad >= 18:\n    print("Mayor de edad")\nelse:\n    print("Menor de edad")' },
+      { name: 'elif (múltiples ramas)', example: 'nota = 75\nif nota >= 90:\n    print("Sobresaliente")\nelif nota >= 70:\n    print("Notable")\nelif nota >= 50:\n    print("Aprobado")\nelse:\n    print("Suspenso")' },
+      { name: 'Condicional en una línea', example: '# Ternario\nmensaje = "Aprobado" if nota >= 50 else "Suspenso"' },
+    ]
+  },
+  {
+    level: 4,
+    title: 'Listas y tuplas',
+    icon: '📋',
+    color: '#eab308',
+    description: 'Guardar colecciones ordenadas de datos.',
+    concepts: [
+      { name: 'Listas (mutables)', example: 'frutas = ["manzana", "pera", "uva"]\nfrutas.append("kiwi")\nfrutas.remove("pera")\nprint(frutas[0])   # manzana\nprint(len(frutas)) # 3' },
+      { name: 'Índices y slicing', example: 'nums = [10, 20, 30, 40, 50]\nprint(nums[1])    # 20\nprint(nums[-1])   # 50\nprint(nums[1:4])  # [20, 30, 40]' },
+      { name: 'Tuplas (inmutables)', example: 'coordenadas = (40.4168, -3.7038)\nlatitud, longitud = coordenadas  # unpacking' },
+      { name: 'Métodos útiles', example: 'lista = [3, 1, 4, 1, 5]\nlista.sort()\nprint(sorted(lista))  # sin modificar\nprint(min(lista), max(lista))' },
+    ]
+  },
+  {
+    level: 5,
+    title: 'Bucles: for y while',
+    icon: '🔄',
+    color: '#ef4444',
+    description: 'Repetir acciones sin escribir el mismo código 100 veces.',
+    concepts: [
+      { name: 'for con range()', example: 'for i in range(5):\n    print(i)  # 0, 1, 2, 3, 4\n\nfor i in range(1, 6):\n    print(i)  # 1, 2, 3, 4, 5' },
+      { name: 'for sobre lista', example: 'frutas = ["manzana", "pera", "uva"]\nfor fruta in frutas:\n    print(f"Me gusta la {fruta}")' },
+      { name: 'while', example: 'contador = 0\nwhile contador < 5:\n    print(contador)\n    contador += 1' },
+      { name: 'break y continue', example: 'for n in range(10):\n    if n == 3:\n        continue  # salta el 3\n    if n == 7:\n        break     # para en 7\n    print(n)' },
+    ]
+  },
+  {
+    level: 6,
+    title: 'Diccionarios',
+    icon: '🗂️',
+    color: '#06b6d4',
+    description: 'Datos en pares clave-valor, como un formulario.',
+    concepts: [
+      { name: 'Crear y acceder', example: 'persona = {\n    "nombre": "Cris",\n    "edad": 26,\n    "ciudad": "Madrid"\n}\nprint(persona["nombre"])   # Cris\nprint(persona.get("pais", "Desconocido"))' },
+      { name: 'Modificar y añadir', example: 'persona["email"] = "cris@email.com"\npersona["edad"] = 27\ndel persona["ciudad"]' },
+      { name: 'Iterar', example: 'for clave, valor in persona.items():\n    print(f"{clave}: {valor}")\n\nprint(persona.keys())\nprint(persona.values())' },
+    ]
+  },
+  {
+    level: 7,
+    title: 'Funciones',
+    icon: '⚙️',
+    color: '#f97316',
+    description: 'Empaquetar código reutilizable con nombre propio.',
+    concepts: [
+      { name: 'Definir y llamar', example: 'def saludar(nombre):\n    print(f"Hola, {nombre}!")\n\nsaludar("Cris")  # Hola, Cris!' },
+      { name: 'Return', example: 'def sumar(a, b):\n    return a + b\n\nresultado = sumar(3, 7)\nprint(resultado)  # 10' },
+      { name: 'Parámetros por defecto', example: 'def describir(nombre, edad=18):\n    return f"{nombre} tiene {edad} años"\n\nprint(describir("Ana"))        # 18\nprint(describir("Luis", 25))   # 25' },
+      { name: 'args y kwargs', example: 'def suma_todos(*nums):\n    return sum(nums)\n\ndef info(**datos):\n    for k, v in datos.items():\n        print(f"{k} = {v}")' },
+    ]
+  },
+  {
+    level: 8,
+    title: 'Strings avanzados',
+    icon: '✍️',
+    color: '#84cc16',
+    description: 'Manipular texto como un profesional.',
+    concepts: [
+      { name: 'f-strings', example: 'nombre = "Cris"\nmrr = 59\nprint(f"Hola {nombre}, tu MRR es {mrr}€")\nprint(f"El doble es {mrr * 2}€")' },
+      { name: 'Métodos de string', example: 'texto = "  Hola Mundo  "\nprint(texto.strip())        # quita espacios\nprint(texto.lower())        # minúsculas\nprint(texto.upper())        # mayúsculas\nprint(texto.replace("Mundo", "Cris"))' },
+      { name: 'Split y join', example: 'csv = "manzana,pera,uva"\nfruta = csv.split(",")      # lista\nprint(fruta)  # ["manzana", "pera", "uva"]\nresult = " | ".join(fruta)  # string' },
+    ]
+  },
+  {
+    level: 9,
+    title: 'Manejo de errores',
+    icon: '🛡️',
+    color: '#78716c',
+    description: 'Controlar qué pasa cuando algo falla.',
+    concepts: [
+      { name: 'try / except', example: 'try:\n    numero = int(input("Escribe un número: "))\n    print(10 / numero)\nexcept ValueError:\n    print("Eso no es un número")\nexcept ZeroDivisionError:\n    print("No se divide por cero")' },
+      { name: 'finally', example: 'try:\n    f = open("archivo.txt")\n    datos = f.read()\nexcept FileNotFoundError:\n    print("Archivo no encontrado")\nfinally:\n    print("Esto siempre se ejecuta")' },
+    ]
+  },
+  {
+    level: 10,
+    title: 'Clases y POO básica',
+    icon: '🏗️',
+    color: '#ec4899',
+    description: 'Programación Orientada a Objetos: crear tus propios tipos de datos.',
+    concepts: [
+      { name: 'Definir una clase', example: 'class Persona:\n    def __init__(self, nombre, edad):\n        self.nombre = nombre\n        self.edad = edad\n\n    def saludar(self):\n        print(f"Soy {self.nombre}")\n\ncris = Persona("Cris", 26)\ncris.saludar()' },
+      { name: 'Herencia', example: 'class Emprendedor(Persona):\n    def __init__(self, nombre, edad, proyecto):\n        super().__init__(nombre, edad)\n        self.proyecto = proyecto\n\n    def pitch(self):\n        print(f"{self.nombre} construye {self.proyecto}")' },
+    ]
+  },
+];
+
+let cronStatusCache = null;
+
+function renderCronStatus() {
+  const last = cronStatusCache;
+  const lastRunText = last?.lastRun
+    ? new Date(last.lastRun).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : '—';
+  const nextRunText = last?.nextRun
+    ? new Date(last.nextRun).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : 'Próximo lunes 8:00';
+  const briefingHtml = last?.lastBriefing ? renderMd(last.lastBriefing) : '<span style="color:var(--text-muted);font-size:12px">Sin briefing guardado. Pulsa el botón para generar.</span>';
+
+  return `<div class="section-card">
+    <div class="section-label">🤖 Automatización / Cron</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Último briefing</div>
+        <div style="font-size:13px;font-weight:600" id="cron-last-run">${lastRunText}</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Próxima ejecución</div>
+        <div style="font-size:13px;font-weight:600;color:var(--blue)" id="cron-next-run">${nextRunText}</div>
+      </div>
+    </div>
+    <button onclick="triggerCronBriefing()" id="cron-trigger-btn" style="width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:16px">
+      ▶ Generar briefing ahora
+    </button>
+    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Briefing guardado</div>
+    <div id="cron-briefing-output" style="font-size:13px;line-height:1.7;color:var(--text)">${briefingHtml}</div>
+  </div>`;
+}
+
+async function loadCronStatus() {
+  try {
+    const r = await fetch('/api/cron-status');
+    if (!r.ok) return;
+    cronStatusCache = await r.json();
+  } catch (e) {}
+}
+
+async function triggerCronBriefing() {
+  const btn = document.getElementById('cron-trigger-btn');
+  const output = document.getElementById('cron-briefing-output');
+  if (!btn || !output) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Generando...';
+  output.innerHTML = '<span style="color:var(--text-muted);font-size:12px">Generando briefing semanal...</span>';
+  try {
+    const r = await fetch('/api/weekly-briefing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await r.json();
+    if (data.briefing) {
+      output.innerHTML = renderMd(data.briefing);
+      await loadCronStatus();
+      const lastEl = document.getElementById('cron-last-run');
+      if (lastEl && cronStatusCache?.lastRun) {
+        lastEl.textContent = new Date(cronStatusCache.lastRun).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      }
+    } else {
+      output.innerHTML = `<span style="color:var(--red);font-size:12px">Error: ${escapeHtml(data.error || 'desconocido')}</span>`;
+    }
+  } catch (e) {
+    output.innerHTML = `<span style="color:var(--red);font-size:12px">Error de conexión</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Generar briefing ahora';
+  }
+}
+
+let pythonExamState = { active: false, questions: [], answers: [], feedback: '', loading: false };
+
+function renderPython() {
+  const progress = STATE.pythonProgress || {};
+  const completedLevels = Object.keys(progress).filter(k => progress[k]).length;
+  const totalLevels = PYTHON_CURRICULUM.length;
+  const pct = Math.round((completedLevels / totalLevels) * 100);
+
+  const levels = PYTHON_CURRICULUM.map(lvl => {
+    const done = progress[lvl.level];
+    return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${lvl.color};border-radius:var(--radius);padding:16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">${lvl.icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text)">Nivel ${lvl.level} — ${lvl.title}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${lvl.description}</div>
+            </div>
+          </div>
+          <button onclick="togglePythonLevel(${lvl.level})" style="background:${done ? lvl.color : 'transparent'};border:1px solid ${lvl.color};color:${done ? '#fff' : lvl.color};font-size:11px;padding:4px 12px;border-radius:99px;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0">
+            ${done ? '✓ Completado' : 'Marcar'}
+          </button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">
+          ${lvl.concepts.map(c => `
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px">
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">${c.name}</div>
+              <pre style="font-size:11px;color:#a5f3a5;font-family:'SF Mono',Monaco,monospace;white-space:pre-wrap;line-height:1.5;margin:0">${escapeHtml(c.example)}</pre>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const examSection = pythonExamState.active
+    ? renderPythonExamActive()
+    : `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">🎯</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:6px">¿Listo para el examen?</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Claude te preparará preguntas sobre los temas que hayas marcado como completados (o sobre todo si no has marcado nada).</div>
+        <button onclick="startPythonExam()" style="background:var(--blue);color:#fff;border:none;padding:12px 28px;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer">
+          Empezar examen
+        </button>
+      </div>
+    `;
+
+  return `
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+          <div style="flex:1;height:4px;background:var(--border);border-radius:2px">
+            <div style="height:100%;width:${pct}%;background:var(--blue);border-radius:2px;transition:width 0.4s"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">${completedLevels}/${totalLevels} completados</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Marca cada nivel cuando domines los conceptos. Lee los ejemplos, pruébalos en tu editor.</div>
+        ${levels}
+      </div>
+      <div style="position:sticky;top:24px">
+        ${examSection}
+      </div>
+    </div>
+  `;
+}
+
+function renderPythonExamActive() {
+  if (pythonExamState.loading) {
+    return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">⏳</div>
+        <div style="color:var(--text-muted);font-size:13px">Claude está preparando tu examen...</div>
+      </div>
+    `;
+  }
+  if (pythonExamState.feedback) {
+    return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📋 Resultado del examen</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap">${escapeHtml(pythonExamState.feedback)}</div>
+        <div style="margin-top:16px;display:flex;gap:8px">
+          <button onclick="startPythonExam()" style="background:var(--blue);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Otro examen</button>
+          <button onclick="pythonExamState={active:false,questions:[],answers:[],feedback:'',loading:false};renderDashboard()" style="background:transparent;color:var(--text-muted);border:1px solid var(--border);padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer">Cerrar</button>
+        </div>
+      </div>
+    `;
+  }
+  const qs = pythonExamState.questions;
+  const answers = pythonExamState.answers;
+  const inputs = qs.map((q, i) => `
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Pregunta ${i + 1}</div>
+      <div style="font-size:13px;color:var(--text);margin-bottom:6px;white-space:pre-wrap">${escapeHtml(q)}</div>
+      <textarea id="python-ans-${i}" rows="3" placeholder="Tu respuesta..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical">${escapeHtml(answers[i] || '')}</textarea>
+    </div>
+  `).join('');
+  return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">📝 Examen Python</div>
+      ${inputs}
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button onclick="submitPythonExam()" style="background:var(--blue);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;flex:1">Entregar</button>
+        <button onclick="pythonExamState={active:false,questions:[],answers:[],feedback:'',loading:false};renderDashboard()" style="background:transparent;color:var(--text-muted);border:1px solid var(--border);padding:10px 16px;border-radius:8px;font-size:13px;cursor:pointer">Cancelar</button>
+      </div>
+    </div>
+  `;
+}
+
+async function togglePythonLevel(level) {
+  if (!STATE.pythonProgress) STATE.pythonProgress = {};
+  STATE.pythonProgress[level] = !STATE.pythonProgress[level];
+  try {
+    await fetch(`${SERVER}/api/state`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(STATE)
+    });
+  } catch (e) { console.error(e); }
+  renderDashboard();
+}
+
+async function startPythonExam() {
+  const progress = STATE.pythonProgress || {};
+  const completed = PYTHON_CURRICULUM.filter(l => progress[l.level]).map(l => l.title);
+  const topics = completed.length > 0 ? completed.join(', ') : PYTHON_CURRICULUM.slice(0, 3).map(l => l.title).join(', ');
+  pythonExamState = { active: true, questions: [], answers: [], feedback: '', loading: true };
+  renderDashboard();
+  try {
+    const res = await fetch(`${SERVER}/api/python-exam`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topics, mode: 'generate' })
+    });
+    const data = await res.json();
+    pythonExamState.questions = data.questions || [];
+    pythonExamState.answers = new Array(pythonExamState.questions.length).fill('');
+    pythonExamState.loading = false;
+    renderDashboard();
+  } catch (e) {
+    pythonExamState.loading = false;
+    pythonExamState.questions = ['Error al conectar con Claude. ¿El servidor está activo?'];
+    pythonExamState.answers = [''];
+    renderDashboard();
+  }
+}
+
+async function submitPythonExam() {
+  const qs = pythonExamState.questions;
+  const answers = qs.map((_, i) => {
+    const el = document.getElementById(`python-ans-${i}`);
+    return el ? el.value : '';
+  });
+  pythonExamState.answers = answers;
+  pythonExamState.loading = true;
+  renderDashboard();
+  try {
+    const res = await fetch(`${SERVER}/api/python-exam`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'evaluate', questions: qs, answers })
+    });
+    const data = await res.json();
+    pythonExamState.feedback = data.feedback || 'Sin respuesta';
+    pythonExamState.loading = false;
+    renderDashboard();
+  } catch (e) {
+    pythonExamState.feedback = 'Error al evaluar. Inténtalo de nuevo.';
+    pythonExamState.loading = false;
+    renderDashboard();
+  }
 }
 
 /* ═══════════════════════════════════════════════

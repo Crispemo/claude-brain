@@ -176,7 +176,7 @@
     "weekPrincipleContext": "Un día de setup + grabación intensiva = 2 semanas de contenido publicado. Eso es apalancamiento real. No se trata de estar ocupado, se trata de multiplicar el trabajo.",
     "weeklyWin": "",
     "ritualCompletedToday": false,
-    "ritualLastDate": "2026-04-06"
+    "ritualLastDate": "2026-04-07"
   },
   "ideas": [],
   "scripts": [
@@ -318,12 +318,6 @@
           "name": "Entrenamiento de fuerza",
           "icon": "🏋️",
           "daysPerWeek": 3
-        },
-        {
-          "id": "h-1775467620528",
-          "name": "100 flexiones diarias",
-          "icon": "🔥",
-          "daysPerWeek": 7
         }
       ]
     },
@@ -368,6 +362,13 @@
           "daysPerWeek": 5
         }
       ]
+    },
+    {
+      "id": "lg-1775549495820",
+      "name": "50 flexiones diarias",
+      "emoji": "🔥",
+      "category": "salud",
+      "habits": []
     }
   ],
   "habitLog": {
@@ -483,22 +484,33 @@
       "name": "Cumple",
       "date": "2026-06-23",
       "emoji": "🎂"
-    },
-    {
-      "id": 1775422228085,
-      "name": "Escribir fran",
-      "date": "2026-04-07",
-      "emoji": "💸"
     }
   ],
-  "gratitudeLog": {},
+  "gratitudeLog": {
+    "2026-04-07": [
+      "agradezco la oportunidad brindada por fran y la confianza para trabajar conmigo.",
+      "agradezco estar en mi casa, con mi novia, de nuevo",
+      "agradezco tener trabajo que hacer y estar enfocada en ello"
+    ]
+  },
   "brownie": {
     "profile": {
       "name": "Brownie",
-      "issues": ["Frustración social", "0 autocontrol"],
-      "goals": ["Mejorar autocontrol en situaciones de estrés", "Gestionar frustración social", "Obediencia básica consolidada"]
+      "issues": [
+        "Frustración social",
+        "0 autocontrol"
+      ],
+      "goals": [
+        "Mejorar autocontrol en situaciones de estrés",
+        "Gestionar frustración social",
+        "Obediencia básica consolidada"
+      ]
     },
     "trainingLog": [],
     "notes": []
+  },
+  "cronMeta": {
+    "lastRun": "2026-04-07T08:09:31.504Z",
+    "lastBriefing": "# 📋 BRIEFING DE SEMANA — CRIS (Semana 14/2026)\n\n## 🎯 LAS 3 ACCIONES MÁS IMPORTANTES\n\n1. **Grabar los 4 vídeos de SIMULIA** (Lunes-Martes)\n   - *Motivo:* 59€ MRR → 1.000€ MRR. Tienes el contenido listo. Sin vídeos no hay tracción. Es el 6% del objetivo.\n\n2. **Publicar 1 script de agencia en TikTok/YouTube** (Miércoles)\n   - *Motivo:* 0 clientes de agencia. Necesitas prueba social. El mejor script para arrancar: \"Cómo uso IA para generar 100 fichas de producto en Shopify en 1 hora\". Es dinero directo.\n\n3. **Editar y subir los 4 vídeos de SIMULIA + 1 de agencia** (Jueves-Viernes)\n   - *Motivo:* Sin distribución, no existe. Tienes 700 followers esperando. Es multiplicador inmediato.\n\n---\n\n## 📹 SIGUIENTE VÍDEO A GRABAR\n\n**\"Cómo uso IA para generar 100 fichas de producto en Shopify en 1 hora (workflow real)\"**\n\n*Por qué ahora:* Es tu entrada a la agencia. Los dueños de Shopify lo ven = leads. Script listo. Máximo ROI de grabación. Empieza con este, no con Simulia. Te abre puertas.\n\n---\n\n## 💡 UNA DECISIÓN QUE TIENES QUE TOMAR\n\n**¿Grabas con móvil decente o esperas equipo profesional?**\n\nDecides HOY. El perfeccionismo te está frenando. Graba con lo que tengas. La calidad de contenido bate a la calidad de cámara.\n\n---\n\n## 💪 FRASE DE ARRANQUE\n\n*\"Llevas 1 año en tech. Tienes 2 negocios con scripts listos. Lo que falta es tu cara grabando. Los 700 followers de Simulia no son seguidores; son personas esperando a que grabes. Hoy empiezas.\"*"
   }
 }

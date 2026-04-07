@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const cron = require('node-cron');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -115,6 +116,57 @@ Responde en español, de forma directa y accionable. Sin relleno. Como un coach 
     }
     const data = await response.json();
     res.json({ reply: data.content?.[0]?.text || 'Sin respuesta' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/python-exam — genera preguntas de examen o evalúa respuestas
+app.post('/api/python-exam', async (req, res) => {
+  try {
+    const { mode, topics, questions, answers } = req.body;
+    let prompt = '';
+    if (mode === 'generate') {
+      prompt = `Eres un profesor de Python para principiantes absolutos. El alumno ha estudiado estos temas: ${topics}.
+
+Genera exactamente 5 preguntas de examen variadas (mezcla: conceptos teóricos simples, qué devuelve este código, y completar código). Las preguntas deben ser claras y directas, adecuadas para alguien que lleva poco tiempo aprendiendo Python.
+
+Devuelve SOLO un JSON con este formato exacto (sin markdown, sin texto extra):
+{"questions": ["pregunta 1", "pregunta 2", "pregunta 3", "pregunta 4", "pregunta 5"]}`;
+    } else {
+      const qa = questions.map((q, i) => `P${i+1}: ${q}\nR${i+1}: ${answers[i] || '(sin respuesta)'}`).join('\n\n');
+      prompt = `Eres un profesor de Python amigable. Evalúa estas respuestas de examen:
+
+${qa}
+
+Da feedback pregunta por pregunta: di si está bien o mal, explica brevemente por qué, y si está mal da la respuesta correcta. Al final da una puntuación global (X/5) y un mensaje motivador. Sé directo pero alentador. En español.`;
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return res.status(response.status).json({ error: err?.error?.message || 'Anthropic API error' });
+    }
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+    if (mode === 'generate') {
+      const parsed = JSON.parse(text);
+      res.json(parsed);
+    } else {
+      res.json({ feedback: text });
+    }
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -325,84 +377,114 @@ app.patch('/api/goal/:id', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/generate-script — genera guión con Claude API usando contexto real del canal
+// POST /api/generate-script — genera guión con Claude API usando guías reales del canal
 app.post('/api/generate-script', async (req, res) => {
   try {
     const { title, project, type, folder } = req.body;
     if (!title) return res.status(400).json({ error: 'title requerido' });
 
-    // Si tiene folder, leer el guión real como base
+    // Leer guía de formato real del proyecto
+    const guiaPath = path.join(__dirname, '..', project === 'simulia' ? 'simulia' : 'agencia', 'scripts', 'GUIA-FORMATO.md');
+    const guiaFormato = fs.existsSync(guiaPath) ? fs.readFileSync(guiaPath, 'utf8') : '';
+
+    // Leer guión base si tiene folder (solo agencia)
     let existingGuion = '';
     if (folder && project === 'agencia') {
       const guionPath = path.join(__dirname, '..', 'agencia', 'scripts', folder, 'guion.md');
-      if (fs.existsSync(guionPath)) {
-        existingGuion = fs.readFileSync(guionPath, 'utf8');
-      }
+      if (fs.existsSync(guionPath)) existingGuion = fs.readFileSync(guionPath, 'utf8');
     }
 
-    // Contexto rico del canal (extraído de 00-contexto.md y 04-banco-de-ideas.md)
-    const agenciaContext = `
-CANAL: @CristinaPerisAI — YouTube sobre IA aplicada a ecommerce en español
-OBJETIVO DEL CANAL: Captar clientes para agencia de automatización (no views virales)
-CLIENTE IDEAL (ICP): Dueño/a de tienda Shopify/WooCommerce, facturando algo, frustrado con procesos manuales
-NICHO: IA + n8n aplicado a ecommerce. Casos reales. Siempre el ángulo: "cómo esto mejora tu tienda"
-REGLA DE ORO DE TÍTULOS: incluir "Shopify" ó número ó problema exacto en palabras del dueño
-REFERENTE: Nacho Leo (YouTube). Diferenciarse siendo más específico en IA + ecom
+    // Canal context
+    const agenciaContext = `CANAL: @CristinaPerisAI — YouTube IA aplicada a ecommerce en español
+OBJETIVO: Captar clientes para agencia de automatización (no views, sino leads)
+ICP: Dueño/a de tienda Shopify/WooCommerce que factura y quiere automatizar
+REGLA TÍTULOS: incluir "Shopify" ó número ó problema exacto en palabras del dueño
+CTA FINAL: sesión de revisión gratuita → wa.me/34643135603
+LO QUE FUNCIONA: WhatsApp+Shopify, n8n automations, problemas operativos con dato concreto`;
 
-FORMATO QUE FUNCIONA EN TUS VÍDEOS:
-- Hook: primeros 30 segundos sin intro de canal, directo al problema
-- Estructura: problema reconocible → causa → solución con workflow/demo → CTA a WhatsApp
-- Los vídeos de WhatsApp + Shopify tienen más views → priorizar ese ángulo
-- CTA final: "sesión de revisión gratuita" → wa.me/34643135603
-
-HISTORIAL DE VÍDEOS QUE FUNCIONARON BIEN:
-- WhatsApp + Shopify automation (máximos views)
-- Dashboard Shopify con métricas automáticas
-- Fichas de producto con IA en 1 hora`;
-
-    const simuliaContext = `
-PLATAFORMA: Simulia (simulia.es) — preparación para oposiciones de enfermería EIR
-AUDIENCIA: Enfermeros y estudiantes que quieren aprobar oposiciones EIR/OPE
-OBJETIVO DE CONTENIDO: Captación orgánica para la plataforma
-CTA: Probar Simulia gratis en simulia.es`;
+    const simuliaContext = `CANAL: @simulia — TikTok/Reels oposiciones enfermería EIR/OPE
+OBJETIVO: Captación orgánica a simulia.es
+AUDIENCIA: Enfermeros/as preparando EIR/OPE, urgencia real de convocatoria
+CTA: Comentar keyword → envío de material O "escríbeme y lo vemos" (pitching soft)
+LO QUE FUNCIONA: cambios de temario con antes/ahora, trampas de examen, urgencia por fecha`;
 
     const projectContext = project === 'simulia' ? simuliaContext : agenciaContext;
 
     let prompt;
+
     if (existingGuion) {
-      prompt = `Tengo este guión base para un vídeo de YouTube:
+      // Modo: mejorar guión existente
+      prompt = `Eres el editor de guiones de un canal de YouTube.
 
+GUÍA DE FORMATO DEL CANAL (cómo se escriben los guiones que funcionan):
 ---
-${existingGuion.slice(0, 3000)}
+${guiaFormato.slice(0, 2000)}
+---
+
+GUIÓN EXISTENTE A MEJORAR:
+---
+${existingGuion.slice(0, 2500)}
 ---
 
 CONTEXTO DEL CANAL:
 ${projectContext}
 
-Mejora y expande este guión con:
-1. Hook de apertura MÁS impactante (primeros 30 segundos)
-2. Ejemplos más concretos y datos reales
-3. CTA más directo a conseguir clientes
-4. Frases exactas a decir en cámara para los puntos clave
+Reescribe el guión aplicando estrictamente la guía de formato. Mantén el tema y el fondo, pero mejora:
+1. El HOOK — más directo, más impactante, primeras 3-5 palabras que enganchen
+2. El RITMO — frases cortas, un dato o idea por párrafo, como en la guía
+3. Los BLOQUES de valor — estructura clara, con contraste (antes/ahora, problema/solución)
+4. El CTA — más específico y con la acción exacta
+5. Las FRASES CLAVE a decir en cámara
 
-Formato de salida: guión listo para grabar, con indicaciones de escena, frases exactas y estructura clara. En español. Máximo 800 palabras.`;
+Devuelve el guión completo listo para grabar, con indicaciones de tiempo si es short. En español.`;
+
+    } else if (type === 'short' || type === 'simulia') {
+      // Modo: generar short/TikTok
+      prompt = `Eres el guionista del canal de TikTok/Reels.
+
+GUÍA DE FORMATO (guiones que han funcionado en este canal):
+---
+${guiaFormato.slice(0, 2000)}
+---
+
+CONTEXTO DEL CANAL:
+${projectContext}
+
+Escribe un guión de SHORT/REELS (45-75 segundos) sobre: "${title}"
+
+Sigue EXACTAMENTE la estructura de la guía con timecodes:
+[0:00-0:03] HOOK — texto en pantalla + frase de impacto
+[0:03-0:08] CONTEXTO — por qué importa ahora
+[0:08-X] BLOQUES DE VALOR — 2-3 puntos concretos con "antes/ahora" o "trampas"
+[X-fin] CTA — keyword para comentar + oferta de práctica/llamada
+
+Frases cortas. Una idea por bloque. Texto en pantalla que refuerza. Sin intro de canal. Listo para grabar.`;
+
     } else {
-      const typeCtx = type === 'short'
-        ? 'SHORT de YouTube (máx 60 segundos, gancho primeros 3 segundos, NO intro de canal, directo al error/solución, texto en pantalla que refuerza)'
-        : 'VÍDEO LARGO de YouTube (10-15 min, hook urgente → problema → solución con demo → CTA WhatsApp)';
-      prompt = `Genera un guión detallado para ${typeCtx} sobre: "${title}"
+      // Modo: generar vídeo largo
+      prompt = `Eres el guionista del canal de YouTube.
+
+GUÍA DE FORMATO (cómo se estructuran los vídeos largos que convierten en clientes):
+---
+${guiaFormato.slice(0, 3000)}
+---
 
 CONTEXTO DEL CANAL:
 ${projectContext}
 
-El guión debe incluir:
-- Hook exacto (primeros 30 segundos, palabra por palabra)
-- Estructura del vídeo por bloques con duración estimada
-- Frases clave a decir en cámara
-- Elementos visuales necesarios (pantallas, gráficos)
-- CTA final exacto
+Escribe el guión completo de un vídeo largo (10-15 min) sobre: "${title}"
 
-Directo, accionable, en español. Sin relleno. Máximo 800 palabras.`;
+Sigue la estructura de la guía:
+- INTRO: abre con la falsa atribución del problema (no es X, no es Y, es Z)
+- CTA 1 anticipado: a los ~3-5 min, antes de entrar al valor
+- BLOQUES DE VALOR (8-12 bloques): 1 idea por bloque, desarrollada con contraste y repetición
+  • Párrafos cortos de 1-3 frases
+  • Ritmo de "problema → causa → consecuencia → solución"
+  • Listas habladas, no formateadas
+- BLOQUE FINAL: reframe potente, comparación visual
+- CTA 2 + CIERRE: círculo completo al problema + dos CTAs (link descripción + llamada)
+
+Escribe las frases exactas a decir en cámara. En español. Tono directo, sin relleno, como un amigo que sabe mucho.`;
     }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -410,7 +492,7 @@ Directo, accionable, en español. Sin relleno. Máximo 800 palabras.`;
       headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1200,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -854,34 +936,52 @@ Máximo 250 palabras. Directo, accionable. En español.`;
 // POST /api/weekly-briefing — Claude genera el plan completo de la semana en autopiloto
 app.post('/api/weekly-briefing', async (req, res) => {
   try {
-    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const briefing = await runWeeklyBriefing();
+    if (!briefing) return res.status(500).json({ error: 'No se pudo generar el briefing' });
+    res.json({ briefing });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-    // Recopilar todo el contexto disponible
+// GET /api/cron-status — devuelve estado del cron semanal
+app.get('/api/cron-status', (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const meta = state.cronMeta || {};
+    // Calcular próximo lunes 8:00 Europe/Madrid
+    const now = new Date();
+    const nextMonday = new Date(now);
+    const day = now.getDay(); // 0=Sun, 1=Mon...
+    const daysUntilMonday = day === 1 ? 7 : (8 - day) % 7 || 7;
+    nextMonday.setDate(now.getDate() + daysUntilMonday);
+    nextMonday.setHours(8, 0, 0, 0);
+    res.json({
+      lastRun: meta.lastRun || null,
+      nextRun: nextMonday.toISOString(),
+      lastBriefing: meta.lastBriefing || '',
+      status: meta.lastRun ? 'ok' : 'never'
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Función reutilizable para generar el briefing semanal y guardarlo
+async function runWeeklyBriefing() {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
     const simulia = state.projects?.simulia;
     const agencia = state.projects?.agencia;
-
     const pendingScripts = (state.scripts || [])
       .filter(s => s.status === 'pendiente')
-      .map(s => `- [${s.project}] "${s.title}"`)
-      .join('\n') || '— ninguno pendiente';
-
+      .map(s => `- [${s.project}] "${s.title}"`).join('\n') || '— ninguno pendiente';
     const inProgressScripts = (state.scripts || [])
       .filter(s => ['grabado', 'editado'].includes(s.status))
-      .map(s => `- [${s.status}] "${s.title}"`)
-      .join('\n') || '— ninguno';
-
+      .map(s => `- [${s.status}] "${s.title}"`).join('\n') || '— ninguno';
     const today = new Date().toISOString().split('T')[0];
     const habitsToday = (state.habitLog || {})[today] || [];
     const allHabits = (state.lifeGoals || []).flatMap(g => g.habits || []);
     const habitsSummary = allHabits.map(h => `${h.icon} ${h.name}: ${habitsToday.includes(h.id) ? '✅ hecho' : '⬜ pendiente'}`).join(' | ');
-
     const upcomingGoals = (state.goals || [])
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(0, 3)
-      .map(g => { const days = Math.ceil((new Date(g.date) - new Date()) / 86400000); return `${g.emoji} ${g.name}: en ${days} días`; })
-      .join(' | ');
-
-    // TikTok último dato disponible
+      .sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 3)
+      .map(g => { const days = Math.ceil((new Date(g.date) - new Date()) / 86400000); return `${g.emoji} ${g.name}: en ${days} días`; }).join(' | ');
     const tiktokAccounts = state.tiktokLog || {};
     const tiktokSummary = Object.entries(tiktokAccounts).map(([acc, logs]) => {
       const last = logs[logs.length - 1];
@@ -933,9 +1033,92 @@ Máximo 300 palabras. Directo. Sin relleno. En español.`;
       headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 700, messages: [{ role: 'user', content: prompt }] })
     });
-    if (!response.ok) return res.status(response.status).json({ error: 'Claude API error' });
+    if (!response.ok) throw new Error('Claude API error ' + response.status);
     const data = await response.json();
-    res.json({ briefing: data.content?.[0]?.text || '' });
+    const briefingText = data.content?.[0]?.text || '';
+
+    // Guardar en state.json
+    const freshState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    freshState.cronMeta = {
+      lastRun: new Date().toISOString(),
+      lastBriefing: briefingText
+    };
+    fs.writeFileSync(STATE_FILE, JSON.stringify(freshState, null, 2));
+    console.log('[CRON] Briefing semanal generado y guardado:', new Date().toISOString());
+    return briefingText;
+  } catch (e) {
+    console.error('[CRON] Error generando briefing semanal:', e.message);
+    return null;
+  }
+}
+
+// Cron: cada lunes a las 8:00 (Europe/Madrid)
+cron.schedule('0 8 * * 1', () => {
+  console.log('[CRON] Iniciando briefing semanal automático...');
+  runWeeklyBriefing();
+}, { timezone: 'Europe/Madrid' });
+
+// ═══════════════════════════════════════════════
+// CONTENT ENGINE — Scripts module
+// ═══════════════════════════════════════════════
+const Anthropic = require('@anthropic-ai/sdk');
+const multer = require('multer');
+const crypto = require('crypto');
+const { extractContent } = require('./services/scraper');
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const SCRIPTS_DIR = path.join(__dirname, 'scripts');
+if (!fs.existsSync(SCRIPTS_DIR)) fs.mkdirSync(SCRIPTS_DIR, { recursive: true });
+
+async function generateScriptFromContent(content) {
+  const promptTemplate = fs.readFileSync(path.join(__dirname, 'prompts', 'script-agencia.txt'), 'utf8');
+  const prompt = promptTemplate.replace('{{CONTENT}}', content);
+  const msg = await anthropic.messages.create({
+    model: 'claude-opus-4-6',
+    max_tokens: 2048,
+    messages: [{ role: 'user', content: prompt }],
+  });
+  const raw = msg.content[0].text;
+  const sections = {};
+  const labels = ['INTRO', 'CTA TEMPRANO', 'CONTENIDO', 'CIERRE + CTA'];
+  for (let i = 0; i < labels.length; i++) {
+    const label = labels[i];
+    const next = labels[i + 1];
+    const startTag = `[${label}]`;
+    const start = raw.indexOf(startTag);
+    if (start === -1) continue;
+    const contentStart = start + startTag.length;
+    const end = next ? raw.indexOf(`[${next}]`) : raw.length;
+    sections[label] = raw.slice(contentStart, end !== -1 ? end : raw.length).trim();
+  }
+  if (!sections['INTRO']) throw new Error('Claude no generó las secciones correctamente');
+  return sections;
+}
+
+app.post('/api/ce/scripts/generate', async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'url requerida' });
+  try {
+    const content = await extractContent(url);
+    const script = await generateScriptFromContent(content);
+    const date = new Date().toISOString().slice(0, 10);
+    const slug = crypto.createHash('md5').update(url).digest('hex').slice(0, 8);
+    const filename = `${date}-${slug}.json`;
+    await fs.promises.writeFile(path.join(SCRIPTS_DIR, filename), JSON.stringify({ url, date, script, filename }, null, 2));
+    res.json({ script, filename });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/ce/scripts', (req, res) => {
+  try {
+    const files = fs.readdirSync(SCRIPTS_DIR).filter(f => f.endsWith('.json')).sort().reverse();
+    const list = files.map(f => {
+      const data = JSON.parse(fs.readFileSync(path.join(SCRIPTS_DIR, f), 'utf8'));
+      return { filename: f, url: data.url, date: data.date };
+    });
+    res.json(list);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
