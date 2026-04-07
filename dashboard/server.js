@@ -1296,7 +1296,7 @@ app.patch('/api/monitor/alert/:id/seen', (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   if (!lastRun || !lastRun.startsWith(today)) {
     console.log('[Monitor] No ejecutado hoy — arrancando monitor al inicio...');
-    runMonitor();
+    runMonitor().catch(e => console.error('[Monitor] Error en startup check:', e.message));
   }
 }
 
