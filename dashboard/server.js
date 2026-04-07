@@ -1209,9 +1209,11 @@ async function runClipPipeline(jobId, screenPath, facePath) {
       };
       const assContent = buildAssFile(segmentWhisper, seg.start);
       fs.writeFileSync(assPath, assContent);
-
-      await renderClip(screenPath, facePath, seg, assPath, outputPath);
-      fs.unlinkSync(assPath);
+      try {
+        await renderClip(screenPath, facePath, seg, assPath, outputPath);
+      } finally {
+        try { fs.unlinkSync(assPath); } catch (_) {}
+      }
 
       const duration = Math.round(seg.end - seg.start);
       clips.push({ filename: `${clipId}.mp4`, titulo: seg.titulo, duration, date });
@@ -1227,14 +1229,20 @@ async function runClipPipeline(jobId, screenPath, facePath) {
     // Save to index
     let index = [];
     if (fs.existsSync(OUTPUT_INDEX)) {
-      try { index = JSON.parse(fs.readFileSync(OUTPUT_INDEX, 'utf8')); } catch (_) {}
+      try { index = JSON.parse(fs.readFileSync(OUTPUT_INDEX, 'utf8')); } catch (e) {
+        console.error('[VideoClipper] Failed to parse output index:', e.message);
+      }
     }
     index = [...clips, ...index];
-    fs.writeFileSync(OUTPUT_INDEX, JSON.stringify(index, null, 2));
+    const tmpIndex = OUTPUT_INDEX + '.tmp';
+    fs.writeFileSync(tmpIndex, JSON.stringify(index, null, 2));
+    fs.renameSync(tmpIndex, OUTPUT_INDEX);
 
     updateClipJob(jobId, { status: 'done', progress: 100, message: `${clips.length} clips generados`, clips });
   } catch (err) {
     console.error('[VideoClipper] Pipeline error:', err);
+    try { fs.unlinkSync(screenPath); } catch (_) {}
+    try { fs.unlinkSync(facePath); } catch (_) {}
     updateClipJob(jobId, { status: 'error', message: err.message });
   }
 }
