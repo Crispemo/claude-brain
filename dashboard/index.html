@@ -1509,6 +1509,11 @@ async function finishRitual() {
 let currentTab = 'hoy';
 
 function switchTab(tab) {
+  // Clear any active clip polling when leaving the clips tab
+  if (currentTab === 'clips' && typeof clipPollingInterval !== 'undefined' && clipPollingInterval) {
+    clearInterval(clipPollingInterval);
+    clipPollingInterval = null;
+  }
   currentTab = tab;
   document.querySelectorAll('.sidebar-item[data-tab]').forEach(el => el.classList.remove('active'));
   const active = document.querySelector(`.sidebar-item[data-tab="${tab}"]`);
