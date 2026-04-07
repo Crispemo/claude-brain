@@ -5,9 +5,12 @@ const path = require('path');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 async function generateScript(content) {
-  const promptTemplate = fs.readFileSync(
-    path.join(__dirname, '../prompts/script-agencia.txt'), 'utf8'
-  );
+  let promptTemplate;
+  try {
+    promptTemplate = fs.readFileSync(path.join(__dirname, '../prompts/script-agencia.txt'), 'utf8');
+  } catch (e) {
+    throw new Error('Missing prompt file: prompts/script-agencia.txt');
+  }
   const prompt = promptTemplate.replace('{{CONTENT}}', content);
 
   const msg = await client.messages.create({
@@ -35,13 +38,20 @@ function parseScript(raw) {
     sections[label] = raw.slice(contentStart, end !== -1 ? end : raw.length).trim();
   }
 
+  if (!sections['INTRO']) {
+    throw new Error(`Claude response missing required [INTRO] section. Raw: ${raw.slice(0, 300)}`);
+  }
+
   return sections;
 }
 
 async function selectClips(transcriptionText) {
-  const promptTemplate = fs.readFileSync(
-    path.join(__dirname, '../prompts/clip-selector.txt'), 'utf8'
-  );
+  let promptTemplate;
+  try {
+    promptTemplate = fs.readFileSync(path.join(__dirname, '../prompts/clip-selector.txt'), 'utf8');
+  } catch (e) {
+    throw new Error('Missing prompt file: prompts/clip-selector.txt');
+  }
   const prompt = promptTemplate.replace('{{TRANSCRIPTION}}', transcriptionText);
 
   const msg = await client.messages.create({
@@ -51,7 +61,11 @@ async function selectClips(transcriptionText) {
   });
 
   const raw = msg.content[0].text.trim();
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new Error(`Claude returned invalid JSON for clip selection: ${raw.slice(0, 200)}`);
+  }
 }
 
 module.exports = { generateScript, selectClips };
