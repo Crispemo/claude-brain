@@ -1106,6 +1106,9 @@
   <div class="sidebar-item" data-tab="scripts" onclick="switchTab('scripts')">
     <span class="si-icon">📝</span> Scripts IA
   </div>
+  <div class="sidebar-item" data-tab="clips" onclick="switchTab('clips')">
+    <span class="si-icon">🎬</span> Video Clipper
+  </div>
 
   <div class="sidebar-divider"></div>
   <div class="sidebar-section-label">Acciones rápidas</div>
@@ -1607,6 +1610,10 @@ function renderTabContent() {
       pageTitle = '📝 Scripts IA';
       pageContent = renderScriptsIA();
       break;
+    case 'clips':
+      pageTitle = '🎬 Video Clipper';
+      pageContent = renderVideoClipper();
+      break;
   }
 
   const dash = document.getElementById('dashboard');
@@ -1619,6 +1626,7 @@ function renderTabContent() {
 
   bindAllEvents();
   if (currentTab === 'scripts') ceLoadHistory();
+  if (currentTab === 'clips') clipLoadList();
   if (currentTab === 'proyectos') loadLiveMetrics();
   if (currentTab === 'sistema') loadCronStatus().then(() => {
     const el = document.getElementById('cron-briefing-output');
@@ -1756,6 +1764,200 @@ async function ceLoadHistory() {
         <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;margin-left:12px">${escapeHtmlCe(item.date)}</span>
       </div>`).join('');
   } catch (e) { console.error('ceLoadHistory error:', e); }
+}
+
+// ═══════════════════════════════════════════════
+// VIDEO CLIPPER TAB
+// ═══════════════════════════════════════════════
+function renderVideoClipper() {
+  return `
+    <p class="page-subtitle">Sube el vídeo de pantalla y el de cámara. La IA selecciona los mejores momentos y genera clips 9:16 HD con captions.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div id="clip-zone-screen" style="border:2px dashed var(--border);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color 0.1s" onclick="document.getElementById('clip-file-screen').click()" ondragover="clipDragOver(event,'clip-zone-screen')" ondragleave="clipDragLeave('clip-zone-screen')" ondrop="clipFileDrop(event,'clip-file-screen','clip-zone-screen','clip-name-screen')">
+        <input type="file" id="clip-file-screen" accept="video/*" style="display:none" onchange="clipFileSelected('clip-file-screen','clip-zone-screen','clip-name-screen')">
+        <div style="font-size:26px;margin-bottom:8px">🖥</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Vídeo Pantalla</div>
+        <div style="font-size:12px;color:var(--text-muted)">Lo que grabaste de la pantalla</div>
+        <div id="clip-name-screen" style="font-size:12px;color:var(--green);margin-top:8px;font-weight:500"></div>
+      </div>
+      <div id="clip-zone-face" style="border:2px dashed var(--border);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color 0.1s" onclick="document.getElementById('clip-file-face').click()" ondragover="clipDragOver(event,'clip-zone-face')" ondragleave="clipDragLeave('clip-zone-face')" ondrop="clipFileDrop(event,'clip-file-face','clip-zone-face','clip-name-face')">
+        <input type="file" id="clip-file-face" accept="video/*" style="display:none" onchange="clipFileSelected('clip-file-face','clip-zone-face','clip-name-face')">
+        <div style="font-size:26px;margin-bottom:8px">🎥</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Vídeo Cámara</div>
+        <div style="font-size:12px;color:var(--text-muted)">Tu cara / webcam</div>
+        <div id="clip-name-face" style="font-size:12px;color:var(--green);margin-top:8px;font-weight:500"></div>
+      </div>
+    </div>
+
+    <button id="clip-process-btn" onclick="clipProcessVideos()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px">Generar clips</button>
+
+    <div id="clip-status" style="display:none;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px"></div>
+
+    <div id="clip-progress-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px">
+      <div id="clip-progress-label" style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Procesando...</div>
+      <div style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden">
+        <div id="clip-progress-fill" style="background:var(--blue);height:100%;border-radius:4px;width:0%;transition:width 0.3s"></div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Clips generados</div>
+    <div id="clip-list" style="display:flex;flex-direction:column;gap:10px">
+      <div style="color:var(--text-muted);font-size:13px">Cargando...</div>
+    </div>
+  `;
+}
+
+function clipDragOver(e, zoneId) {
+  e.preventDefault();
+  const z = document.getElementById(zoneId);
+  if (z) z.style.borderColor = 'var(--blue)';
+}
+
+function clipDragLeave(zoneId) {
+  const z = document.getElementById(zoneId);
+  if (z) z.style.borderColor = 'var(--border)';
+}
+
+function clipFileDrop(e, inputId, zoneId, nameId) {
+  e.preventDefault();
+  clipDragLeave(zoneId);
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  clipFileSelected(inputId, zoneId, nameId);
+}
+
+function clipFileSelected(inputId, zoneId, nameId) {
+  const input = document.getElementById(inputId);
+  const file = input?.files[0];
+  if (!file) return;
+  const zone = document.getElementById(zoneId);
+  if (zone) zone.style.borderColor = 'var(--green)';
+  const nameEl = document.getElementById(nameId);
+  if (nameEl) nameEl.textContent = file.name;
+}
+
+let clipPollingInterval = null;
+
+async function clipProcessVideos() {
+  const screenFile = document.getElementById('clip-file-screen')?.files[0];
+  const faceFile = document.getElementById('clip-file-face')?.files[0];
+  const status = document.getElementById('clip-status');
+
+  if (!screenFile || !faceFile) {
+    status.style.display = 'block';
+    status.style.background = 'rgba(239,68,68,0.1)';
+    status.style.color = 'var(--red)';
+    status.style.border = '1px solid rgba(239,68,68,0.2)';
+    status.textContent = 'Sube los dos vídeos primero.';
+    return;
+  }
+
+  const btn = document.getElementById('clip-process-btn');
+  btn.disabled = true;
+  btn.textContent = 'Subiendo...';
+
+  status.style.display = 'block';
+  status.style.background = 'rgba(59,130,246,0.1)';
+  status.style.color = 'var(--blue)';
+  status.style.border = '1px solid rgba(59,130,246,0.2)';
+  status.textContent = 'Subiendo vídeos al servidor...';
+
+  try {
+    const formData = new FormData();
+    formData.append('screen', screenFile);
+    formData.append('face', faceFile);
+
+    const res = await fetch('/api/ce/clips/process', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error desconocido');
+
+    btn.textContent = 'Procesando...';
+    document.getElementById('clip-progress-wrap').style.display = 'block';
+    status.style.display = 'none';
+    clipStartPolling(data.jobId);
+  } catch (err) {
+    status.style.background = 'rgba(239,68,68,0.1)';
+    status.style.color = 'var(--red)';
+    status.style.border = '1px solid rgba(239,68,68,0.2)';
+    status.textContent = 'Error: ' + err.message;
+    btn.disabled = false;
+    btn.textContent = 'Generar clips';
+  }
+}
+
+function clipStartPolling(jobId) {
+  if (clipPollingInterval) clearInterval(clipPollingInterval);
+
+  clipPollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch('/api/ce/clips/status/' + jobId);
+      const job = await res.json();
+
+      const label = document.getElementById('clip-progress-label');
+      const fill = document.getElementById('clip-progress-fill');
+      if (label) label.textContent = job.message || 'Procesando...';
+      if (fill) fill.style.width = (job.progress || 0) + '%';
+
+      if (job.status === 'done') {
+        clearInterval(clipPollingInterval);
+        clipPollingInterval = null;
+        document.getElementById('clip-progress-wrap').style.display = 'none';
+        const btn = document.getElementById('clip-process-btn');
+        if (btn) { btn.disabled = false; btn.textContent = 'Generar clips'; }
+        clipLoadList();
+      } else if (job.status === 'error') {
+        clearInterval(clipPollingInterval);
+        clipPollingInterval = null;
+        document.getElementById('clip-progress-wrap').style.display = 'none';
+        const status = document.getElementById('clip-status');
+        if (status) {
+          status.style.display = 'block';
+          status.style.background = 'rgba(239,68,68,0.1)';
+          status.style.color = 'var(--red)';
+          status.style.border = '1px solid rgba(239,68,68,0.2)';
+          status.textContent = 'Error: ' + job.message;
+        }
+        const btn = document.getElementById('clip-process-btn');
+        if (btn) { btn.disabled = false; btn.textContent = 'Generar clips'; }
+      }
+    } catch (e) {
+      console.error('Polling error:', e);
+    }
+  }, 2000);
+}
+
+async function clipLoadList() {
+  const container = document.getElementById('clip-list');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/ce/clips');
+    const list = await res.json();
+    if (!list.length) {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Sin clips generados aún.</div>';
+      return;
+    }
+    container.innerHTML = list.map(clip => {
+      const safeTitle = escapeHtmlCe(clip.titulo);
+      const safeMeta = escapeHtmlCe(`${clip.duration}s · ${clip.date}`);
+      const safeFilename = encodeURIComponent(clip.filename);
+      return `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px">${safeTitle}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${safeMeta}</div>
+          </div>
+          <a href="/output/${safeFilename}" download style="background:var(--green);color:#000;font-weight:700;padding:8px 14px;font-size:13px;border-radius:6px;text-decoration:none;white-space:nowrap">Descargar</a>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    console.error('clipLoadList error:', e);
+  }
 }
 
 function renderContenidoTab() {
