@@ -1036,6 +1036,36 @@
     /* Scrollbar styling */
     ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .alert-dot {
+      display: inline-block; width: 7px; height: 7px;
+      background: var(--red); border-radius: 50%;
+      margin-left: 6px; vertical-align: middle;
+      animation: pulse-dot 1.5s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .alert-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+    }
+    .alert-card.unseen { border-left: 3px solid var(--red); }
+    .alert-card.seen { border-left: 3px solid var(--border); opacity: 0.7; }
+    .alert-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .alert-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+    .alert-summary { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px; }
+    .alert-script-box {
+      background: var(--surface2); border-radius: 8px; padding: 14px;
+      font-size: 12px; line-height: 1.7; white-space: pre-wrap;
+      display: none; margin-bottom: 10px;
+    }
+    .alert-script-box.open { display: block; }
+    .monitor-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px;
+    }
+    .monitor-last-run { font-size: 12px; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -1105,6 +1135,9 @@
   </div>
   <div class="sidebar-item" data-tab="scripts" onclick="switchTab('scripts')">
     <span class="si-icon">📝</span> Scripts IA
+  </div>
+  <div class="sidebar-item" data-tab="alertas" onclick="switchTab('alertas')" id="sidebar-alertas">
+    <span class="si-icon">🔔</span> Alertas Simulia
   </div>
   <div class="sidebar-item" data-tab="clips" onclick="switchTab('clips')">
     <span class="si-icon">🎬</span> Video Clipper
@@ -1521,6 +1554,37 @@ function switchTab(tab) {
   renderTabContent();
 }
 
+function toggleScript(alertId) {
+  const box = document.getElementById('script-' + alertId);
+  if (box) box.classList.toggle('open');
+}
+
+async function markAlertSeen(alertId) {
+  try {
+    await fetch('/api/monitor/alert/' + alertId + '/seen', { method: 'PATCH' });
+    STATE = await (await fetch('/api/state')).json();
+    renderDashboard();
+  } catch (e) {
+    console.error('Error marcando alerta:', e);
+  }
+}
+
+async function runMonitorNow(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Ejecutando...';
+  try {
+    const res = await fetch('/api/monitor/run', { method: 'POST' });
+    const data = await res.json();
+    STATE = await (await fetch('/api/state')).json();
+    renderDashboard();
+    btn.textContent = `▶ Ejecutar ahora (${data.newAlerts} nuevas)`;
+  } catch (e) {
+    btn.textContent = '▶ Error — reintentar';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function renderDashboard() {
   renderTabContent();
   updateSidebarFooter();
@@ -1534,6 +1598,17 @@ function updateSidebarFooter() {
   }
   if (clients && STATE.projects?.agencia?.current) {
     clients.textContent = STATE.projects.agencia.current;
+  }
+  const sidebarAlertas = document.getElementById('sidebar-alertas');
+  if (sidebarAlertas) {
+    const existingDot = sidebarAlertas.querySelector('.alert-dot');
+    if (existingDot) existingDot.remove();
+    const unseenCount = (STATE.simuliaAlerts?.alerts || []).filter(a => !a.seen).length;
+    if (unseenCount > 0) {
+      const dot = document.createElement('span');
+      dot.className = 'alert-dot';
+      sidebarAlertas.appendChild(dot);
+    }
   }
 }
 
@@ -1619,6 +1694,38 @@ function renderTabContent() {
       pageTitle = '🎬 Video Clipper';
       pageContent = renderVideoClipper();
       break;
+    case 'alertas': {
+      const mon = STATE.simuliaAlerts || { lastRun: null, seenUrls: [], alerts: [] };
+      pageTitle = 'Alertas Simulia';
+      pageContent = `
+        <div class="monitor-header">
+          <div class="monitor-last-run">Última revisión: ${timeAgo(mon.lastRun)}</div>
+          <button class="btn-primary" style="font-size:12px;padding:7px 14px" onclick="runMonitorNow(this)">▶ Ejecutar ahora</button>
+        </div>
+        ${(mon.alerts || []).length === 0 ? `
+          <div style="color:var(--text-muted);font-size:14px;padding:40px 0;text-align:center">
+            Sin alertas todavía.<br>El monitor corre cada día a las 8h o puedes lanzarlo manualmente.
+          </div>
+        ` : (mon.alerts || []).map(alert => `
+          <div class="alert-card ${alert.seen ? 'seen' : 'unseen'}" id="alert-${escapeHtml(alert.id)}">
+            <div class="alert-title">
+              ${alert.seen ? '✓' : '🔴'} ${escapeHtml(alert.title)}
+            </div>
+            <div class="alert-meta">
+              ${escapeHtml(alert.source)} · ${timeAgo(alert.detectedAt)}
+              · <a href="${escapeHtml(alert.url)}" target="_blank" style="color:var(--blue)">Ver fuente</a>
+            </div>
+            ${alert.summary ? `<div class="alert-summary">${escapeHtml(alert.summary)}</div>` : ''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${alert.script ? `<button class="btn-secondary" style="font-size:12px;padding:6px 12px" onclick="toggleScript('${escapeHtml(alert.id)}')">Ver script</button>` : ''}
+              ${!alert.seen ? `<button class="btn-secondary" style="font-size:12px;padding:6px 12px" onclick="markAlertSeen('${escapeHtml(alert.id)}')">Marcar como visto</button>` : ''}
+            </div>
+            ${alert.script ? `<div class="alert-script-box" id="script-${escapeHtml(alert.id)}">${escapeHtml(alert.script)}</div>` : ''}
+          </div>
+        `).join('')}
+      `;
+      break;
+    }
   }
 
   const dash = document.getElementById('dashboard');
@@ -2869,6 +2976,16 @@ async function sendChat() {
     chatMessages.push({ role: 'claude', text: errText });
   }
   messages.scrollTop = messages.scrollHeight;
+}
+
+function timeAgo(isoString) {
+  if (!isoString) return 'nunca';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `hace ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  return `hace ${Math.floor(hours / 24)} días`;
 }
 
 function escapeHtml(str) {
