@@ -1,0 +1,14 @@
+Analiza esta transcripción con timestamps y selecciona entre 5 y 10 segmentos para clips cortos de redes sociales (30-90 segundos cada uno).
+
+Criterios de selección:
+- Frases de alto impacto o sorpresa
+- Momentos donde se explica algo concreto y accionable
+- Cambios de tema claros (buenos puntos de corte)
+- Segmentos de mínimo 30 segundos y máximo 90 segundos
+- Evitar: saludos, muletillas, frases incompletas al inicio o final
+
+TRANSCRIPCIÓN:
+{{TRANSCRIPTION}}
+
+Devuelve SOLO un array JSON válido, sin texto adicional, sin markdown:
+[{"start": 12.5, "end": 45.2, "titulo": "Título descriptivo del clip"}, ...]
