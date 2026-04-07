@@ -1577,10 +1577,13 @@ async function runMonitorNow(btn) {
     const data = await res.json();
     STATE = await (await fetch('/api/state')).json();
     renderDashboard();
-    btn.textContent = `▶ Ejecutar ahora (${data.newAlerts} nuevas)`;
+    // Re-query btn after DOM replace
+    const newBtn = document.querySelector('#sidebar-alertas ~ * .btn-primary, [onclick*="runMonitorNow"]');
+    const target = newBtn || btn;
+    target.textContent = `▶ Ejecutar ahora (${data.newAlerts} nuevas)`;
+    target.disabled = false;
   } catch (e) {
     btn.textContent = '▶ Error — reintentar';
-  } finally {
     btn.disabled = false;
   }
 }
@@ -1713,7 +1716,7 @@ function renderTabContent() {
             </div>
             <div class="alert-meta">
               ${escapeHtml(alert.source)} · ${timeAgo(alert.detectedAt)}
-              · <a href="${escapeHtml(alert.url)}" target="_blank" style="color:var(--blue)">Ver fuente</a>
+              · <a href="${escapeHtml(alert.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">Ver fuente</a>
             </div>
             ${alert.summary ? `<div class="alert-summary">${escapeHtml(alert.summary)}</div>` : ''}
             <div style="display:flex;gap:8px;flex-wrap:wrap">
