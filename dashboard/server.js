@@ -5,6 +5,7 @@ const path = require('path');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const cron = require('node-cron');
+const { runMonitor } = require('./simulia-monitor');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -1263,6 +1264,41 @@ app.get('/api/ce/clips', (req, res) => {
 });
 
 app.use('/output', express.static(OUTPUT_DIR));
+
+// POST /api/monitor/run — lanza el monitor manualmente desde el dashboard
+app.post('/api/monitor/run', async (req, res) => {
+  try {
+    const count = await runMonitor();
+    res.json({ ok: true, newAlerts: count });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PATCH /api/monitor/alert/:id/seen — marca alerta como vista
+app.patch('/api/monitor/alert/:id/seen', (req, res) => {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const alert = (state.simuliaAlerts?.alerts || []).find(a => a.id === req.params.id);
+    if (!alert) return res.status(404).json({ error: 'Alerta no encontrada' });
+    alert.seen = true;
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Startup check: si no se ha ejecutado hoy, correr el monitor al arrancar
+{
+  const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+  const lastRun = state.simuliaAlerts?.lastRun;
+  const today = new Date().toISOString().split('T')[0];
+  if (!lastRun || !lastRun.startsWith(today)) {
+    console.log('[Monitor] No ejecutado hoy — arrancando monitor al inicio...');
+    runMonitor();
+  }
+}
 
 app.listen(PORT, () => {
   console.log(`Dashboard servidor corriendo en http://localhost:${PORT}`);
