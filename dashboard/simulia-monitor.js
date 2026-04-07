@@ -14,9 +14,16 @@ if (!process.env.ANTHROPIC_API_KEY) {
 let monitorRunning = false;
 
 const SOURCES = [
+  // ── MINISTERIO DE SANIDAD ──────────────────────────────────
   {
     name: 'Sanidad Exterior',
     url: 'https://www.sanidad.gob.es/areas/sanidadExterior/laSaludTambienViaja/notasInformativas/home.htm',
+    itemSelector: 'a',
+    baseUrl: 'https://www.sanidad.gob.es'
+  },
+  {
+    name: 'Alertas Emergencias Sanitarias',
+    url: 'https://www.sanidad.gob.es/areas/alertasEmergenciasSanitarias/alertasActuales/home.htm',
     itemSelector: 'a',
     baseUrl: 'https://www.sanidad.gob.es'
   },
@@ -26,11 +33,135 @@ const SOURCES = [
     itemSelector: 'a',
     baseUrl: 'https://seguridaddelpaciente.sanidad.gob.es'
   },
+
+  // ── GUÍAS CLÍNICAS ─────────────────────────────────────────
   {
     name: 'GuíaSalud',
     url: 'https://portal.guiasalud.es/',
     itemSelector: 'a',
     baseUrl: 'https://portal.guiasalud.es'
+  },
+  {
+    name: 'OncoGuías SEGO',
+    url: 'https://oncosego.sego.es/oncoguias-sego',
+    itemSelector: 'a',
+    baseUrl: 'https://oncosego.sego.es'
+  },
+  {
+    name: 'Fisterra Guías Clínicas',
+    url: 'https://www.fisterra.com/guias-clinicas/',
+    itemSelector: 'a',
+    baseUrl: 'https://www.fisterra.com'
+  },
+
+  // ── SEGURIDAD DEL MEDICAMENTO ──────────────────────────────
+  {
+    name: 'ISMP España',
+    url: 'https://www.ismp-espana.org/ficheros/index/3',
+    itemSelector: 'a',
+    baseUrl: 'https://www.ismp-espana.org'
+  },
+  {
+    name: 'AEMPS Alertas',
+    url: 'https://www.aemps.gob.es/informa/notasInformativas/medicamentosUsoHumano/home.htm',
+    itemSelector: 'a',
+    baseUrl: 'https://www.aemps.gob.es'
+  },
+  {
+    name: 'AEMPS Notas de Seguridad',
+    url: 'https://www.aemps.gob.es/informa/notasSeguridadMedicamentos/home.htm',
+    itemSelector: 'a',
+    baseUrl: 'https://www.aemps.gob.es'
+  },
+
+  // ── CRÍTICOS Y URGENCIAS ───────────────────────────────────
+  {
+    name: 'SEMICYUC',
+    url: 'https://www.semicyuc.org/temas/profesionales/recomendaciones-guias',
+    itemSelector: 'a',
+    baseUrl: 'https://www.semicyuc.org'
+  },
+  {
+    name: 'Critical Care Medicine (LWW)',
+    url: 'https://journals.lww.com/ccmjournal/pages/default.aspx',
+    itemSelector: 'a',
+    baseUrl: 'https://journals.lww.com'
+  },
+  {
+    name: 'SEMES',
+    url: 'https://www.semes.org/publicaciones/guias/',
+    itemSelector: 'a',
+    baseUrl: 'https://www.semes.org'
+  },
+
+  // ── INFECCIOSAS Y MICROBIOLOGÍA ────────────────────────────
+  {
+    name: 'SEIMC Guías Clínicas',
+    url: 'https://www.seimc.org/contenidos/ccs/revisionestematicas/index.php',
+    itemSelector: 'a',
+    baseUrl: 'https://www.seimc.org'
+  },
+  {
+    name: 'ECDC Noticias',
+    url: 'https://www.ecdc.europa.eu/en/news-events/news',
+    itemSelector: 'a',
+    baseUrl: 'https://www.ecdc.europa.eu'
+  },
+
+  // ── CARDIOLOGÍA Y CARDIOVASCULAR ──────────────────────────
+  {
+    name: 'SEC Publicaciones',
+    url: 'https://www.secardiologia.es/publicaciones',
+    itemSelector: 'a',
+    baseUrl: 'https://www.secardiologia.es'
+  },
+
+  // ── RESPIRATORIO ──────────────────────────────────────────
+  {
+    name: 'SEPAR Publicaciones',
+    url: 'https://www.separ.es/doc/',
+    itemSelector: 'a',
+    baseUrl: 'https://www.separ.es'
+  },
+
+  // ── ENDOCRINOLOGÍA Y DIABETES ─────────────────────────────
+  {
+    name: 'SEEN Guías',
+    url: 'https://www.seen.es/portal/el-area-de-conocimiento-de-la-seen/guias-de-la-seen/',
+    itemSelector: 'a',
+    baseUrl: 'https://www.seen.es'
+  },
+
+  // ── GERIATRÍA ─────────────────────────────────────────────
+  {
+    name: 'SEGG Guías',
+    url: 'https://www.segg.es/profesionales/publicaciones/guias-de-practica-clinica/',
+    itemSelector: 'a',
+    baseUrl: 'https://www.segg.es'
+  },
+
+  // ── NEFROLOGÍA ────────────────────────────────────────────
+  {
+    name: 'SEN Guías',
+    url: 'https://www.senefro.org/modules.php?name=webstructure&idwebstructure=155',
+    itemSelector: 'a',
+    baseUrl: 'https://www.senefro.org'
+  },
+
+  // ── ENFERMERÍA ────────────────────────────────────────────
+  {
+    name: 'Enfermería Clínica (Elsevier)',
+    url: 'https://www.elsevier.es/es-revista-enfermeria-clinica-35-articulos-recientes',
+    itemSelector: 'a',
+    baseUrl: 'https://www.elsevier.es'
+  },
+
+  // ── OMS / ORGANISMOS INTERNACIONALES ─────────────────────
+  {
+    name: 'OMS Noticias',
+    url: 'https://www.who.int/es/news-room/headlines',
+    itemSelector: 'a',
+    baseUrl: 'https://www.who.int'
   }
 ];
 
