@@ -7,6 +7,12 @@ const cron = require('node-cron');
 
 const STATE_FILE = path.join(__dirname, 'state.json');
 
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('[Monitor] WARNING: ANTHROPIC_API_KEY no configurada — las llamadas a Claude fallarán silenciosamente');
+}
+
+let monitorRunning = false;
+
 const SOURCES = [
   {
     name: 'Sanidad Exterior',
@@ -86,10 +92,7 @@ async function isRelevantForEIR(title) {
 }
 
 // Genera resumen + script con Claude usando el formato del canal Simulia
-async function generateContent(title, url, source) {
-  const guiaPath = path.join(__dirname, '..', 'simulia', 'scripts', 'GUIA-FORMATO.md');
-  const guiaFormato = fs.existsSync(guiaPath) ? fs.readFileSync(guiaPath, 'utf8') : '';
-
+async function generateContent(title, url, source, guiaFormato) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -136,52 +139,66 @@ Separa claramente con "---RESUMEN---" y "---SCRIPT---". En español.`
 
 // Función principal del monitor
 async function runMonitor() {
-  console.log('[Monitor] Iniciando revisión de fuentes...', new Date().toISOString());
-
-  const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-  state.simuliaAlerts = state.simuliaAlerts || { lastRun: null, seenUrls: [], alerts: [] };
-  const seenUrls = new Set(state.simuliaAlerts.seenUrls || []);
-
-  const newAlerts = [];
-
-  for (const source of SOURCES) {
-    const items = await scrapeSource(source);
-    for (const item of items) {
-      if (seenUrls.has(item.url)) continue;
-      seenUrls.add(item.url);
-
-      const relevant = await isRelevantForEIR(item.title);
-      if (!relevant) {
-        console.log(`[Monitor] Ignorado (no relevante): ${item.title}`);
-        continue;
-      }
-
-      console.log(`[Monitor] Novedad relevante: ${item.title}`);
-      const { summary, script } = await generateContent(item.title, item.url, item.source);
-
-      newAlerts.push({
-        id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        title: item.title,
-        url: item.url,
-        source: item.source,
-        detectedAt: new Date().toISOString(),
-        summary,
-        script,
-        seen: false
-      });
-    }
+  if (monitorRunning) {
+    console.log('[Monitor] Ya en ejecución — saltando para evitar duplicados.');
+    return 0;
   }
+  monitorRunning = true;
 
-  // Persistir cambios
-  const freshState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-  freshState.simuliaAlerts = freshState.simuliaAlerts || { lastRun: null, seenUrls: [], alerts: [] };
-  freshState.simuliaAlerts.lastRun = new Date().toISOString();
-  freshState.simuliaAlerts.seenUrls = [...seenUrls];
-  freshState.simuliaAlerts.alerts = [...newAlerts, ...(freshState.simuliaAlerts.alerts || [])];
-  fs.writeFileSync(STATE_FILE, JSON.stringify(freshState, null, 2));
+  try {
+    console.log('[Monitor] Iniciando revisión de fuentes...', new Date().toISOString());
 
-  console.log(`[Monitor] Completado. ${newAlerts.length} nuevas alertas.`);
-  return newAlerts.length;
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    state.simuliaAlerts = state.simuliaAlerts || { lastRun: null, seenUrls: [], alerts: [] };
+    const seenUrls = new Set(state.simuliaAlerts.seenUrls || []);
+
+    const guiaPath = path.join(__dirname, '..', 'simulia', 'scripts', 'GUIA-FORMATO.md');
+    const guiaFormato = fs.existsSync(guiaPath) ? fs.readFileSync(guiaPath, 'utf8') : '';
+
+    const newAlerts = [];
+
+    for (const source of SOURCES) {
+      const items = await scrapeSource(source);
+      for (const item of items) {
+        if (seenUrls.has(item.url)) continue;
+        seenUrls.add(item.url);
+
+        const relevant = await isRelevantForEIR(item.title);
+        if (!relevant) {
+          console.log(`[Monitor] Ignorado (no relevante): ${item.title}`);
+          continue;
+        }
+
+        console.log(`[Monitor] Novedad relevante: ${item.title}`);
+        const { summary, script } = await generateContent(item.title, item.url, item.source, guiaFormato);
+
+        newAlerts.push({
+          id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          title: item.title,
+          url: item.url,
+          source: item.source,
+          detectedAt: new Date().toISOString(),
+          summary,
+          script,
+          seen: false
+        });
+      }
+    }
+
+    // Persistir cambios
+    const freshState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    freshState.simuliaAlerts = freshState.simuliaAlerts || { lastRun: null, seenUrls: [], alerts: [] };
+    freshState.simuliaAlerts.lastRun = new Date().toISOString();
+    const cappedSeenUrls = [...seenUrls].slice(-2000);
+    freshState.simuliaAlerts.seenUrls = cappedSeenUrls;
+    freshState.simuliaAlerts.alerts = [...newAlerts, ...(freshState.simuliaAlerts.alerts || [])].slice(0, 100);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(freshState, null, 2));
+
+    console.log(`[Monitor] Completado. ${newAlerts.length} nuevas alertas.`);
+    return newAlerts.length;
+  } finally {
+    monitorRunning = false;
+  }
 }
 
 // Cron: cada día a las 8:00 (Europe/Madrid)
