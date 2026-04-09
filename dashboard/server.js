@@ -1300,6 +1300,148 @@ app.patch('/api/monitor/alert/:id/seen', (req, res) => {
   }
 }
 
+// ── MOCCA ────────────────────────────────────────────────────────────────────
+const MOCCA_OUTPUT = path.join(__dirname, '..', 'mocca', 'output');
+const MOCCA_IDENTIDAD = path.join(MOCCA_OUTPUT, 'identidad-marca.json');
+
+// GET /api/mocca/identidad — devuelve identidad de marca guardada
+app.get('/api/mocca/identidad', (req, res) => {
+  try {
+    if (!fs.existsSync(MOCCA_IDENTIDAD)) return res.json({ identidad: '' });
+    const data = JSON.parse(fs.readFileSync(MOCCA_IDENTIDAD, 'utf8'));
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/mocca/identidad — guarda identidad de marca
+app.post('/api/mocca/identidad', (req, res) => {
+  try {
+    const { identidad } = req.body;
+    if (typeof identidad !== 'string') return res.status(400).json({ error: 'identidad requerida' });
+    if (!fs.existsSync(MOCCA_OUTPUT)) fs.mkdirSync(MOCCA_OUTPUT, { recursive: true });
+    fs.writeFileSync(MOCCA_IDENTIDAD, JSON.stringify({ identidad }, null, 2));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/mocca/lista — lista análisis guardados
+app.get('/api/mocca/lista', (req, res) => {
+  try {
+    if (!fs.existsSync(MOCCA_OUTPUT)) return res.json({ files: [] });
+    const files = fs.readdirSync(MOCCA_OUTPUT)
+      .filter(f => f.startsWith('analisis-') && f.endsWith('.json'))
+      .sort().reverse();
+    res.json({ files });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/mocca/analisis/:filename — devuelve un análisis guardado
+app.get('/api/mocca/analisis/:filename', (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename); // sanitize
+    if (!filename.startsWith('analisis-') || !filename.endsWith('.json')) {
+      return res.status(400).json({ error: 'Nombre de archivo inválido' });
+    }
+    const filepath = path.join(MOCCA_OUTPUT, filename);
+    if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'No encontrado' });
+    const data = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/mocca/analizar — genera análisis completo con Claude
+app.post('/api/mocca/analizar', async (req, res) => {
+  try {
+    const { nombre, categoria, precio, descripcion, url_proveedor, url_inspiracion, notas, identidad_marca } = req.body;
+    if (!nombre || !descripcion) return res.status(400).json({ error: 'nombre y descripcion son requeridos' });
+
+    const systemPrompt = `Eres un analista de negocio experto en ecommerce español, especialmente en el sector de productos para mascotas. Tu análisis debe ser profundo, basado en datos reales del mercado español, y orientado a validar si un producto es viable para lanzar con presupuesto mínimo. Responde ÚNICAMENTE con un JSON válido, sin texto adicional, sin markdown fences.`;
+
+    const userPrompt = `Analiza el siguiente producto para la marca Mocca (ecommerce de complementos para perros en España).
+
+Datos del producto:
+- Nombre/nicho: ${nombre}
+- Categoría: ${categoria || 'Sin especificar'}
+- Rango de precio objetivo: ${precio || 'Sin especificar'}
+- Descripción: ${descripcion}
+- URL proveedor de referencia: ${url_proveedor || 'No proporcionada'}
+- URL de inspiración: ${url_inspiracion || 'No proporcionada'}
+- Notas adicionales: ${notas || 'Ninguna'}
+
+Identidad de marca Mocca:
+${identidad_marca || 'Marca de complementos para perros en España. Comunidad primero, producto después. Segmento consciente, calidad premium.'}
+
+Devuelve EXACTAMENTE este JSON con las 7 claves. Cada valor es texto enriquecido en HTML (usa <strong>, <ul>, <li>, <p>, <table> cuando ayude):
+
+{
+  "mercado": "Análisis ejecutivo completo: incluye (1) Score sobre la oportunidad 0-100 con justificación, (2) Tamaño de mercado estimado en España en euros/año, (3) Descripción del cliente ideal detallada, (4) Tendencias y oportunidades del sector, (5) Riesgos y amenazas principales, (6) Viabilidad financiera: precio de coste estimado por unidad, margen bruto estimado, punto de equilibrio en unidades/mes, (7) Red flags y contraargumentos",
+  "dafo": "Análisis DAFO completo en HTML: tabla o lista con 4 secciones: Fortalezas (internas positivas), Debilidades (internas negativas), Amenazas (externas negativas), Oportunidades (externas positivas). Mínimo 4 puntos por sección, específicos para este producto de Mocca en España",
+  "competencia": "Análisis de 4-6 marcas competidoras directas con el mismo tipo de producto y rango de precio en España/Europa. Para cada marca: nombre, rango de precio, puntos fuertes, puntos débiles, dónde venden. Al final incluye un mapa perceptual textual precio vs valor percibido",
+  "buyer_persona": "Perfil demográfico completo: nombre ficticio, edad, género, situación laboral, ingresos aproximados, zona geográfica. Pain points y motivaciones de compra. Perfil digital: qué redes sociales usa, cómo busca productos para su perro, qué influencers o cuentas sigue, comportamiento de compra online",
+  "validacion": "Plan de validación antes de invertir en stock: (1) Canales de test recomendados, (2) Métricas mínimas de viabilidad (número de reservas, tasa de conversión, etc.), (3) Presupuesto mínimo necesario para validar, (4) Timeline de validación: qué hacer en los primeros 30, 60 y 90 días, (5) Señales de GO y señales de STOP",
+  "bmc": "Business Model Canvas completo: Propuesta de Valor, Segmentos de Clientes, Canales de Distribución, Relaciones con Clientes, Fuentes de Ingresos, Recursos Clave, Actividades Clave, Socios Clave, Estructura de Costes. Adapta cada bloque específicamente a este producto y a la estrategia de Mocca",
+  "dossier": "Score de viabilidad global 0-100 con el número destacado. Scores por dimensión: Encaje con Cliente (0-100), Modelo de Negocio (0-100), Oportunidad de Mercado (0-100), Preparación y Validación (0-100), Ventaja Competitiva (0-100). Veredicto final: GO / NO-GO / PIVOTAR con justificación de 3-5 frases. Próximos pasos concretos (lista de 5 acciones priorizadas)"
+}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      return res.status(response.status).json({ error: errData?.error?.message || 'Anthropic API error' });
+    }
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+
+    let resultado;
+    try {
+      resultado = JSON.parse(text);
+    } catch (parseErr) {
+      // Intentar extraer JSON si hay texto extra
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        resultado = JSON.parse(match[0]);
+      } else {
+        return res.status(500).json({ error: 'Claude no devolvió JSON válido', raw: text.slice(0, 500) });
+      }
+    }
+
+    // Guardar en mocca/output/
+    if (!fs.existsSync(MOCCA_OUTPUT)) fs.mkdirSync(MOCCA_OUTPUT, { recursive: true });
+    const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `analisis-${slug}-${timestamp}.json`;
+    const filepath = path.join(MOCCA_OUTPUT, filename);
+    const toSave = { nombre, categoria, precio, descripcion, url_proveedor, url_inspiracion, notas, createdAt: new Date().toISOString(), resultado };
+    fs.writeFileSync(filepath, JSON.stringify(toSave, null, 2));
+
+    res.json({ ok: true, filename, resultado });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Dashboard servidor corriendo en http://localhost:${PORT}`);
 });
