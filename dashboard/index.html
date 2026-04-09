@@ -1616,6 +1616,23 @@ async function finishRitual() {
 ════════════════════════════════════════════════ */
 let currentTab = 'hoy';
 
+// ── MOCCA STATE ──
+let _moccaView = 'form';       // 'form' | 'loading' | 'result'
+let _moccaStep = 0;            // índice del paso activo (0-6)
+let _moccaResult = null;       // objeto resultado del análisis
+let _moccaIdentidadOpen = false;
+let _moccaIdentidad = '';      // texto identidad de marca
+
+const MOCCA_STEPS = [
+  { key: 'mercado',       label: 'Mercado'      },
+  { key: 'dafo',          label: 'DAFO'         },
+  { key: 'competencia',   label: 'Competencia'  },
+  { key: 'buyer_persona', label: 'Buyer Persona'},
+  { key: 'validacion',    label: 'Validación'   },
+  { key: 'bmc',           label: 'BMC'          },
+  { key: 'dossier',       label: 'Dossier'      }
+];
+
 function switchTab(tab) {
   // Clear any active clip polling when leaving the clips tab
   if (currentTab === 'clips' && typeof clipPollingInterval !== 'undefined' && clipPollingInterval) {
@@ -4291,6 +4308,123 @@ async function submitPythonExam() {
   await loadState();
   checkRitual();
 })();
+
+// ── MOCCA FUNCTIONS ──────────────────────────────────────────────────────────
+async function moccaLoadIdentidad() {
+  try {
+    const res = await fetch(`${SERVER}/api/mocca/identidad`);
+    const data = await res.json();
+    _moccaIdentidad = data.identidad || '';
+    const el = document.getElementById('mocca-identidad-text');
+    if (el) el.value = _moccaIdentidad;
+  } catch (e) { /* silencioso */ }
+}
+
+async function moccaSaveIdentidad() {
+  const el = document.getElementById('mocca-identidad-text');
+  if (!el) return;
+  _moccaIdentidad = el.value;
+  try {
+    await fetch(`${SERVER}/api/mocca/identidad`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identidad: _moccaIdentidad })
+    });
+    const btn = document.getElementById('mocca-save-id-btn');
+    if (btn) { btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar'; }, 1500); }
+  } catch (e) { alert('Error guardando identidad: ' + e.message); }
+}
+
+function moccaToggleIdentidad() {
+  _moccaIdentidadOpen = !_moccaIdentidadOpen;
+  const box = document.getElementById('mocca-identidad-box');
+  const arrow = document.getElementById('mocca-identidad-arrow');
+  if (box) box.style.display = _moccaIdentidadOpen ? 'block' : 'none';
+  if (arrow) arrow.textContent = _moccaIdentidadOpen ? '▲' : '▼';
+}
+
+async function moccaAnalizar() {
+  const nombre = document.getElementById('mocca-nombre')?.value?.trim();
+  const descripcion = document.getElementById('mocca-descripcion')?.value?.trim();
+  if (!nombre || !descripcion) { alert('Nombre y descripción son obligatorios'); return; }
+
+  _moccaView = 'loading';
+  renderTabContent();
+
+  try {
+    const body = {
+      nombre,
+      categoria:       document.getElementById('mocca-categoria')?.value?.trim() || '',
+      precio:          document.getElementById('mocca-precio')?.value?.trim() || '',
+      descripcion,
+      url_proveedor:   document.getElementById('mocca-url-proveedor')?.value?.trim() || '',
+      url_inspiracion: document.getElementById('mocca-url-inspiracion')?.value?.trim() || '',
+      notas:           document.getElementById('mocca-notas')?.value?.trim() || '',
+      identidad_marca: _moccaIdentidad || ''
+    };
+    const res = await fetch(`${SERVER}/api/mocca/analizar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Error: ' + (data.error || 'Desconocido')); _moccaView = 'form'; renderTabContent(); return; }
+
+    _moccaResult = data.resultado;
+    _moccaStep = 0;
+    _moccaView = 'result';
+    renderTabContent();
+    await moccaRefreshLista();
+  } catch (e) {
+    alert('Error de red: ' + e.message);
+    _moccaView = 'form';
+    renderTabContent();
+  }
+}
+
+function moccaGoToStep(idx) {
+  if (!_moccaResult) return;
+  _moccaStep = idx;
+  const content = document.getElementById('mocca-step-content');
+  const key = MOCCA_STEPS[idx].key;
+  if (content) content.innerHTML = `<div class="mocca-result-content">${_moccaResult[key] || '<em>Sin datos</em>'}</div>`;
+  document.querySelectorAll('.mocca-step').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+
+async function moccaRefreshLista() {
+  try {
+    const res = await fetch(`${SERVER}/api/mocca/lista`);
+    const data = await res.json();
+    const sel = document.getElementById('mocca-historial-sel');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Cargar análisis anterior —</option>' +
+      (data.files || []).map(f => `<option value="${f}">${f.replace('analisis-','').replace('.json','')}</option>`).join('');
+  } catch (e) { /* silencioso */ }
+}
+
+async function moccaCargarAnalisis() {
+  const sel = document.getElementById('mocca-historial-sel');
+  const filename = sel?.value;
+  if (!filename) return;
+  try {
+    const res = await fetch(`${SERVER}/api/mocca/analisis/${encodeURIComponent(filename)}`);
+    const data = await res.json();
+    if (!res.ok) { alert('Error cargando análisis'); return; }
+    _moccaResult = data.resultado;
+    _moccaStep = 0;
+    _moccaView = 'result';
+    renderTabContent();
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+function moccaNuevoAnalisis() {
+  _moccaView = 'form';
+  _moccaResult = null;
+  _moccaStep = 0;
+  renderTabContent();
+}
 </script>
 </body>
 </html>
