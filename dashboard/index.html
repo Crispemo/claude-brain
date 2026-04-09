@@ -1640,6 +1640,14 @@ function switchTab(tab) {
     clipPollingInterval = null;
   }
   currentTab = tab;
+  if (tab === 'mocca') {
+    setTimeout(async () => {
+      await moccaLoadIdentidad();
+      await moccaRefreshLista();
+      const el = document.getElementById('mocca-identidad-text');
+      if (el) el.value = _moccaIdentidad;
+    }, 0);
+  }
   document.querySelectorAll('.sidebar-item[data-tab]').forEach(el => el.classList.remove('active'));
   const active = document.querySelector(`.sidebar-item[data-tab="${tab}"]`);
   if (active) active.classList.add('active');
@@ -1788,6 +1796,104 @@ function renderTabContent() {
     case 'clips':
       pageTitle = '🎬 Video Clipper';
       pageContent = renderVideoClipper();
+      break;
+    case 'mocca':
+      pageTitle = '🐶 Mocca Lab';
+      if (_moccaView === 'loading') {
+        pageContent = `
+          <div class="mocca-spinner">
+            <div class="mocca-spinner-ring"></div>
+            <div style="font-size:14px;color:var(--text-muted)">Claude está investigando el mercado…</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Esto puede tardar 20-40 segundos</div>
+          </div>`;
+      } else if (_moccaView === 'result' && _moccaResult) {
+        const stepContent = _moccaResult[MOCCA_STEPS[_moccaStep].key] || '<em>Sin datos</em>';
+        pageContent = `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <button onclick="moccaNuevoAnalisis()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer">← Nueva análisis</button>
+            <div style="display:flex;align-items:center;gap:8px">
+              <select id="mocca-historial-sel" class="mocca-historial-select" onchange="moccaCargarAnalisis()">
+                <option value="">— Cargar anterior —</option>
+              </select>
+            </div>
+          </div>
+          <div class="mocca-wizard-bar">
+            ${MOCCA_STEPS.map((s, i) => `
+              <div class="mocca-step ${i === _moccaStep ? 'active' : 'done'}" onclick="moccaGoToStep(${i})">
+                ${i < _moccaStep ? '<span class="mocca-step-checkmark">✓</span>' : ''}${s.label}
+              </div>`).join('')}
+          </div>
+          <div id="mocca-step-content" class="mocca-result-content">${stepContent}</div>
+        `;
+      } else {
+        pageContent = `
+          <div style="max-width:680px">
+            <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px">Introduce los datos del producto y Claude generará un análisis completo de mercado en 7 secciones.</p>
+
+            <div style="margin-bottom:16px">
+              <div class="mocca-identidad-toggle" onclick="moccaToggleIdentidad()">
+                <span id="mocca-identidad-arrow">▼</span>
+                <span>Identidad de marca Mocca</span>
+                <span style="font-size:11px;color:var(--text-muted);margin-left:4px">(se incluye en todos los análisis)</span>
+              </div>
+              <div id="mocca-identidad-box" style="display:none">
+                <textarea id="mocca-identidad-text" rows="5" placeholder="Pega aquí la identidad de marca, tono, valores, diferenciación…" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical">${escapeHtml(_moccaIdentidad)}</textarea>
+                <button id="mocca-save-id-btn" onclick="moccaSaveIdentidad()" style="margin-top:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">Guardar</button>
+              </div>
+            </div>
+
+            <div class="mocca-form">
+              <div class="mocca-field">
+                <label>Nombre del producto o nicho *</label>
+                <input id="mocca-nombre" type="text" placeholder="ej. Collar ergonómico antitirones">
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div class="mocca-field">
+                  <label>Categoría</label>
+                  <select id="mocca-categoria">
+                    <option value="">Seleccionar…</option>
+                    <option>Accesorios</option>
+                    <option>Alimentación</option>
+                    <option>Salud y bienestar</option>
+                    <option>Higiene y cuidado</option>
+                    <option>Juguetes</option>
+                    <option>Transporte y viaje</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+                <div class="mocca-field">
+                  <label>Rango de precio objetivo</label>
+                  <input id="mocca-precio" type="text" placeholder="ej. 15€ - 35€">
+                </div>
+              </div>
+              <div class="mocca-field">
+                <label>Descripción del producto *</label>
+                <textarea id="mocca-descripcion" rows="3" placeholder="Qué es, para qué sirve, qué lo hace especial…"></textarea>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div class="mocca-field">
+                  <label>URL proveedor de referencia</label>
+                  <input id="mocca-url-proveedor" type="url" placeholder="https://alibaba.com/…">
+                </div>
+                <div class="mocca-field">
+                  <label>URL de inspiración</label>
+                  <input id="mocca-url-inspiracion" type="url" placeholder="https://tienda-referencia.com/…">
+                </div>
+              </div>
+              <div class="mocca-field">
+                <label>Notas de referencia</label>
+                <textarea id="mocca-notas" rows="2" placeholder="Observaciones, contexto adicional, competidores conocidos…"></textarea>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap">
+                <button onclick="moccaAnalizar()" style="background:var(--mocca);color:#fff;border:none;border-radius:8px;padding:11px 24px;font-size:14px;font-weight:700;cursor:pointer">Analizar con Claude →</button>
+                <select id="mocca-historial-sel" class="mocca-historial-select" onchange="moccaCargarAnalisis()">
+                  <option value="">— Cargar análisis anterior —</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        `;
+      }
       break;
     case 'alertas': {
       const mon = STATE.simuliaAlerts || { lastRun: null, seenUrls: [], alerts: [] };
