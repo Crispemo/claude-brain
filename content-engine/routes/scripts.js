@@ -50,6 +50,19 @@ router.get('/', (req, res, next) => {
   }
 });
 
+router.get('/:filename', (req, res, next) => {
+  try {
+    const filename = path.basename(req.params.filename); // sanitize
+    if (!filename.endsWith('.json')) return res.status(400).json({ error: 'Filename inválido' });
+    const filepath = path.join(SCRIPTS_DIR, filename);
+    if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'Script no encontrado' });
+    const data = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    res.json({ url: data.url, date: data.date, script: data.script });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/linkedin', async (req, res, next) => {
   const { script } = req.body;
   if (!script) return res.status(400).json({ error: 'script requerido' });

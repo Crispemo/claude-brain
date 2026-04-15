@@ -313,14 +313,21 @@
 
     function renderScript(script) {
       const container = document.getElementById('script-sections');
+      // Build structure without content to avoid innerHTML injection issues in textareas
       container.innerHTML = SECTIONS.map(label => `
         <div class="script-block">
           <div class="script-block-header">
             <span class="script-block-label">${label}</span>
             <button class="copy-section-btn" data-label="${label}">Copiar</button>
           </div>
-          <textarea class="script-text" id="${getSectionId(label)}">${script[label] || ''}</textarea>
+          <textarea class="script-text" id="${getSectionId(label)}"></textarea>
         </div>`).join('');
+
+      // Set textarea values directly — safe for any character
+      SECTIONS.forEach(label => {
+        const el = document.getElementById(getSectionId(label));
+        if (el) el.value = script[label] || '';
+      });
 
       // Attach copy handlers
       container.querySelectorAll('.copy-section-btn').forEach(btn => {
@@ -436,12 +443,40 @@
           return;
         }
         container.innerHTML = list.map(item => `
-          <div class="history-item">
+          <div class="history-item" data-filename="${escapeHtml(item.filename)}" style="cursor:pointer" title="Haz clic para cargar este script">
             <span class="history-url" title="${escapeHtml(item.url)}">${escapeHtml(item.url)}</span>
-            <span class="history-date">${escapeHtml(item.date)}</span>
+            <span style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <span class="history-date">${escapeHtml(item.date)}</span>
+              <span style="font-size:11px;color:var(--blue);border:1px solid rgba(59,130,246,0.3);border-radius:4px;padding:2px 7px">Cargar</span>
+            </span>
           </div>`).join('');
+
+        container.querySelectorAll('.history-item').forEach(item => {
+          item.addEventListener('click', () => loadScriptFromHistory(item.dataset.filename));
+        });
       } catch (e) {
         console.error('Failed to load history:', e);
+      }
+    }
+
+    async function loadScriptFromHistory(filename) {
+      const status = document.getElementById('script-status');
+      setStatus(status, 'loading', 'Cargando script guardado...');
+      try {
+        const res = await fetch('/api/scripts/' + encodeURIComponent(filename));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al cargar');
+        setStatus(status, '', '');
+        document.getElementById('script-url').value = data.url || '';
+        renderScript(data.script);
+        // Reset platform outputs on new load
+        ['linkedin', 'email'].forEach(p => {
+          document.getElementById(p + '-output').style.display = 'none';
+          document.getElementById(p + '-text').value = '';
+          document.getElementById(p + '-status').className = 'status';
+        });
+      } catch (err) {
+        setStatus(status, 'error', 'Error: ' + err.message);
       }
     }
 
