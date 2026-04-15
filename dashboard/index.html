@@ -1000,7 +1000,15 @@
     }
     .sv-back { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 14px; font-family: inherit; }
     .sv-title { font-size: 14px; font-weight: 600; flex: 1; }
-    .sv-body { flex: 1; overflow-y: auto; padding: 20px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+    .sv-body { flex: 1; overflow-y: auto; padding: 20px; font-size: 13px; line-height: 1.7; }
+    .sv-body h1 { font-size: 16px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
+    .sv-body h2 { font-size: 13px; font-weight: 700; color: var(--blue); margin: 20px 0 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .sv-body h3 { font-size: 13px; font-weight: 600; color: var(--purple); margin: 16px 0 4px; }
+    .sv-body p { margin: 0 0 8px; white-space: pre-wrap; }
+    .sv-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .sv-body strong { color: var(--text); font-weight: 600; }
+    .sv-body .sv-block { background: var(--surface2); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+    .sv-body .sv-notes { border-left: 3px solid var(--yellow); padding-left: 12px; color: var(--text-muted); font-size: 12px; margin-top: 4px; }
     /* Ideas tab */
     .idea-card {
       background: var(--surface2); border-radius: 8px; padding: 10px 12px;
@@ -1137,6 +1145,51 @@
   background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
   padding: 7px 10px; color: var(--text); font-size: 12px; cursor: pointer;
 }
+
+/* ── PIPELINE KANBAN ── */
+.pipeline-board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px; }
+.pipeline-col { flex: 0 0 230px; display: flex; flex-direction: column; gap: 10px; }
+.pipeline-col-header { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 12px; border-radius: 8px; margin-bottom: 2px; }
+.pipeline-col-header.col-idea { background: rgba(139,92,246,0.12); color: #a78bfa; }
+.pipeline-col-header.col-guion { background: rgba(59,130,246,0.12); color: var(--blue); }
+.pipeline-col-header.col-grabando { background: rgba(234,179,8,0.12); color: var(--yellow); }
+.pipeline-col-header.col-editando { background: rgba(249,115,22,0.12); color: #fb923c; }
+.pipeline-col-header.col-publicado { background: rgba(34,197,94,0.12); color: var(--green); }
+.pipeline-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; }
+.pipeline-card:hover { border-color: var(--blue); }
+.pipeline-card-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; line-height: 1.35; }
+.pipeline-card-date { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.pipeline-card-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.pipeline-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+.badge-script { background: rgba(59,130,246,0.15); color: var(--blue); }
+.badge-linkedin { background: rgba(14,118,168,0.15); color: #38bdf8; }
+.badge-email { background: rgba(34,197,94,0.15); color: var(--green); }
+.badge-clip { background: rgba(234,179,8,0.15); color: var(--yellow); }
+.pipeline-card-expand { display: none; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+.pipeline-card-expand.open { display: block; }
+.pipeline-content-section { margin-bottom: 10px; }
+.pipeline-content-label { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.pipeline-content-text { font-size: 12px; color: var(--text); line-height: 1.55; white-space: pre-wrap; background: var(--surface2); border-radius: 6px; padding: 8px 10px; max-height: 120px; overflow-y: auto; }
+.pipeline-stage-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 9px; color: var(--text); font-size: 12px; cursor: pointer; margin-top: 8px; }
+.pipeline-del-btn { font-size: 11px; color: var(--red); background: none; border: none; cursor: pointer; padding: 4px; float: right; }
+
+/* ── CE CLIPPER CANVAS ── */
+.ce-drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 40px 24px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
+.ce-drop-zone:hover, .ce-drop-zone.drag-over { border-color: var(--blue); background: rgba(59,130,246,0.05); }
+.ce-preview-wrap { position: relative; display: inline-block; margin-bottom: 16px; max-width: 100%; }
+.ce-preview-wrap img { max-width: 100%; border-radius: 8px; display: block; }
+#ce-region-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; border-radius: 8px; }
+.ce-clip-step { display: none; }
+.ce-clip-step.active { display: block; }
+.ce-progress-wrap { background: var(--surface2); border-radius: 6px; height: 8px; margin-bottom: 12px; overflow: hidden; }
+.ce-progress-bar { background: var(--blue); height: 100%; width: 0%; transition: width 0.3s; }
+
+/* ── CE PLATFORM TABS ── */
+.ce-platform-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.ce-ptab { padding: 6px 14px; font-size: 12px; border-radius: 20px; cursor: pointer; background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); font-weight: 500; }
+.ce-ptab.active { background: rgba(59,130,246,0.15); color: var(--blue); border-color: rgba(59,130,246,0.4); }
+.ce-ppanel { display: none; }
+.ce-ppanel.active { display: block; }
   </style>
 </head>
 <body>
@@ -1212,6 +1265,9 @@
   </div>
   <div class="sidebar-item" data-tab="clips" onclick="switchTab('clips')">
     <span class="si-icon">🎬</span> Video Clipper
+  </div>
+  <div class="sidebar-item" data-tab="pipeline" onclick="switchTab('pipeline')">
+    <span class="si-icon">🗂️</span> Pipeline
   </div>
   <div class="sidebar-item" data-tab="mocca" onclick="switchTab('mocca')">
     <span class="si-icon">🐶</span> Mocca Lab
@@ -1797,6 +1853,10 @@ function renderTabContent() {
       pageTitle = '🎬 Video Clipper';
       pageContent = renderVideoClipper();
       break;
+    case 'pipeline':
+      pageTitle = '🗂️ Pipeline de contenido';
+      pageContent = renderPipeline();
+      break;
     case 'mocca':
       pageTitle = '🐶 Mocca Lab';
       if (_moccaView === 'loading') {
@@ -1939,7 +1999,8 @@ function renderTabContent() {
 
   bindAllEvents();
   if (currentTab === 'scripts') ceLoadHistory();
-  if (currentTab === 'clips') clipLoadList();
+  if (currentTab === 'clips') setTimeout(ceInitClipper, 0);
+  if (currentTab === 'pipeline') ceLoadPipeline();
   if (currentTab === 'proyectos') loadLiveMetrics();
   if (currentTab === 'sistema') loadCronStatus().then(() => {
     const el = document.getElementById('cron-briefing-output');
@@ -1955,8 +2016,9 @@ function renderTabContent() {
 // SCRIPTS IA TAB
 // ═══════════════════════════════════════════════
 function renderScriptsIA() {
+  const CE_SECTIONS = ['INTRO','CTA TEMPRANO','CONTENIDO','CIERRE + CTA'];
   return `
-    <p class="page-subtitle">Pega una URL de YouTube, Instagram o artículo. La IA genera el script adaptado a tu voz de Agencia.</p>
+    <p class="page-subtitle">Pega una URL de YouTube o artículo. La IA genera el script, post LinkedIn y email listos para guardar en el pipeline.</p>
 
     <div style="display:flex;gap:10px;margin-bottom:20px">
       <input type="text" id="ce-url-input" placeholder="https://youtube.com/watch?v=..." style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;font-family:inherit;outline:none">
@@ -1966,7 +2028,7 @@ function renderScriptsIA() {
     <div id="ce-status" style="display:none;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px"></div>
 
     <div id="ce-output" style="display:none;margin-bottom:28px">
-      ${['INTRO','CTA TEMPRANO','CONTENIDO','CIERRE + CTA'].map(label => `
+      ${CE_SECTIONS.map(label => `
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
             <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--yellow)">${label}</span>
@@ -1974,10 +2036,49 @@ function renderScriptsIA() {
           </div>
           <textarea id="ce-section-${label.replace(/\s+/g,'-').replace(/[^\w-]/g,'')}" style="width:100%;border:none;background:transparent;color:var(--text);padding:14px;min-height:80px;resize:vertical;font-size:14px;line-height:1.6;font-family:inherit"></textarea>
         </div>`).join('')}
-      <div style="display:flex;gap:10px">
-        <button onclick="ceCopyAll()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer">Copiar todo</button>
+
+      <!-- Plataformas -->
+      <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:8px;margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px">Adaptar para otras plataformas</div>
+        <div class="ce-platform-tabs">
+          <div class="ce-ptab active" onclick="ceSwitchPtab('linkedin',this)">LinkedIn</div>
+          <div class="ce-ptab" onclick="ceSwitchPtab('email',this)">Email</div>
+        </div>
+        <div id="ce-ppanel-linkedin" class="ce-ppanel active">
+          <button onclick="ceGenPlatform('linkedin')" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;margin-bottom:12px">Generar post LinkedIn</button>
+          <div id="ce-linkedin-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px"></div>
+          <div id="ce-linkedin-out" style="display:none">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
+                <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue)">Post LinkedIn</span>
+                <button onclick="navigator.clipboard.writeText(document.getElementById('ce-linkedin-text').value)" style="font-size:11px;padding:4px 10px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:5px;cursor:pointer">Copiar</button>
+              </div>
+              <textarea id="ce-linkedin-text" style="width:100%;border:none;background:transparent;color:var(--text);padding:14px;min-height:160px;resize:vertical;font-size:13px;line-height:1.6;font-family:inherit"></textarea>
+            </div>
+          </div>
+        </div>
+        <div id="ce-ppanel-email" class="ce-ppanel">
+          <button onclick="ceGenPlatform('email')" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;margin-bottom:12px">Generar email newsletter</button>
+          <div id="ce-email-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px"></div>
+          <div id="ce-email-out" style="display:none">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
+                <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue)">Email Newsletter</span>
+                <button onclick="navigator.clipboard.writeText(document.getElementById('ce-email-text').value)" style="font-size:11px;padding:4px 10px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:5px;cursor:pointer">Copiar</button>
+              </div>
+              <textarea id="ce-email-text" style="width:100%;border:none;background:transparent;color:var(--text);padding:14px;min-height:180px;resize:vertical;font-size:13px;line-height:1.6;font-family:inherit"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="ceSavePipeline()" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer">Guardar en pipeline</button>
+        <button onclick="ceCopyAll()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer">Copiar todo</button>
         <button onclick="ceClear()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer">Limpiar</button>
       </div>
+      <div id="ce-save-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px"></div>
     </div>
 
     <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Scripts guardados</div>
@@ -2059,150 +2160,380 @@ function ceClear() {
   const inp = document.getElementById('ce-url-input');
   if (inp) inp.value = '';
   document.getElementById('ce-status').style.display = 'none';
+  ['linkedin','email'].forEach(p => {
+    const out = document.getElementById('ce-' + p + '-out');
+    const st = document.getElementById('ce-' + p + '-status');
+    const tx = document.getElementById('ce-' + p + '-text');
+    if (out) out.style.display = 'none';
+    if (st) st.style.display = 'none';
+    if (tx) tx.value = '';
+  });
+}
+
+function ceSwitchPtab(name, el) {
+  document.querySelectorAll('.ce-ptab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ce-ppanel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const panel = document.getElementById('ce-ppanel-' + name);
+  if (panel) panel.classList.add('active');
+}
+
+function ceCollectScript() {
+  const s = {};
+  ['INTRO','CTA TEMPRANO','CONTENIDO','CIERRE + CTA'].forEach(label => {
+    const el = document.getElementById(ceGetSectionId(label));
+    if (el) s[label] = el.value;
+  });
+  return s;
+}
+
+function ceSetPStatus(platform, type, msg) {
+  const el = document.getElementById('ce-' + platform + '-status');
+  if (!el) return;
+  el.style.display = msg ? 'block' : 'none';
+  el.style.background = type === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(59,130,246,0.1)';
+  el.style.color = type === 'error' ? 'var(--red)' : 'var(--blue)';
+  el.style.border = type === 'error' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(59,130,246,0.2)';
+  el.textContent = msg;
+}
+
+async function ceGenPlatform(platform) {
+  const script = ceCollectScript();
+  const btn = document.querySelector(`[onclick="ceGenPlatform('${platform}')"]`);
+  if (btn) btn.disabled = true;
+  ceSetPStatus(platform, 'loading', platform === 'linkedin' ? 'Generando post de LinkedIn...' : 'Generando email newsletter...');
+  const outEl = document.getElementById('ce-' + platform + '-out');
+  if (outEl) outEl.style.display = 'none';
+  try {
+    const res = await fetch('/api/scripts/' + platform, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ script })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    ceSetPStatus(platform, '', '');
+    const tx = document.getElementById('ce-' + platform + '-text');
+    if (tx) tx.value = data.post || data.email || '';
+    if (outEl) outEl.style.display = 'block';
+  } catch(e) {
+    ceSetPStatus(platform, 'error', 'Error: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function ceSavePipeline() {
+  const url = document.getElementById('ce-url-input')?.value?.trim() || '';
+  const script = ceCollectScript();
+  const linkedinPost = document.getElementById('ce-linkedin-text')?.value || '';
+  const emailContent = document.getElementById('ce-email-text')?.value || '';
+
+  const title = (script['INTRO'] || '').split('\n')[0].slice(0, 80) || 'Sin título';
+
+  const saveEl = document.getElementById('ce-save-status');
+  if (saveEl) { saveEl.style.display='block'; saveEl.style.background='rgba(59,130,246,0.1)'; saveEl.style.color='var(--blue)'; saveEl.style.border='1px solid rgba(59,130,246,0.2)'; saveEl.textContent='Guardando...'; }
+
+  try {
+    const res = await fetch('/api/pipeline', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, sourceUrl: url, script, linkedinPost, emailContent, stage: 'guion_listo' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    if (saveEl) { saveEl.style.background='rgba(34,197,94,0.1)'; saveEl.style.color='var(--green)'; saveEl.style.border='1px solid rgba(34,197,94,0.2)'; saveEl.textContent='✓ Guardado en pipeline'; }
+    STATE = await (await fetch('/api/state')).json();
+  } catch(e) {
+    if (saveEl) { saveEl.style.background='rgba(239,68,68,0.1)'; saveEl.style.color='var(--red)'; saveEl.style.border='1px solid rgba(239,68,68,0.2)'; saveEl.textContent='Error: ' + e.message; }
+  }
 }
 
 async function ceLoadHistory() {
   const container = document.getElementById('ce-history');
   if (!container) return;
   try {
-    const res = await fetch('/api/ce/scripts');
+    const res = await fetch('/api/scripts');
     const list = await res.json();
     if (!list.length) {
       container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Sin scripts guardados aún.</div>';
       return;
     }
     container.innerHTML = list.map(item => `
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px" title="${escapeHtmlCe(item.url)}">${escapeHtmlCe(item.url)}</span>
-        <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;margin-left:12px">${escapeHtmlCe(item.date)}</span>
+      <div onclick="ceLoadScript('${escapeHtmlCe(item.filename)}')" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" title="Haz clic para cargar">
+        <span style="font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px">${escapeHtmlCe(item.url)}</span>
+        <span style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-size:11px;color:var(--text-muted)">${escapeHtmlCe(item.date)}</span>
+          <span style="font-size:11px;color:var(--blue);border:1px solid rgba(59,130,246,0.3);border-radius:4px;padding:2px 7px">Cargar</span>
+        </span>
       </div>`).join('');
   } catch (e) { console.error('ceLoadHistory error:', e); }
 }
 
+async function ceLoadScript(filename) {
+  const status = document.getElementById('ce-status');
+  if (status) { status.style.display='block'; status.style.background='rgba(59,130,246,0.1)'; status.style.color='var(--blue)'; status.style.border='1px solid rgba(59,130,246,0.2)'; status.textContent='Cargando...'; }
+  try {
+    const res = await fetch('/api/scripts/' + encodeURIComponent(filename));
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    if (status) status.style.display = 'none';
+    const inp = document.getElementById('ce-url-input');
+    if (inp) inp.value = data.url || '';
+    ceRenderScript(data.script);
+  } catch(e) {
+    if (status) { status.style.background='rgba(239,68,68,0.1)'; status.style.color='var(--red)'; status.style.border='1px solid rgba(239,68,68,0.2)'; status.textContent='Error: ' + e.message; }
+  }
+}
+
 // ═══════════════════════════════════════════════
-// VIDEO CLIPPER TAB
+// VIDEO CLIPPER TAB (OBS — vídeo único)
 // ═══════════════════════════════════════════════
+let ceClipFileId = null, ceClipW = 0, ceClipH = 0, ceWebcamRegion = null, ceScreenRegion = null, ceClipAbort = null;
+
 function renderVideoClipper() {
   return `
-    <p class="page-subtitle">Sube el vídeo de pantalla y el de cámara. La IA selecciona los mejores momentos y genera clips 9:16 HD con captions.</p>
+    <p class="page-subtitle">Vídeo OBS con pantalla + cara fusionados. Claude detecta la webcam automáticamente y genera el clip 9:16.</p>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-      <div id="clip-zone-screen" style="border:2px dashed var(--border);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color 0.1s" onclick="document.getElementById('clip-file-screen').click()" ondragover="clipDragOver(event,'clip-zone-screen')" ondragleave="clipDragLeave('clip-zone-screen')" ondrop="clipFileDrop(event,'clip-file-screen','clip-zone-screen','clip-name-screen')">
-        <input type="file" id="clip-file-screen" accept="video/*" style="display:none" onchange="clipFileSelected('clip-file-screen','clip-zone-screen','clip-name-screen')">
-        <div style="font-size:26px;margin-bottom:8px">🖥</div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Vídeo Pantalla</div>
-        <div style="font-size:12px;color:var(--text-muted)">Lo que grabaste de la pantalla</div>
-        <div id="clip-name-screen" style="font-size:12px;color:var(--green);margin-top:8px;font-weight:500"></div>
+    <!-- Paso 1: subir / URL -->
+    <div id="ce-clip-step1" class="ce-clip-step active">
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <input type="text" id="ce-clip-url" placeholder="https://youtube.com/watch?v=... (o cualquier URL)" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;font-family:inherit;outline:none">
+        <button onclick="ceClipDownloadUrl()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap" id="ce-clip-url-btn">Descargar</button>
       </div>
-      <div id="clip-zone-face" style="border:2px dashed var(--border);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color 0.1s" onclick="document.getElementById('clip-file-face').click()" ondragover="clipDragOver(event,'clip-zone-face')" ondragleave="clipDragLeave('clip-zone-face')" ondrop="clipFileDrop(event,'clip-file-face','clip-zone-face','clip-name-face')">
-        <input type="file" id="clip-file-face" accept="video/*" style="display:none" onchange="clipFileSelected('clip-file-face','clip-zone-face','clip-name-face')">
-        <div style="font-size:26px;margin-bottom:8px">🎥</div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Vídeo Cámara</div>
-        <div style="font-size:12px;color:var(--text-muted)">Tu cara / webcam</div>
-        <div id="clip-name-face" style="font-size:12px;color:var(--green);margin-top:8px;font-weight:500"></div>
+      <div style="text-align:center;color:var(--text-muted);font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:12px"><span style="flex:1;height:1px;background:var(--border)"></span>o sube un archivo<span style="flex:1;height:1px;background:var(--border)"></span></div>
+      <div class="ce-drop-zone" id="ce-drop-zone" onclick="document.getElementById('ce-file-input').click()">
+        <div style="font-size:32px;margin-bottom:10px;opacity:0.5">📁</div>
+        <p style="color:var(--text-muted);font-size:14px"><strong style="color:var(--text)">Arrastra tu vídeo aquí</strong> o haz clic</p>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:6px">MP4, MOV, MKV — hasta 4 GB</p>
       </div>
+      <input type="file" id="ce-file-input" accept="video/*" style="display:none">
+      <div id="ce-clip-status1" style="display:none;padding:12px 16px;border-radius:8px;font-size:14px;margin-top:12px"></div>
     </div>
 
-    <button id="clip-process-btn" onclick="clipProcessVideos()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px">Generar clips</button>
-
-    <div id="clip-status" style="display:none;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px"></div>
-
-    <div id="clip-progress-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px">
-      <div id="clip-progress-label" style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Procesando...</div>
-      <div style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden">
-        <div id="clip-progress-fill" style="background:var(--blue);height:100%;border-radius:4px;width:0%;transition:width 0.3s"></div>
+    <!-- Paso 2: revisar regiones -->
+    <div id="ce-clip-step2" class="ce-clip-step">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--yellow);margin-bottom:6px">Paso 2 — Revisa las regiones detectadas</div>
+      <div id="ce-detect-info" style="background:var(--surface2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text-muted);margin-bottom:12px"></div>
+      <div style="display:flex;gap:16px;margin-bottom:10px;font-size:12px;color:var(--text-muted)">
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#3b82f6;margin-right:5px;vertical-align:middle"></span>Pantalla</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#eab308;margin-right:5px;vertical-align:middle"></span>Webcam</span>
       </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Arrastra para redibujar la caja amarilla si no es correcta.</p>
+      <div class="ce-preview-wrap" id="ce-preview-wrap">
+        <img id="ce-frame-img" src="" alt="Frame">
+        <canvas id="ce-region-canvas"></canvas>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="ceClipConfirm()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer">Confirmar y procesar</button>
+        <button onclick="ceClipReset()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer">Empezar de nuevo</button>
+      </div>
+      <div id="ce-clip-status2" style="display:none;padding:12px 16px;border-radius:8px;font-size:14px;margin-top:12px"></div>
     </div>
 
-    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Clips generados</div>
-    <div id="clip-list" style="display:flex;flex-direction:column;gap:10px">
-      <div style="color:var(--text-muted);font-size:13px">Cargando...</div>
+    <!-- Paso 3: resultado -->
+    <div id="ce-clip-step3" class="ce-clip-step">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--yellow);margin-bottom:10px">Paso 3 — Generando clip 9:16</div>
+      <div class="ce-progress-wrap"><div class="ce-progress-bar" id="ce-progress-bar"></div></div>
+      <div id="ce-clip-status3" style="display:none;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:12px"></div>
+      <div id="ce-clip-output" style="display:none">
+        <video id="ce-output-video" controls style="width:100%;max-width:300px;border-radius:8px;display:block;margin-bottom:12px"></video>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a id="ce-download-btn" href="#" download><button style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer">Descargar clip</button></a>
+          <button onclick="ceClipAddPipeline()" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer">Añadir al pipeline</button>
+          <button onclick="ceClipReset()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer">Nuevo clip</button>
+        </div>
+        <div id="ce-clip-pipe-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px"></div>
+      </div>
     </div>
   `;
 }
 
-function clipDragOver(e, zoneId) {
-  e.preventDefault();
-  const z = document.getElementById(zoneId);
-  if (z) z.style.borderColor = 'var(--blue)';
+function ceClipShowStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('ce-clip-step' + i);
+    if (el) el.classList.toggle('active', i === n);
+  });
 }
 
-function clipDragLeave(zoneId) {
-  const z = document.getElementById(zoneId);
-  if (z) z.style.borderColor = 'var(--border)';
+function ceClipSetStatus(n, type, msg) {
+  const el = document.getElementById('ce-clip-status' + n);
+  if (!el) return;
+  el.style.display = msg ? 'block' : 'none';
+  el.style.background = type === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(59,130,246,0.1)';
+  el.style.color = type === 'error' ? 'var(--red)' : 'var(--blue)';
+  el.style.border = type === 'error' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(59,130,246,0.2)';
+  el.textContent = msg;
 }
 
-function clipFileDrop(e, inputId, zoneId, nameId) {
-  e.preventDefault();
-  clipDragLeave(zoneId);
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
-  const input = document.getElementById(inputId);
-  if (!input) return;
-  const dt = new DataTransfer();
-  dt.items.add(file);
-  input.files = dt.files;
-  clipFileSelected(inputId, zoneId, nameId);
+function ceClipReset() {
+  ceClipFileId = null; ceClipW = 0; ceClipH = 0; ceWebcamRegion = null; ceScreenRegion = null;
+  if (ceClipAbort) { ceClipAbort.abort(); ceClipAbort = null; }
+  document.getElementById('ce-clip-output').style.display = 'none';
+  document.getElementById('ce-output-video').src = '';
+  document.getElementById('ce-frame-img').src = '';
+  document.getElementById('ce-progress-bar').style.width = '0%';
+  document.getElementById('ce-detect-info').innerHTML = '';
+  document.getElementById('ce-clip-url').value = '';
+  document.getElementById('ce-file-input').value = '';
+  document.getElementById('ce-clip-url-btn').disabled = false;
+  [1,2,3].forEach(n => ceClipSetStatus(n,'',''));
+  ceClipShowStep(1);
 }
 
-function clipFileSelected(inputId, zoneId, nameId) {
-  const input = document.getElementById(inputId);
-  const file = input?.files[0];
-  if (!file) return;
-  const zone = document.getElementById(zoneId);
-  if (zone) zone.style.borderColor = 'var(--green)';
-  const nameEl = document.getElementById(nameId);
-  if (nameEl) nameEl.textContent = file.name;
+function ceInitClipper() {
+  const dropZone = document.getElementById('ce-drop-zone');
+  const fileInput = document.getElementById('ce-file-input');
+  const urlBtn = document.getElementById('ce-clip-url-btn');
+  if (!dropZone || !fileInput) return;
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) ceClipHandleFile(file);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) ceClipHandleFile(fileInput.files[0]); });
+}
+
+async function ceClipHandleFile(file) {
+  ceClipSetStatus(1, 'loading', `Subiendo "${file.name}"...`);
+  const fd = new FormData();
+  fd.append('video', file);
+  try {
+    const res = await fetch('/api/clips/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al subir');
+    ceClipFileId = data.fileId; ceClipW = data.width; ceClipH = data.height;
+    ceClipSetStatus(1, 'loading', `Subido (${data.width}×${data.height}). Analizando con IA...`);
+    await ceClipAnalyze();
+  } catch(e) { ceClipSetStatus(1, 'error', 'Error: ' + e.message); }
+}
+
+async function ceClipDownloadUrl() {
+  const url = document.getElementById('ce-clip-url')?.value?.trim();
+  if (!url) return;
+  const btn = document.getElementById('ce-clip-url-btn');
+  btn.disabled = true;
+  ceClipSetStatus(1, 'loading', 'Descargando vídeo desde URL...');
+  try {
+    const res = await fetch('/api/clips/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al descargar');
+    ceClipFileId = data.fileId; ceClipW = data.width; ceClipH = data.height;
+    ceClipSetStatus(1, 'loading', `Descargado (${data.width}×${data.height}). Analizando con IA...`);
+    await ceClipAnalyze();
+  } catch(e) { ceClipSetStatus(1, 'error', 'Error: ' + e.message); } finally { btn.disabled = false; }
+}
+
+async function ceClipAnalyze() {
+  try {
+    const res = await fetch('/api/clips/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileId: ceClipFileId }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al analizar');
+    ceWebcamRegion = data.webcamRegion || { x: Math.round(ceClipW*0.7), y: Math.round(ceClipH*0.6), w: Math.round(ceClipW*0.28), h: Math.round(ceClipH*0.35) };
+    ceScreenRegion = data.screenRegion || { x: 0, y: 0, w: ceClipW, h: ceClipH };
+    const conf = { high: '🟢 alta', medium: '🟡 media', low: '🔴 baja' }[data.confidence] || data.confidence;
+    document.getElementById('ce-detect-info').innerHTML = `Confianza: <strong>${conf}</strong> — ${data.note || ''}`;
+    const img = document.getElementById('ce-frame-img');
+    img.src = data.frame + '?t=' + Date.now();
+    img.onload = () => { ceClipShowStep(2); ceClipSetStatus(1,'',''); ceClipSetupCanvas(); };
+    img.onerror = () => ceClipSetStatus(1, 'error', 'No se pudo cargar el frame.');
+  } catch(e) { ceClipSetStatus(1, 'error', 'Error al analizar: ' + e.message); }
+}
+
+function ceClipSetupCanvas() {
+  const img = document.getElementById('ce-frame-img');
+  const canvas = document.getElementById('ce-region-canvas');
+  if (!img || !canvas) return;
+  canvas.width = img.offsetWidth; canvas.height = img.offsetHeight;
+  ceClipDrawRegions();
+  ceClipEnableRedraw();
+}
+
+function ceClipNtoC(r) {
+  const img = document.getElementById('ce-frame-img');
+  const sx = img.offsetWidth / ceClipW, sy = img.offsetHeight / ceClipH;
+  return { x: Math.round(r.x*sx), y: Math.round(r.y*sy), w: Math.round(r.w*sx), h: Math.round(r.h*sy) };
+}
+
+function ceClipCtoN(r) {
+  const img = document.getElementById('ce-frame-img');
+  const sx = ceClipW / img.offsetWidth, sy = ceClipH / img.offsetHeight;
+  return { x: Math.round(r.x*sx), y: Math.round(r.y*sy), w: Math.round(r.w*sx), h: Math.round(r.h*sy) };
+}
+
+function ceClipDrawRegions() {
+  const canvas = document.getElementById('ce-region-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2; ctx.setLineDash([6,3]);
+  ctx.strokeRect(1,1,canvas.width-2,canvas.height-2); ctx.setLineDash([]);
+  ctx.fillStyle='rgba(59,130,246,0.07)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  if (ceWebcamRegion) {
+    const c = ceClipNtoC(ceWebcamRegion);
+    ctx.fillStyle='rgba(234,179,8,0.15)'; ctx.fillRect(c.x,c.y,c.w,c.h);
+    ctx.strokeStyle='#eab308'; ctx.lineWidth=2.5; ctx.strokeRect(c.x,c.y,c.w,c.h);
+    ctx.fillStyle='#eab308'; ctx.font='bold 11px system-ui'; ctx.fillText('WEBCAM',c.x+6,c.y+16);
+  }
+}
+
+function ceClipEnableRedraw() {
+  if (ceClipAbort) ceClipAbort.abort();
+  ceClipAbort = new AbortController();
+  const sig = { signal: ceClipAbort.signal };
+  const canvas = document.getElementById('ce-region-canvas');
+  if (!canvas) return;
+  let drawing=false, sx, sy;
+  canvas.addEventListener('mousedown', e => { drawing=true; const r=canvas.getBoundingClientRect(); sx=e.clientX-r.left; sy=e.clientY-r.top; }, sig);
+  canvas.addEventListener('mousemove', e => {
+    if (!drawing) return;
+    const r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
+    ceWebcamRegion=ceClipCtoN({x:Math.min(sx,cx),y:Math.min(sy,cy),w:Math.abs(cx-sx),h:Math.abs(cy-sy)});
+    ceClipDrawRegions();
+  }, sig);
+  canvas.addEventListener('mouseup', e => {
+    drawing=false;
+    const r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
+    ceWebcamRegion=ceClipCtoN({x:Math.min(sx,cx),y:Math.min(sy,cy),w:Math.abs(cx-sx),h:Math.abs(cy-sy)});
+    ceClipDrawRegions();
+  }, sig);
+  canvas.addEventListener('mouseleave', () => { if(drawing) drawing=false; }, sig);
+}
+
+async function ceClipConfirm() {
+  if (!ceWebcamRegion || ceWebcamRegion.w < 10 || ceWebcamRegion.h < 10) { alert('Dibuja la región de la webcam primero.'); return; }
+  ceClipShowStep(3);
+  const bar = document.getElementById('ce-progress-bar');
+  ceClipSetStatus(3, 'loading', 'Procesando con ffmpeg... puede tardar varios minutos.');
+  let p=0; const t=setInterval(() => { p=Math.min(p+1,90); bar.style.width=p+'%'; }, 1500);
+  try {
+    const res = await fetch('/api/clips/process', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ fileId:ceClipFileId, screenRegion:ceScreenRegion, webcamRegion:ceWebcamRegion }) });
+    const data = await res.json();
+    clearInterval(t);
+    if (!res.ok) throw new Error(data.error || 'Error al procesar');
+    bar.style.width='100%'; ceClipSetStatus(3,'','');
+    document.getElementById('ce-output-video').src = data.output;
+    document.getElementById('ce-download-btn').href = data.output;
+    document.getElementById('ce-clip-output').setAttribute('data-output', data.output);
+    document.getElementById('ce-clip-output').style.display = 'block';
+  } catch(e) { clearInterval(t); ceClipSetStatus(3,'error','Error: '+e.message); }
+}
+
+async function ceClipAddPipeline() {
+  const output = document.getElementById('ce-clip-output')?.getAttribute('data-output') || '';
+  const st = document.getElementById('ce-clip-pipe-status');
+  if (st) { st.style.display='block'; st.style.background='rgba(59,130,246,0.1)'; st.style.color='var(--blue)'; st.style.border='1px solid rgba(59,130,246,0.2)'; st.textContent='Guardando...'; }
+  try {
+    const res = await fetch('/api/pipeline', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title:'Clip sin título — ' + new Date().toLocaleDateString('es-ES'), clipFile: output, stage:'grabando' }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    if (st) { st.style.background='rgba(34,197,94,0.1)'; st.style.color='var(--green)'; st.style.border='1px solid rgba(34,197,94,0.2)'; st.textContent='✓ Añadido al pipeline'; }
+    STATE = await (await fetch('/api/state')).json();
+  } catch(e) { if(st) { st.style.background='rgba(239,68,68,0.1)'; st.style.color='var(--red)'; st.style.border='1px solid rgba(239,68,68,0.2)'; st.textContent='Error: '+e.message; } }
 }
 
 let clipPollingInterval = null;
-
-async function clipProcessVideos() {
-  const screenFile = document.getElementById('clip-file-screen')?.files[0];
-  const faceFile = document.getElementById('clip-file-face')?.files[0];
-  const status = document.getElementById('clip-status');
-
-  if (!screenFile || !faceFile) {
-    status.style.display = 'block';
-    status.style.background = 'rgba(239,68,68,0.1)';
-    status.style.color = 'var(--red)';
-    status.style.border = '1px solid rgba(239,68,68,0.2)';
-    status.textContent = 'Sube los dos vídeos primero.';
-    return;
-  }
-
-  const btn = document.getElementById('clip-process-btn');
-  btn.disabled = true;
-  btn.textContent = 'Subiendo...';
-
-  status.style.display = 'block';
-  status.style.background = 'rgba(59,130,246,0.1)';
-  status.style.color = 'var(--blue)';
-  status.style.border = '1px solid rgba(59,130,246,0.2)';
-  status.textContent = 'Subiendo vídeos al servidor...';
-
-  try {
-    const formData = new FormData();
-    formData.append('screen', screenFile);
-    formData.append('face', faceFile);
-
-    const res = await fetch('/api/ce/clips/process', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error desconocido');
-
-    btn.textContent = 'Procesando...';
-    document.getElementById('clip-progress-wrap').style.display = 'block';
-    status.style.display = 'none';
-    clipStartPolling(data.jobId);
-  } catch (err) {
-    status.style.background = 'rgba(239,68,68,0.1)';
-    status.style.color = 'var(--red)';
-    status.style.border = '1px solid rgba(239,68,68,0.2)';
-    status.textContent = 'Error: ' + err.message;
-    btn.disabled = false;
-    btn.textContent = 'Generar clips';
-  }
-}
 
 function clipStartPolling(jobId) {
   if (clipPollingInterval) clearInterval(clipPollingInterval);
@@ -2271,6 +2602,88 @@ async function clipLoadList() {
   } catch (e) {
     console.error('clipLoadList error:', e);
   }
+}
+
+// ═══════════════════════════════════════════════
+// PIPELINE TAB
+// ═══════════════════════════════════════════════
+const PIPE_STAGES = ['idea','guion_listo','grabando','editando','publicado'];
+const PIPE_LABELS = { idea:'Idea', guion_listo:'Guión listo', grabando:'Grabando', editando:'Editando', publicado:'Publicado' };
+const PIPE_COL_CLASS = { idea:'col-idea', guion_listo:'col-guion', grabando:'col-grabando', editando:'col-editando', publicado:'col-publicado' };
+
+function renderPipeline() {
+  const items = (STATE.pipeline || []);
+  const cols = PIPE_STAGES.map(stage => {
+    const cards = items.filter(i => i.stage === stage);
+    const cardHtml = cards.length === 0
+      ? `<div style="font-size:12px;color:var(--text-muted);padding:10px 0">Sin elementos</div>`
+      : cards.map(item => `
+          <div class="pipeline-card" id="pc-${item.id}">
+            <button class="pipeline-del-btn" onclick="pipeDelete('${item.id}')">✕</button>
+            <div class="pipeline-card-title">${escapeHtml((item.title||'Sin título').slice(0,60))}</div>
+            <div class="pipeline-card-date">${item.createdAt||''}</div>
+            <div class="pipeline-card-badges">
+              ${item.script ? '<span class="pipeline-badge badge-script">Script</span>' : ''}
+              ${item.linkedinPost ? '<span class="pipeline-badge badge-linkedin">LinkedIn</span>' : ''}
+              ${item.emailContent ? '<span class="pipeline-badge badge-email">Email</span>' : ''}
+              ${item.clipFile ? '<span class="pipeline-badge badge-clip">Clip</span>' : ''}
+            </div>
+            <select class="pipeline-stage-select" onchange="pipeMove('${item.id}',this.value)">
+              ${PIPE_STAGES.map(s => `<option value="${s}" ${s===stage?'selected':''}>${PIPE_LABELS[s]}</option>`).join('')}
+            </select>
+            <div class="pipeline-card-expand" id="pce-${item.id}">
+              ${item.script ? `<div class="pipeline-content-section"><div class="pipeline-content-label">Script — Intro</div><div class="pipeline-content-text">${escapeHtml((item.script['INTRO']||'').slice(0,300))}</div></div>` : ''}
+              ${item.linkedinPost ? `<div class="pipeline-content-section"><div class="pipeline-content-label">LinkedIn</div><div class="pipeline-content-text">${escapeHtml(item.linkedinPost.slice(0,300))}</div></div>` : ''}
+              ${item.emailContent ? `<div class="pipeline-content-section"><div class="pipeline-content-label">Email</div><div class="pipeline-content-text">${escapeHtml(item.emailContent.slice(0,300))}</div></div>` : ''}
+              ${item.clipFile ? `<div class="pipeline-content-section"><div class="pipeline-content-label">Clip</div><video src="${item.clipFile}" controls style="width:100%;max-width:260px;border-radius:6px;display:block;margin-top:4px"></video></div>` : ''}
+              ${item.sourceUrl ? `<div style="margin-top:8px;font-size:11px;color:var(--text-muted)">Fuente: ${escapeHtml(item.sourceUrl.slice(0,60))}</div>` : ''}
+            </div>
+            <button onclick="pipeToggle('${item.id}')" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;margin-top:8px;padding:0" id="ptb-${item.id}">▼ Ver contenido</button>
+          </div>`).join('');
+    return `
+      <div class="pipeline-col">
+        <div class="pipeline-col-header ${PIPE_COL_CLASS[stage]}">${PIPE_LABELS[stage]} <span style="opacity:0.6">(${cards.length})</span></div>
+        ${cardHtml}
+      </div>`;
+  }).join('');
+
+  return `
+    <p class="page-subtitle">Todo el contenido organizado por estado. Guarda desde Scripts IA o Video Clipper.</p>
+    ${items.length === 0 ? '<div style="color:var(--text-muted);font-size:14px;padding:32px 0">Sin contenido aún. Genera un script y pulsa "Guardar en pipeline".</div>' : ''}
+    <div class="pipeline-board">${cols}</div>
+  `;
+}
+
+function pipeToggle(id) {
+  const exp = document.getElementById('pce-' + id);
+  const btn = document.getElementById('ptb-' + id);
+  if (!exp) return;
+  const open = exp.classList.toggle('open');
+  if (btn) btn.textContent = open ? '▲ Ocultar' : '▼ Ver contenido';
+}
+
+async function pipeMove(id, newStage) {
+  try {
+    await fetch('/api/pipeline/' + id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ stage: newStage }) });
+    STATE = await (await fetch('/api/state')).json();
+    switchTab('pipeline');
+  } catch(e) { console.error('pipeMove error:', e); }
+}
+
+async function pipeDelete(id) {
+  if (!confirm('¿Eliminar este elemento del pipeline?')) return;
+  try {
+    await fetch('/api/pipeline/' + id, { method:'DELETE' });
+    STATE = await (await fetch('/api/state')).json();
+    switchTab('pipeline');
+  } catch(e) { console.error('pipeDelete error:', e); }
+}
+
+async function ceLoadPipeline() {
+  try {
+    STATE = await (await fetch('/api/state')).json();
+    switchTab('pipeline');
+  } catch(e) { console.error('ceLoadPipeline error:', e); }
 }
 
 function renderContenidoTab() {
@@ -3450,6 +3863,34 @@ async function addIdeaAsScript(title) {
 /* Script viewer */
 let _viewerScriptId = null;
 
+function renderGuionMarkdown(md) {
+  const lines = md.split('\n');
+  let html = '';
+  let inNotes = false;
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    // NOTAS DE GRABACIÓN block
+    if (/^##\s*NOTAS/i.test(line)) { inNotes = true; html += `<h2>${line.replace(/^##\s*/,'')}</h2><div class="sv-notes">`; continue; }
+    if (inNotes && /^##/.test(line)) { html += '</div>'; inNotes = false; }
+    // Headers
+    if (/^# /.test(line)) { html += `<h1>${line.replace(/^# /,'')}</h1>`; continue; }
+    if (/^## /.test(line)) { html += `<h2>${line.replace(/^## /,'')}</h2>`; continue; }
+    if (/^### /.test(line)) { html += `<h3>${line.replace(/^### /,'')}</h3>`; continue; }
+    // HR
+    if (/^---+$/.test(line.trim())) { html += '<hr>'; continue; }
+    // Bold
+    line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Bullet
+    if (/^- /.test(line)) { html += `<p style="padding-left:12px">• ${line.replace(/^- /,'')}</p>`; continue; }
+    // Blank line
+    if (line.trim() === '') { html += '<br>'; continue; }
+    // Normal paragraph
+    html += `<p>${line}</p>`;
+  }
+  if (inNotes) html += '</div>';
+  return html;
+}
+
 async function openScriptViewer(scriptId, folder, title) {
   _viewerScriptId = scriptId;
   const viewer = document.getElementById('script-viewer');
@@ -3457,12 +3898,17 @@ async function openScriptViewer(scriptId, folder, title) {
   const titleEl = document.getElementById('sv-title');
   viewer.classList.add('open');
   titleEl.textContent = title;
-  body.textContent = 'Cargando guión...';
+  body.innerHTML = '<p style="color:var(--text-muted)">Cargando guión...</p>';
   try {
-    const res = await fetch(`${SERVER}/api/script-content/${folder}`);
+    const encodedFolder = encodeURIComponent(folder);
+    const res = await fetch(`${SERVER}/api/script-content/${encodedFolder}`);
     const data = await res.json();
-    body.textContent = data.content || data.error || 'Sin contenido';
-  } catch (e) { body.textContent = 'Error cargando guión.'; }
+    if (data.content) {
+      body.innerHTML = renderGuionMarkdown(data.content);
+    } else {
+      body.innerHTML = `<p style="color:var(--red)">${data.error || 'Sin contenido'}</p>`;
+    }
+  } catch (e) { body.innerHTML = '<p style="color:var(--red)">Error cargando guión.</p>'; }
 }
 
 function closeScriptViewer() {
