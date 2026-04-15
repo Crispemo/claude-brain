@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { extractContent } = require('../services/scraper');
-const { generateScript } = require('../services/claude');
+const { generateScript, generateLinkedIn, generateEmail } = require('../services/claude');
 
 const SCRIPTS_DIR = path.join(__dirname, '../scripts');
 if (!fs.existsSync(SCRIPTS_DIR)) {
@@ -45,6 +45,28 @@ router.get('/', (req, res, next) => {
     });
 
     res.json(list);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/linkedin', async (req, res, next) => {
+  const { script } = req.body;
+  if (!script) return res.status(400).json({ error: 'script requerido' });
+  try {
+    const post = await generateLinkedIn(script);
+    res.json({ post });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/email', async (req, res, next) => {
+  const { script } = req.body;
+  if (!script) return res.status(400).json({ error: 'script requerido' });
+  try {
+    const email = await generateEmail(script);
+    res.json({ email });
   } catch (err) {
     next(err);
   }

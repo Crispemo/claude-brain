@@ -45,6 +45,72 @@ function parseScript(raw) {
   return sections;
 }
 
+function scriptToText(script) {
+  return Object.entries(script).map(([k, v]) => `[${k}]\n${v}`).join('\n\n');
+}
+
+async function generateLinkedIn(script) {
+  const scriptText = scriptToText(script);
+
+  const msg = await client.messages.create({
+    model: 'claude-opus-4-6',
+    max_tokens: 1024,
+    messages: [{
+      role: 'user',
+      content: `Basándote en este script de vídeo, escribe un post de LinkedIn en español.
+
+Reglas:
+- Primera línea: hook bold que genera curiosidad o hace una afirmación fuerte (sin "I" ni emojis al inicio)
+- Párrafos muy cortos (1-3 líneas máximo), muchos saltos de línea
+- 200-300 palabras en el cuerpo
+- 3-5 emojis colocados estratégicamente, no al inicio de cada línea
+- Termina con una pregunta al lector o CTA directo
+- Pon 4-6 hashtags relevantes en la última línea, separados por espacio
+- Tono: founder que comparte aprendizajes reales, directo, sin corporativismo
+
+Script:
+${scriptText}
+
+Devuelve SOLO el post, sin explicaciones.`
+    }]
+  });
+
+  return msg.content[0].text.trim();
+}
+
+async function generateEmail(script) {
+  const scriptText = scriptToText(script);
+
+  const msg = await client.messages.create({
+    model: 'claude-opus-4-6',
+    max_tokens: 1024,
+    messages: [{
+      role: 'user',
+      content: `Basándote en este script de vídeo, escribe un email de newsletter en español.
+
+Reglas:
+- Asunto: máximo 50 caracteres, intrigante, no clickbait
+- Preheader: 1 frase corta que complementa el asunto (máx 90 caracteres)
+- Cuerpo: tono cercano y conversacional, como escribir a un amigo
+- 200-350 palabras
+- Estructura: contexto → problema/insight → aprendizaje clave → CTA (ver el vídeo o responder)
+- Máximo 2-3 emojis, no usar en exceso
+- Sin bullet points ni negritas excesivas
+
+Script:
+${scriptText}
+
+Devuelve en este formato exacto:
+ASUNTO: <asunto>
+PREHEADER: <preheader>
+---
+<cuerpo del email>`
+    }]
+  });
+
+  return msg.content[0].text.trim();
+}
+
 async function selectClips(transcriptionText) {
   let promptTemplate;
   try {
@@ -68,4 +134,4 @@ async function selectClips(transcriptionText) {
   }
 }
 
-module.exports = { generateScript, selectClips };
+module.exports = { generateScript, generateLinkedIn, generateEmail, selectClips };

@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3001;
 const STATE_FILE = path.join(__dirname, 'state.json');
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
 // GET /api/state — devuelve state.json completo
@@ -311,11 +311,12 @@ app.patch('/api/script/:id', (req, res) => {
     const script = state.scripts.find(s => s.id === req.params.id);
     if (!script) return res.status(404).json({ error: 'Script no encontrado' });
     const PIPELINE = ['pendiente', 'grabado', 'editado', 'publicado'];
-    const { status, scheduledDate, notes, title } = req.body;
+    const { status, scheduledDate, notes, title, folder } = req.body;
     if (status && PIPELINE.includes(status)) script.status = status;
     if (scheduledDate !== undefined) script.scheduledDate = scheduledDate;
     if (notes !== undefined) script.notes = notes;
     if (title !== undefined) script.title = title;
+    if (folder !== undefined) script.folder = folder;
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
     res.json({ ok: true, script });
   } catch (e) {
@@ -326,12 +327,12 @@ app.patch('/api/script/:id', (req, res) => {
 // POST /api/script — crea nuevo script
 app.post('/api/script', (req, res) => {
   try {
-    const { project, type, title } = req.body;
+    const { project, type, title, folder } = req.body;
     if (!project || !title) return res.status(400).json({ error: 'project y title requeridos' });
     const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
     state.scripts = state.scripts || [];
     const id = `${project.slice(0,2)}-${Date.now()}`;
-    const script = { id, project, type: type || 'largo', title, status: 'pendiente', scheduledDate: null, notes: '' };
+    const script = { id, project, type: type || 'largo', title, status: 'pendiente', scheduledDate: null, notes: '', ...(folder ? { folder } : {}) };
     state.scripts.push(script);
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
     res.json({ ok: true, script });
@@ -352,13 +353,18 @@ app.delete('/api/script/:id', (req, res) => {
   }
 });
 
-// GET /api/script-content/:folder — lee el guion.md real de un script de agencia
-app.get('/api/script-content/:folder', (req, res) => {
+// GET /api/script-content/* — lee el guion.md real de un script de agencia (soporta rutas con slashes)
+app.get('/api/script-content/*', (req, res) => {
   try {
-    const folder = req.params.folder.replace(/[^a-z0-9\-]/gi, ''); // sanitize
+    const rawFolder = req.params[0] || '';
+    // Sanitize: allow letters, numbers, hyphens and single forward slashes
+    const folder = rawFolder.replace(/[^a-z0-9\-\/]/gi, '').replace(/\/+/g, '/').replace(/(^\/|\/$)/g, '');
     const guionPath = path.join(__dirname, '..', 'agencia', 'scripts', folder, 'guion.md');
-    if (!fs.existsSync(guionPath)) return res.status(404).json({ error: 'Guión no encontrado' });
-    const content = fs.readFileSync(guionPath, 'utf8');
+    const resolved = path.resolve(guionPath);
+    const base = path.resolve(path.join(__dirname, '..', 'agencia', 'scripts'));
+    if (!resolved.startsWith(base)) return res.status(400).json({ error: 'Ruta no permitida' });
+    if (!fs.existsSync(resolved)) return res.status(404).json({ error: 'Guión no encontrado' });
+    const content = fs.readFileSync(resolved, 'utf8');
     res.json({ content });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1400,7 +1406,7 @@ Devuelve EXACTAMENTE este JSON con las 7 claves. Cada valor es texto enriquecido
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 8000,
+        max_tokens: 16000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
@@ -1416,12 +1422,18 @@ Devuelve EXACTAMENTE este JSON con las 7 claves. Cada valor es texto enriquecido
 
     let resultado;
     try {
-      resultado = JSON.parse(text);
+      // Limpiar markdown fences si Claude los incluye
+      const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+      resultado = JSON.parse(cleaned);
     } catch (parseErr) {
-      // Intentar extraer JSON si hay texto extra
+      // Intentar extraer JSON con regex como fallback
       const match = text.match(/\{[\s\S]*\}/);
       if (match) {
-        resultado = JSON.parse(match[0]);
+        try {
+          resultado = JSON.parse(match[0]);
+        } catch (e2) {
+          return res.status(500).json({ error: 'Claude no devolvió JSON válido', raw: text.slice(0, 500) });
+        }
       } else {
         return res.status(500).json({ error: 'Claude no devolvió JSON válido', raw: text.slice(0, 500) });
       }
