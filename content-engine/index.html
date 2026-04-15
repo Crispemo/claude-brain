@@ -492,6 +492,7 @@
     let videoNativeW = 0, videoNativeH = 0;
     let webcamRegion = null; // { x, y, w, h } in native px
     let screenRegion = null;
+    let redrawAbort = null; // AbortController para limpiar listeners del canvas
 
     // URL download
     clipUrlBtn.addEventListener('click', () => {
@@ -590,9 +591,9 @@
         const img = document.getElementById('frame-img');
         img.src = data.frame + '?t=' + Date.now();
         img.onload = () => {
-          setupCanvas();
+          showStep(2);          // mostrar PRIMERO para que img tenga dimensiones reales
           setStatus(status, '', '');
-          showStep(2);
+          setupCanvas();        // luego medir y dibujar
         };
         img.onerror = () => {
           setStatus(status, 'error', 'No se pudo cargar el frame de vista previa.');
@@ -665,6 +666,11 @@
     }
 
     function enableRedraw() {
+      // Cancela listeners anteriores para evitar duplicados
+      if (redrawAbort) redrawAbort.abort();
+      redrawAbort = new AbortController();
+      const sig = { signal: redrawAbort.signal };
+
       const canvas = document.getElementById('region-canvas');
       let drawing = false, startX, startY;
 
@@ -673,18 +679,16 @@
         const rect = canvas.getBoundingClientRect();
         startX = e.clientX - rect.left;
         startY = e.clientY - rect.top;
-      });
+      }, sig);
 
       canvas.addEventListener('mousemove', e => {
         if (!drawing) return;
         const rect = canvas.getBoundingClientRect();
         const cx = e.clientX - rect.left;
         const cy = e.clientY - rect.top;
-        // Preview while dragging
-        const tempRegion = canvasToNative({ x: Math.min(startX, cx), y: Math.min(startY, cy), w: Math.abs(cx - startX), h: Math.abs(cy - startY) });
-        webcamRegion = tempRegion;
+        webcamRegion = canvasToNative({ x: Math.min(startX, cx), y: Math.min(startY, cy), w: Math.abs(cx - startX), h: Math.abs(cy - startY) });
         drawRegions();
-      });
+      }, sig);
 
       canvas.addEventListener('mouseup', e => {
         drawing = false;
@@ -693,9 +697,9 @@
         const cy = e.clientY - rect.top;
         webcamRegion = canvasToNative({ x: Math.min(startX, cx), y: Math.min(startY, cy), w: Math.abs(cx - startX), h: Math.abs(cy - startY) });
         drawRegions();
-      });
+      }, sig);
 
-      canvas.addEventListener('mouseleave', () => { if (drawing) drawing = false; });
+      canvas.addEventListener('mouseleave', () => { if (drawing) drawing = false; }, sig);
     }
 
     // ── Process ───────────────────────────────────────────────────────────────
@@ -748,6 +752,7 @@
       currentFileId = null;
       webcamRegion = null;
       screenRegion = null;
+      if (redrawAbort) { redrawAbort.abort(); redrawAbort = null; }
       document.getElementById('clip-output').style.display = 'none';
       document.getElementById('output-video').src = '';
       document.getElementById('frame-img').src = '';
