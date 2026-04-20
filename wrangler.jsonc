@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "claude-brain",
+  "compatibility_date": "2026-04-20",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "content-engine"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
