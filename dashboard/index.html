@@ -1245,14 +1245,8 @@
   <div class="sidebar-item" data-tab="contenido" onclick="switchTab('contenido')">
     <span class="si-icon">📹</span> Contenido
   </div>
-  <div class="sidebar-item" data-tab="chat" onclick="switchTab('chat')">
-    <span class="si-icon">💬</span> Claude
-  </div>
   <div class="sidebar-item" data-tab="sistema" onclick="switchTab('sistema')">
     <span class="si-icon">⚙️</span> Sistema
-  </div>
-  <div class="sidebar-item" data-tab="brownie" onclick="switchTab('brownie')">
-    <span class="si-icon">🐶</span> Brownie
   </div>
   <div class="sidebar-item" data-tab="python" onclick="switchTab('python')">
     <span class="si-icon">🐍</span> Python
@@ -1279,15 +1273,17 @@
   <div class="sidebar-item" onclick="openIdeaModal ? openIdeaModal() : null">
     <span class="si-icon">💡</span> Nueva idea
   </div>
-  <div class="sidebar-item" onclick="switchTab('chat')">
-    <span class="si-icon">✨</span> Chat con Claude
-  </div>
 
   <div class="sidebar-spacer"></div>
   <div class="sidebar-footer" id="sidebar-footer">
-    <div style="margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Proyectos activos</div>
-    <div style="margin-bottom:3px"><span class="sidebar-project-dot" style="background:var(--simulia)"></span><span style="color:var(--text)">Simulia</span> <span id="sf-mrr" style="float:right">—</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Proyectos activos</div>
+      <button id="sf-refresh-btn" onclick="sfRefreshMetrics()" title="Actualizar MRR y YouTube" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-size:11px;padding:2px 7px;border-radius:5px;cursor:pointer;line-height:1.4">↻</button>
+    </div>
+    <div style="margin-bottom:3px"><span class="sidebar-project-dot" style="background:var(--simulia)"></span><span style="color:var(--text)">Simulia MRR</span> <span id="sf-mrr" style="float:right">—</span></div>
+    <div style="margin-bottom:3px"><span class="sidebar-project-dot" style="background:var(--agencia)"></span><span style="color:var(--text)">YT subs</span> <span id="sf-subs" style="float:right">—</span></div>
     <div><span class="sidebar-project-dot" style="background:var(--agencia)"></span><span style="color:var(--text)">Agencia</span> <span id="sf-clients" style="float:right">0 cli.</span></div>
+    <div id="sf-refresh-status" style="font-size:10px;color:var(--text-muted);margin-top:5px;text-align:center;display:none"></div>
   </div>
 </nav>
 
@@ -1758,6 +1754,10 @@ function updateSidebarFooter() {
   if (clients && STATE.projects?.agencia?.current) {
     clients.textContent = STATE.projects.agencia.current;
   }
+  if (STATE._ytSubs != null) {
+    const sfSubs = document.getElementById('sf-subs');
+    if (sfSubs) sfSubs.textContent = Number(STATE._ytSubs).toLocaleString('es-ES');
+  }
   const sidebarAlertas = document.getElementById('sidebar-alertas');
   if (sidebarAlertas) {
     const existingDot = sidebarAlertas.querySelector('.alert-dot');
@@ -1768,6 +1768,41 @@ function updateSidebarFooter() {
       dot.className = 'alert-dot';
       sidebarAlertas.appendChild(dot);
     }
+  }
+}
+
+async function sfRefreshMetrics() {
+  const btn = document.getElementById('sf-refresh-btn');
+  const status = document.getElementById('sf-refresh-status');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  if (status) { status.textContent = 'Actualizando...'; status.style.display = 'block'; }
+  try {
+    // Stripe MRR
+    const stripe = await (await fetch(`${SERVER}/api/stripe`)).json();
+    if (!stripe.error) {
+      STATE.projects.simulia.currentValue = stripe.mrr;
+      STATE.projects.simulia.current = `${stripe.mrr}€ MRR`;
+      STATE.projects.simulia.progress = Math.round(stripe.mrr / (STATE.projects.simulia.objectiveValue || 1000) * 100);
+      const mrrEl = document.getElementById('sf-mrr');
+      if (mrrEl) mrrEl.textContent = `${stripe.mrr}€`;
+      // también actualiza m-mrr si está visible
+      const mEl = document.getElementById('m-mrr');
+      if (mEl) { mEl.textContent = `${stripe.mrr}€`; }
+    }
+    // YouTube subs
+    const yt = await (await fetch(`${SERVER}/api/youtube`)).json();
+    if (!yt.error) {
+      STATE._ytSubs = yt.subscribers;
+      const sfSubs = document.getElementById('sf-subs');
+      if (sfSubs) sfSubs.textContent = Number(yt.subscribers).toLocaleString('es-ES');
+      const mSubs = document.getElementById('m-subs');
+      if (mSubs) mSubs.textContent = Number(yt.subscribers).toLocaleString('es-ES');
+    }
+    if (status) { status.textContent = '✓ Actualizado'; setTimeout(() => { status.style.display='none'; }, 2000); }
+  } catch (e) {
+    if (status) { status.textContent = '⚠️ Error'; setTimeout(() => { status.style.display='none'; }, 2000); }
+  } finally {
+    if (btn) { btn.textContent = '↻'; btn.disabled = false; }
   }
 }
 
@@ -2704,12 +2739,13 @@ function renderContenidoTab() {
         ? `<button class="pc-btn" style="border-color:var(--simulia);color:var(--simulia)" onclick="openScriptViewer('${s.id}','${s.folder}','${escapeHtml(s.title)}')">📄</button>`
         : '';
       const genBtn = `<button class="pc-btn gen" onclick="openScriptGen('${s.id}')">✨</button>`;
+      const delBtn = `<button class="pc-btn del" onclick="deleteScript('${s.id}')" title="Eliminar">×</button>`;
       return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;color:${PROJECT_COLORS[s.project]||'var(--text-muted)'};font-weight:600;text-transform:uppercase;font-size:10px;margin-bottom:2px">${s.project} · ${TYPE_ICONS[s.type]||''} ${s.type}</div>
           <div style="font-size:13px;line-height:1.4">${escapeHtml(s.title)}</div>
         </div>
-        <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;padding-top:2px">${readBtn}${genBtn}${advBtn}</div>
+        <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;padding-top:2px">${readBtn}${genBtn}${advBtn}${delBtn}</div>
       </div>`;
     }).join('');
     return `<div style="margin-bottom:16px">
@@ -2755,6 +2791,10 @@ function renderContenidoTab() {
 async function loadLiveMetrics() {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
+  // Loading state
+  const btn = document.getElementById('btn-refresh-metrics');
+  if (btn) { btn.textContent = '↻ Cargando...'; btn.disabled = true; btn.style.opacity = '0.5'; }
+
   // Stripe
   try {
     const stripe = await (await fetch(`${SERVER}/api/stripe`)).json();
@@ -2768,22 +2808,28 @@ async function loadLiveMetrics() {
       STATE.projects.simulia.current = `${stripe.mrr}€ MRR`;
       STATE.projects.simulia.progress = Math.round(stripe.mrr / (STATE.projects.simulia.objectiveValue || 1000) * 100);
       updateSidebarFooter();
+    } else {
+      set('m-mrr', '—'); set('m-mrr-sub', '⚠️ Stripe no disponible');
     }
-  } catch (e) { set('m-mrr-sub', '⚠️ No disponible'); }
+  } catch (e) { set('m-mrr', '—'); set('m-mrr-sub', '⚠️ Error de conexión'); }
 
   // YouTube básico
   try {
     const yt = await (await fetch(`${SERVER}/api/youtube`)).json();
     if (!yt.error) {
+      STATE._ytSubs = yt.subscribers;
+      updateSidebarFooter();
       set('m-subs', yt.subscribers?.toLocaleString('es-ES') || '—');
-      set('m-subs-sub', `de ${STATE.projects?.agencia?.objective || '5 clientes/mes'}`);
+      set('m-subs-sub', `canal activo`);
       set('m-totalviews', yt.totalViews?.toLocaleString('es-ES') || '—');
       set('m-videos-sub', `${yt.videoCount} vídeos publicados`);
       set('m-videocount', yt.videoCount || '—');
+    } else {
+      set('m-subs', '—'); set('m-subs-sub', '⚠️ YouTube no disponible');
     }
-  } catch (e) { set('m-subs-sub', '⚠️ No disponible'); }
+  } catch (e) { set('m-subs', '—'); set('m-subs-sub', '⚠️ Error de conexión'); }
 
-  // YouTube Analytics (OAuth)
+  // YouTube Analytics (OAuth) — puede fallar si el refresh token expiró
   try {
     const yta = await (await fetch(`${SERVER}/api/youtube/analytics`)).json();
     if (!yta.error) {
@@ -2793,10 +2839,15 @@ async function loadLiveMetrics() {
       set('m-netsubs', net);
       set('m-netsubs-sub', yta.netSubs >= 0 ? 'creciendo ▲' : 'bajando ▼');
       set('m-watchtime', yta.weeklyMinutes?.toLocaleString('es-ES') || '—');
+      set('m-watchtime-sub', `minutos`);
     } else {
-      set('m-weekviews-sub', yta.detail || '⚠️ Analytics no disponible');
+      set('m-weekviews', '—'); set('m-weekviews-sub', 'OAuth expirado');
+      set('m-netsubs', '—'); set('m-netsubs-sub', 'OAuth expirado');
+      set('m-watchtime', '—'); set('m-watchtime-sub', 'OAuth expirado');
     }
-  } catch (e) { set('m-weekviews-sub', '⚠️ No disponible'); }
+  } catch (e) {
+    set('m-weekviews', '—'); set('m-weekviews-sub', '⚠️ Error');
+  }
 
   // Instagram
   try {
@@ -2806,8 +2857,17 @@ async function loadLiveMetrics() {
       set('m-igfollowers-sub', `${ig.mediaCount} posts`);
       set('m-iger', ig.engagementRate ? `${ig.engagementRate}%` : '—');
       set('m-igtoken', ig.tokenDaysLeft != null ? `${ig.tokenDaysLeft}d` : '—');
+    } else {
+      set('m-igfollowers', '—'); set('m-igfollowers-sub', '⚠️ No disponible');
     }
-  } catch (e) { set('m-igfollowers-sub', '⚠️ No disponible'); }
+  } catch (e) { set('m-igfollowers', '—'); set('m-igfollowers-sub', '⚠️ Error de conexión'); }
+
+  // Restore button + timestamp
+  if (btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false; btn.style.opacity = '1'; }
+  const now = new Date();
+  const ts = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  const el = document.getElementById('m-last-updated');
+  if (el) el.textContent = `Actualizado ${ts}`;
 }
 
 /* ── Content Pipeline ── */
@@ -3174,7 +3234,10 @@ function renderMetrics() {
   <div class="metrics-block">
     <div class="flex-between" style="margin-bottom:12px;">
       <div class="section-title" style="margin-bottom:0">Métricas en vivo</div>
-      <button onclick="refreshMetrics()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-size:12px;cursor:pointer;">↻ Actualizar</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="m-last-updated" style="font-size:11px;color:var(--text-muted)"></span>
+        <button id="btn-refresh-metrics" onclick="refreshMetrics()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;cursor:pointer;font-weight:500;transition:opacity 0.2s">↻ Actualizar</button>
+      </div>
     </div>
 
     <div class="section-label" style="margin-top:4px">Simulia — Stripe</div>
@@ -3221,7 +3284,7 @@ function renderMetrics() {
       <div class="metric-box">
         <div class="metric-label">Watch time / 7d</div>
         <div class="metric-value" id="m-watchtime">—</div>
-        <div class="metric-sub">minutos</div>
+        <div class="metric-sub" id="m-watchtime-sub">minutos</div>
       </div>
       <div class="metric-box">
         <div class="metric-label">Vídeos subidos</div>
@@ -3783,7 +3846,7 @@ function renderSidebarPipeline() {
 
 function renderSidebarIdeas() {
   // Ideas de vídeo reales del banco de ideas (hardcoded desde el archivo real)
-  const ideas = [
+  const allIdeas = [
     { cat: '🔥 Tendencia', title: 'ChatGPT ya puede comprar en tu Shopify solo — esto es lo que debes preparar' },
     { cat: '🔥 Tendencia', title: 'El comprador del futuro no es una persona: cómo adaptar tu Shopify a los agentes de IA' },
     { cat: '⚙️ n8n + Shopify', title: '5 automatizaciones de n8n que toda tienda Shopify debería tener en 2026' },
@@ -3798,15 +3861,36 @@ function renderSidebarIdeas() {
     { cat: '📱 Short', title: 'Si tu Shopify tarda más de 3 segundos en cargar, pierdes este % de ventas' },
     { cat: '📱 Short', title: 'La razón por la que tus clientes no repiten compra en tu Shopify' },
   ];
+  const hidden = new Set(STATE.hiddenIdeas || []);
+  const ideas = allIdeas.filter(i => !hidden.has(i.title));
   const cards = ideas.map(i =>
-    `<div class="idea-card">
+    `<div class="idea-card" style="position:relative">
+      <button onclick="hideIdea(decodeURIComponent('${encodeURIComponent(i.title)}'))" title="Suprimir idea"
+        style="position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0">×</button>
       <div class="idea-card-cat">${i.cat}</div>
-      <div>${escapeHtml(i.title)}</div>
+      <div style="padding-right:16px">${escapeHtml(i.title)}</div>
       <button style="margin-top:6px;font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;font-family:inherit"
-        onclick="addIdeaAsScript(${JSON.stringify(escapeHtml(i.title)).replace(/"/g,"'")})">+ Al pipeline</button>
+        onclick="addIdeaAsScript(decodeURIComponent('${encodeURIComponent(i.title)}'))">+ Al pipeline</button>
     </div>`
   ).join('');
-  return `<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">Ideas reales del banco de contenido · <a href="#" style="color:var(--blue)" onclick="closeSidebar()">Ver banco completo</a></div>${cards}`;
+  const hiddenCount = hidden.size;
+  const restoreBtn = hiddenCount > 0
+    ? `<button onclick="restoreHiddenIdeas()" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:0;font-family:inherit">Restaurar ${hiddenCount} suprimida${hiddenCount > 1 ? 's' : ''}</button>`
+    : '';
+  return `<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"><span>Ideas reales del banco de contenido · <a href="#" style="color:var(--blue)" onclick="closeSidebar()">Ver banco completo</a></span>${restoreBtn}</div>${cards || '<div style="color:var(--text-muted);font-size:13px">No hay ideas visibles</div>'}`;
+}
+
+async function hideIdea(title) {
+  if (!STATE.hiddenIdeas) STATE.hiddenIdeas = [];
+  if (!STATE.hiddenIdeas.includes(title)) STATE.hiddenIdeas.push(title);
+  await saveState();
+  renderSidebar();
+}
+
+async function restoreHiddenIdeas() {
+  STATE.hiddenIdeas = [];
+  await saveState();
+  renderSidebar();
 }
 
 function renderSidebarGenerar() {
