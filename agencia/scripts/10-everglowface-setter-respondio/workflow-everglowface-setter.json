@@ -1,0 +1,913 @@
+{
+  "name": "EvergrowFace — AI Setter Instagram (respond.io + n8n)",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "📥 respond.io Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300],
+      "parameters": {
+        "path": "everglowface",
+        "responseMode": "responseNode",
+        "httpMethod": "POST",
+        "options": {}
+      },
+      "notes": "Recibe todos los eventos de respond.io. Configurar en respond.io: Settings → Webhooks → URL: https://TU-N8N/webhook/everglowface. Evento: message.created (solo mensajes entrantes del lead)"
+    },
+    {
+      "id": "node-respond-ok",
+      "name": "✅ Responder 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [460, 160],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {}
+      },
+      "notes": "respond.io necesita 200 OK inmediato o considera el webhook fallido. Respondemos antes de procesar para no hacer timeout (el procesamiento puede tardar varios segundos por la llamada a OpenAI)."
+    },
+    {
+      "id": "node-filter-incoming",
+      "name": "🔍 Solo mensajes entrantes",
+      "type": "n8n-nodes-base.if",
+      "position": [460, 420],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-direction",
+              "leftValue": "={{ $json.message.direction }}",
+              "rightValue": "incoming",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Filtra solo mensajes direction=incoming. Evita bucles infinitos: cuando n8n envía mensajes via respond.io API, respond.io re-dispara el webhook con direction=outgoing. Sin este filtro, el bot respondería a sus propios mensajes en bucle infinito."
+    },
+    {
+      "id": "node-normalize",
+      "name": "📋 Normalizar datos",
+      "type": "n8n-nodes-base.set",
+      "position": [680, 420],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-contact-id",
+              "name": "contact_id",
+              "value": "={{ $json.contact.id }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-message-text",
+              "name": "message_text",
+              "value": "={{ $json.message.text || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-source",
+              "name": "source",
+              "value": "={{ $json.channel.type || 'direct_dm' }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-first-name",
+              "name": "contact_name",
+              "value": "={{ $json.contact.firstName || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-conversation-id",
+              "name": "conversation_id",
+              "value": "={{ $json.conversation.id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "notes": "Extrae y normaliza los campos clave del payload de respond.io. Así los nodos siguientes no dependen de la estructura anidada del webhook original y son más fáciles de mantener."
+    },
+    {
+      "id": "node-get-contact",
+      "name": "📖 Leer contacto (respond.io)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 420],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.respond.io/v2/contact/{{ $json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESPOND_IO_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "notes": "GET del contacto en respond.io para leer su estado actual: lifecycle_stage, lead_temperature, main_problem, conversation_history y conversation_summary de los custom fields.\n\nneverError=true: si el contacto no existe (404) no rompe el flujo, simplemente devuelve error en $json.error y el nodo siguiente lo maneja."
+    },
+    {
+      "id": "node-contact-exists",
+      "name": "🔀 ¿Contacto existe?",
+      "type": "n8n-nodes-base.if",
+      "position": [1120, 420],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-exists",
+              "leftValue": "={{ $json.data?.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Si el contacto tiene ID en la respuesta de respond.io → existe, usa sus custom fields.\nSi no tiene ID (primer contacto) → inicializa con valores por defecto."
+    },
+    {
+      "id": "node-existing-contact-data",
+      "name": "✅ Datos de contacto existente",
+      "type": "n8n-nodes-base.set",
+      "position": [1340, 300],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-stage",
+              "name": "lifecycle_stage",
+              "value": "={{ $json.data.customFields?.lifecycle_stage || 'nuevo_lead' }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-temp",
+              "name": "lead_temperature",
+              "value": "={{ $json.data.customFields?.lead_temperature || 'frio' }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-problem",
+              "name": "main_problem",
+              "value": "={{ $json.data.customFields?.main_problem || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-entry",
+              "name": "entry_type",
+              "value": "={{ $json.data.customFields?.entry_type || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-history",
+              "name": "conversation_history",
+              "value": "={{ $json.data.customFields?.conversation_history || '[]' }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-summary",
+              "name": "conversation_summary",
+              "value": "={{ $json.data.customFields?.conversation_summary || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "notes": "Extrae los custom fields del contacto existente en respond.io. Si algún campo no existe todavía (leads que entraron antes de configurar el workflow), usa valores por defecto seguros para no romper el flujo."
+    },
+    {
+      "id": "node-new-contact-data",
+      "name": "🆕 Inicializar contacto nuevo",
+      "type": "n8n-nodes-base.set",
+      "position": [1340, 540],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-stage-new",
+              "name": "lifecycle_stage",
+              "value": "nuevo_lead",
+              "type": "string"
+            },
+            {
+              "id": "assign-temp-new",
+              "name": "lead_temperature",
+              "value": "frio",
+              "type": "string"
+            },
+            {
+              "id": "assign-problem-new",
+              "name": "main_problem",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "assign-entry-new",
+              "name": "entry_type",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "assign-history-new",
+              "name": "conversation_history",
+              "value": "[]",
+              "type": "string"
+            },
+            {
+              "id": "assign-summary-new",
+              "name": "conversation_summary",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "notes": "Para leads completamente nuevos: todos los campos de estado en valores por defecto. El AI Agent detectará que es primer contacto por el historial vacío y el stage nuevo_lead."
+    },
+    {
+      "id": "node-merge-contact",
+      "name": "🔗 Unir datos contacto",
+      "type": "n8n-nodes-base.merge",
+      "position": [1560, 420],
+      "parameters": {
+        "mode": "chooseBranch",
+        "chooseBranch": {
+          "mode": "waitForBoth"
+        }
+      },
+      "notes": "Une las dos ramas (contacto existente y nuevo) en un único flujo para que el Entry Classifier y el AI Agent siempre reciban el mismo formato de datos independientemente de si el lead es nuevo o ya tenía historial."
+    },
+    {
+      "id": "node-entry-classifier",
+      "name": "🔀 Clasificar tipo de entrada",
+      "type": "n8n-nodes-base.switch",
+      "position": [1780, 420],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.lifecycle_stage }}",
+                    "rightValue": "nuevo_lead",
+                    "operator": { "type": "string", "operation": "notEquals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "conversacion_activa"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('📋 Normalizar datos').item.json.message_text.toLowerCase() }}",
+                    "rightValue": "quiero",
+                    "operator": { "type": "string", "operation": "contains" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tipo_1_keyword"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entry_type }}",
+                    "rightValue": "lead_magnet",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tipo_2_lead_magnet"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('📋 Normalizar datos').item.json.message_text.toLowerCase() }}",
+                    "rightValue": "precio|curso|comprar|cómo funciona|que incluye|cuánto|cuanto|info|información|programa",
+                    "operator": { "type": "regex", "operation": "regex" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tipo_4_quiere_comprar"
+            }
+          ],
+          "fallbackOutput": "tipo_3_catch_all"
+        }
+      },
+      "notes": "Clasifica el tipo de entrada con esta PRIORIDAD:\n1) Si lifecycle_stage != nuevo_lead → conversación activa (continúa donde estaba, el AI tiene historial)\n2) Si el mensaje contiene 'quiero' → Tipo 1 (keyword)\n3) Si el contacto tiene tag lead_magnet → Tipo 2\n4) Si pregunta por precio/curso/info → Tipo 4 (lead caliente)\n5) Cualquier otra cosa → Tipo 3 CATCH-ALL (DM directo con problema, el caso más frecuente)\n\nTodos los outputs van al mismo nodo siguiente (🧠 Construir contexto IA), pero el entry_type se registra en el contexto para que el AI adapte su apertura."
+    },
+    {
+      "id": "node-build-context",
+      "name": "🧠 Construir contexto IA",
+      "type": "n8n-nodes-base.code",
+      "position": [2000, 420],
+      "parameters": {
+        "jsCode": "// Reúne todos los datos necesarios para el AI Agent en un objeto limpio\nconst normalData = $('📋 Normalizar datos').item.json;\nconst contactData = items[0].json;\n\n// Parsear historial de conversación (guardado como JSON string en respond.io)\nlet history = [];\ntry {\n  history = JSON.parse(contactData.conversation_history || '[]');\n  if (!Array.isArray(history)) history = [];\n} catch(e) {\n  history = [];\n}\n\n// Añadir el mensaje actual del lead al historial\nhistory.push({\n  role: 'user',\n  content: normalData.message_text,\n  timestamp: new Date().toISOString()\n});\n\n// Mantener solo los últimos 10 mensajes para no saturar el contexto del AI\nif (history.length > 10) {\n  history = history.slice(-10);\n}\n\n// Determinar entry_type basado en qué rama del Switch tomó\n// Si el contacto ya tenía entry_type guardado, usarlo. Si no, inferir del switch.\nlet entry_type = contactData.entry_type || '';\nif (!entry_type || entry_type === '') {\n  const msgLower = normalData.message_text.toLowerCase();\n  if (msgLower.includes('quiero')) entry_type = '1';\n  else if (/precio|curso|comprar|cómo funciona|que incluye|cuánto|cuanto|info|información|programa/.test(msgLower)) entry_type = '4';\n  else entry_type = '3'; // catch-all por defecto\n}\n\nreturn [{\n  json: {\n    // Identificadores\n    contact_id: normalData.contact_id,\n    contact_name: normalData.contact_name,\n    conversation_id: normalData.conversation_id,\n    // Estado del lead\n    lifecycle_stage: contactData.lifecycle_stage,\n    lead_temperature: contactData.lead_temperature,\n    main_problem: contactData.main_problem || '',\n    entry_type: entry_type,\n    // Contexto conversacional\n    conversation_history: history,\n    conversation_history_str: JSON.stringify(history),\n    conversation_summary: contactData.conversation_summary || '',\n    // Mensaje actual\n    message_text: normalData.message_text\n  }\n}];"
+      },
+      "notes": "Consolida todos los datos en un único objeto limpio para el AI Agent:\n- Parsea el historial JSON almacenado en respond.io\n- Añade el mensaje actual al historial\n- Trunca a 10 mensajes máximo (evita tokens excesivos)\n- Infiere entry_type si el lead no tenía uno guardado\n\nEste nodo es el punto de entrada único al AI, independientemente de qué rama del Switch tomó el flujo."
+    },
+    {
+      "id": "node-ai-setter",
+      "name": "🤖 AI Setter (OpenAI GPT-4o)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [2220, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"model\": \"gpt-4o\",\n  \"temperature\": 0.7,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": {{ JSON.stringify($env.SETTER_PROMPT + '\\n\\n════════════════════════════════════\\nCONTEXTO ACTUAL DEL LEAD\\n════════════════════════════════════\\nNombre: ' + ($json.contact_name || 'desconocido') + '\\nEtapa actual: ' + $json.lifecycle_stage + '\\nTemperatura: ' + $json.lead_temperature + '\\nProblema detectado: ' + ($json.main_problem || 'no detectado aún') + '\\nTipo de entrada: ' + $json.entry_type + '\\nResumen conversación: ' + ($json.conversation_summary || 'primer contacto, sin historial previo')) }}\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify('HISTORIAL DE CONVERSACIÓN (del más antiguo al más reciente):\\n' + ($json.conversation_history.length > 1 ? $json.conversation_history.slice(0, -1).map(m => (m.role === 'user' ? 'LEAD' : 'BOT') + ': ' + m.content).join('\\n') : 'Sin historial previo — primer mensaje') + '\\n\\n---\\nMENSAJE ACTUAL DEL LEAD: ' + $json.message_text + '\\n\\nResponde únicamente con el JSON estructurado según el formato del prompt. Sin texto adicional.') }}\n    }\n  ]\n}"
+      },
+      "notes": "Llama a GPT-4o con:\n- System prompt: prompt completo del setter + contexto actual del lead (stage, temperatura, problema, tipo de entrada)\n- User message: historial completo + mensaje actual\n- response_format json_object: garantiza que la respuesta es siempre JSON parseable\n- temperature 0.7: natural sin demasiada aleatoriedad\n\nIMPORTANTE: La variable de entorno SETTER_PROMPT debe contener el contenido completo del archivo prompt-setter-naiara.txt"
+    },
+    {
+      "id": "node-parse-ai",
+      "name": "📊 Parsear respuesta IA",
+      "type": "n8n-nodes-base.code",
+      "position": [2440, 420],
+      "parameters": {
+        "jsCode": "// Parsea el JSON devuelto por el AI y prepara el objeto final\nconst aiRaw = items[0].json.choices[0].message.content;\nconst contextData = $('🧠 Construir contexto IA').item.json;\n\nlet aiResponse;\ntry {\n  aiResponse = JSON.parse(aiRaw);\n} catch(e) {\n  // Fallback si el parsing falla (muy raro con response_format json_object)\n  console.log('ERROR parsing AI response:', e.message, 'Raw:', aiRaw);\n  aiResponse = {\n    messages: [aiRaw.substring(0, 500)], // Trunca por si acaso\n    send_video: false,\n    send_audio: false,\n    send_calendly: false,\n    new_stage: contextData.lifecycle_stage,\n    new_temperature: contextData.lead_temperature,\n    detected_problem: contextData.main_problem,\n    conversation_summary: contextData.conversation_summary\n  };\n}\n\n// Actualizar historial con los mensajes del bot para persistir en respond.io\nlet history = contextData.conversation_history || [];\nconst botMessages = aiResponse.messages || [];\nbotMessages.forEach(msg => {\n  if (msg && msg.trim()) {\n    history.push({\n      role: 'assistant',\n      content: msg,\n      timestamp: new Date().toISOString()\n    });\n  }\n});\n// Mantener últimos 10 mensajes\nif (history.length > 10) history = history.slice(-10);\n\n// Si se envía vídeo, forzar stage a video_enviado independientemente de lo que diga el AI\nlet finalStage = aiResponse.new_stage || contextData.lifecycle_stage;\nif (aiResponse.send_video) finalStage = 'video_enviado';\nif (aiResponse.send_audio) finalStage = 'cualificado';\nif (aiResponse.send_calendly && !aiResponse.send_audio) finalStage = 'llamada_agendada';\n\nreturn [{\n  json: {\n    // Identificadores (propagados del contexto)\n    contact_id: contextData.contact_id,\n    contact_name: contextData.contact_name,\n    conversation_id: contextData.conversation_id,\n    entry_type: contextData.entry_type,\n    // Acciones del AI\n    messages: aiResponse.messages || [],\n    send_video: aiResponse.send_video || false,\n    send_audio: aiResponse.send_audio || false,\n    send_calendly: aiResponse.send_calendly || false,\n    // Nuevo estado a guardar en respond.io\n    new_stage: finalStage,\n    new_temperature: aiResponse.new_temperature || contextData.lead_temperature,\n    detected_problem: aiResponse.detected_problem || contextData.main_problem || '',\n    conversation_summary: aiResponse.conversation_summary || contextData.conversation_summary || '',\n    // Historial actualizado para persistir\n    updated_history: JSON.stringify(history)\n  }\n}];"
+      },
+      "notes": "Parsea la respuesta JSON del AI y:\n- Añade los mensajes del bot al historial para persistirlos\n- Determina el stage final con lógica de prioridad: send_audio > send_video > lo que dijo el AI\n- Propaga todos los identificadores del contacto para los nodos de envío\n- Incluye fallback si el JSON falla (muy improbable con response_format: json_object)"
+    },
+    {
+      "id": "node-send-messages",
+      "name": "💬 Enviar mensajes de texto",
+      "type": "n8n-nodes-base.code",
+      "position": [2660, 420],
+      "parameters": {
+        "jsCode": "// Envía cada mensaje del array con delay entre ellos para simular escritura natural\nconst data = items[0].json;\nconst messages = data.messages || [];\nconst contactId = data.contact_id;\nconst channelId = process.env.RESPOND_IO_CHANNEL_ID;\nconst apiKey = process.env.RESPOND_IO_API_KEY;\n\nif (!contactId) {\n  console.log('ERROR: No contact_id disponible');\n  return [{ json: { ...data, message_results: [], error: 'No contact_id' } }];\n}\n\nconst results = [];\n\nfor (let i = 0; i < messages.length; i++) {\n  const msg = messages[i];\n  if (!msg || msg.trim() === '') continue;\n  \n  // Delay entre mensajes para simular escritura natural (1.5 segundos por mensaje)\n  if (i > 0) {\n    await new Promise(r => setTimeout(r, 1500));\n  }\n  \n  try {\n    const response = await $helpers.httpRequest({\n      method: 'POST',\n      url: `https://api.respond.io/v2/contact/${contactId}/message`,\n      headers: {\n        'Authorization': `Bearer ${apiKey}`,\n        'Content-Type': 'application/json'\n      },\n      body: JSON.stringify({\n        channelId: channelId,\n        message: {\n          type: 'text',\n          text: msg\n        }\n      })\n    });\n    results.push({ success: true, message: msg, index: i });\n  } catch(e) {\n    results.push({ success: false, message: msg, index: i, error: e.message });\n    console.log(`ERROR enviando mensaje ${i}:`, e.message);\n  }\n}\n\nreturn [{ json: { ...data, message_results: results } }];"
+      },
+      "notes": "Envía cada mensaje del array messages[] de forma secuencial con 1.5s de delay entre ellos.\n\nEl delay es importante: sin él, Instagram recibe todos los mensajes a la vez y pueden aparecer desordenados o como un bloque, lo que suena robótico. Con el delay parece que alguien está escribiendo.\n\nEl channelId es el ID del canal Instagram en respond.io (Settings → Channels)."
+    },
+    {
+      "id": "node-check-video",
+      "name": "🎥 ¿Enviar vídeo?",
+      "type": "n8n-nodes-base.if",
+      "position": [2880, 280],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-video",
+              "leftValue": "={{ $json.send_video }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Comprueba si el AI decidió que es momento de enviar el vídeo de valor. El AI activa send_video cuando ha detectado el problema, amplificado la necesidad, hecho las preguntas de visión y urgencia, y el lead está enganchado."
+    },
+    {
+      "id": "node-send-video",
+      "name": "🎬 Enviar vídeo de valor",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [3100, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.respond.io/v2/contact/{{ $json.contact_id }}/message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESPOND_IO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "channelId": "={{ $env.RESPOND_IO_CHANNEL_ID }}",
+          "message": {
+            "type": "text",
+            "text": "=Te lo paso, peeero no lo suelo mandar a todo el mundo porque explico bastante bien cómo trabajo 😊 Míralo y me cuentas\n\n{{ $env.VIDEO_URL }}"
+          }
+        }
+      },
+      "notes": "Envía el vídeo de valor con el texto exacto del prompt de Naiara antes del link. El mensaje está diseñado para generar exclusividad ('no lo suelo mandar a todo el mundo') y curiosidad."
+    },
+    {
+      "id": "node-check-audio",
+      "name": "🎙️ ¿Enviar audio?",
+      "type": "n8n-nodes-base.if",
+      "position": [2880, 560],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-audio",
+              "leftValue": "={{ $json.send_audio }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Comprueba si el AI decidió que es momento del cierre con audio. Se activa cuando:\n- El lead ya vio el vídeo (stage = video_enviado o follow_up_enviado) y responde positivamente\n- El lead es Tipo 4 (quiere comprar directamente, ya está caliente)"
+    },
+    {
+      "id": "node-send-audio",
+      "name": "🔊 Enviar audio pre-grabado",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [3100, 460],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.respond.io/v2/contact/{{ $('📊 Parsear respuesta IA').item.json.contact_id }}/message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESPOND_IO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "channelId": "={{ $env.RESPOND_IO_CHANNEL_ID }}",
+          "message": {
+            "type": "attachment",
+            "attachment": {
+              "type": "audio",
+              "url": "={{ $env.AUDIO_URL }}"
+            }
+          }
+        }
+      },
+      "notes": "Envía el audio pre-grabado de Naiara como attachment de tipo audio via respond.io API.\n\nEl audio dice: 'Valee en este punto lo mejor es que agendemos una llamada para ver tu caso en detalle y si tiene sentido que trabajemos juntxs. ¿Quieres que te pase enlace para agendar?'\n\nEl archivo debe estar en una URL pública HTTPS (S3, Cloudflare R2, etc.).\nFormato recomendado: .ogg (mejor compatibilidad con Instagram/WhatsApp)\nAlternativa: .mp3"
+    },
+    {
+      "id": "node-check-calendly",
+      "name": "📅 ¿Enviar Calendly?",
+      "type": "n8n-nodes-base.if",
+      "position": [3320, 460],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-calendly",
+              "leftValue": "={{ $('📊 Parsear respuesta IA').item.json.send_calendly }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Comprueba si se debe enviar el link de Calendly. El AI activa send_calendly siempre junto con send_audio o cuando el lead confirma que quiere agendar la llamada."
+    },
+    {
+      "id": "node-send-calendly",
+      "name": "📆 Enviar link Calendly",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [3540, 360],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.respond.io/v2/contact/{{ $('📊 Parsear respuesta IA').item.json.contact_id }}/message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESPOND_IO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "channelId": "={{ $env.RESPOND_IO_CHANNEL_ID }}",
+          "message": {
+            "type": "text",
+            "text": "={{ '¿Quieres que te pase enlace para agendar? 🙌\\n\\n' + $env.CALENDLY_LINK }}"
+          }
+        }
+      },
+      "notes": "Envía el link de Calendly de Naiara para agendar la llamada de consulta. Se envía siempre con o justo después del audio de cierre."
+    },
+    {
+      "id": "node-update-contact",
+      "name": "💾 Actualizar contacto (respond.io CRM)",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [3760, 420],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.respond.io/v2/contact/{{ $('📊 Parsear respuesta IA').item.json.contact_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESPOND_IO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "customFields": {
+            "lifecycle_stage": "={{ $('📊 Parsear respuesta IA').item.json.new_stage }}",
+            "lead_temperature": "={{ $('📊 Parsear respuesta IA').item.json.new_temperature }}",
+            "main_problem": "={{ $('📊 Parsear respuesta IA').item.json.detected_problem }}",
+            "entry_type": "={{ $('📊 Parsear respuesta IA').item.json.entry_type }}",
+            "conversation_history": "={{ $('📊 Parsear respuesta IA').item.json.updated_history }}",
+            "conversation_summary": "={{ $('📊 Parsear respuesta IA').item.json.conversation_summary }}"
+          }
+        }
+      },
+      "notes": "Actualiza los custom fields del contacto en respond.io con el nuevo estado de la conversación.\n\nEsto convierte respond.io en el CRM real donde Naiara puede:\n- Ver en qué etapa está cada lead (lifecycle_stage)\n- Ver qué temperatura tiene (frío/medio/caliente)\n- Ver cuál es su problema facial principal\n- Ver el historial de la conversación\n\nEs el último paso de cada interacción. Garantiza que la próxima vez que el lead escriba, el AI tenga todo el contexto."
+    },
+    {
+      "id": "node-video-start-followup",
+      "name": "🔀 Iniciar follow-up timer",
+      "type": "n8n-nodes-base.if",
+      "position": [3980, 160],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-video-sent",
+              "leftValue": "={{ $('📊 Parsear respuesta IA').item.json.send_video }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Antes del Wait: verifica que se envió el vídeo en esta ejecución. Solo entonces inicia el temporizador de 2 horas para el follow-up."
+    },
+    {
+      "id": "node-wait-followup",
+      "name": "⏰ Esperar 2h (follow-up vídeo)",
+      "type": "n8n-nodes-base.wait",
+      "position": [4200, 80],
+      "parameters": {
+        "resume": "timeInterval",
+        "unit": "hours",
+        "amount": 2
+      },
+      "notes": "Pausa la ejecución 2 horas después de enviar el vídeo.\n\nn8n persiste el estado del Wait incluso si el servidor se reinicia durante ese periodo. Cuando se reanuda, comprueba si el lead respondió.\n\nSi quieres cambiar el tiempo: modificar 'amount' (2 = 2 horas). Unit opciones: minutes, hours, days."
+    },
+    {
+      "id": "node-check-responded",
+      "name": "🔍 Leer estado actual tras 2h",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [4420, 80],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.respond.io/v2/contact/{{ $('📊 Parsear respuesta IA').item.json.contact_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESPOND_IO_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "notes": "Re-lee el contacto de respond.io tras las 2h de espera. Si el lead respondió al vídeo durante ese tiempo, el webhook de respond.io habrá disparado una nueva ejecución del workflow que ya habrá actualizado el stage a algo distinto de 'video_enviado'."
+    },
+    {
+      "id": "node-still-waiting",
+      "name": "😶 ¿Sigue sin responder?",
+      "type": "n8n-nodes-base.if",
+      "position": [4640, 80],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-still-video",
+              "leftValue": "={{ $json.data?.customFields?.lifecycle_stage }}",
+              "rightValue": "video_enviado",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Si el stage sigue siendo 'video_enviado' después de 2h → el lead no respondió → enviar follow-up.\nSi el stage cambió (en_conversacion, cualificado, llamada_agendada, etc.) → ya respondió, no hacer nada."
+    },
+    {
+      "id": "node-send-followup",
+      "name": "👋 Enviar follow-up 2h",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [4860, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.respond.io/v2/contact/{{ $('📊 Parsear respuesta IA').item.json.contact_id }}/message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESPOND_IO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "channelId": "={{ $env.RESPOND_IO_CHANNEL_ID }}",
+          "message": {
+            "type": "text",
+            "text": "¿Holaaa 👋, qué te ha parecido??"
+          }
+        }
+      },
+      "notes": "Follow-up automático 2h después de enviar el vídeo cuando el lead no respondió. Mensaje corto y casual, exactamente como especifica el prompt de Naiara.\n\nSi en el futuro se quiere enviar audio en el follow-up en lugar de texto, cambiar type a 'attachment' con type 'audio' y la URL del audio alternativo."
+    },
+    {
+      "id": "node-update-followup-stage",
+      "name": "💾 Stage → follow_up_enviado",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [5080, 0],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.respond.io/v2/contact/{{ $('📊 Parsear respuesta IA').item.json.contact_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESPOND_IO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "customFields": {
+            "lifecycle_stage": "follow_up_enviado"
+          }
+        }
+      },
+      "notes": "Actualiza el stage a 'follow_up_enviado' para que cuando el lead responda ahora, el AI sepa que:\n1. Ya vio el vídeo (o al menos se lo enviamos)\n2. Ya recibió el follow-up\n3. Está en fase de cierre → puede ir directamente al audio + Calendly"
+    },
+    {
+      "id": "node-end-responded",
+      "name": "✓ Lead ya respondió (no action)",
+      "type": "n8n-nodes-base.noOp",
+      "position": [4860, 200],
+      "notes": "El lead respondió al vídeo durante las 2h de espera. La nueva ejecución del workflow (disparada por su respuesta) ya se encargó de continuar la conversación. No hay nada que hacer aquí."
+    }
+  ],
+  "connections": {
+    "📥 respond.io Webhook": {
+      "main": [
+        [
+          { "node": "✅ Responder 200 OK", "type": "main", "index": 0 },
+          { "node": "🔍 Solo mensajes entrantes", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "🔍 Solo mensajes entrantes": {
+      "main": [
+        [{ "node": "📋 Normalizar datos", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "📋 Normalizar datos": {
+      "main": [
+        [{ "node": "📖 Leer contacto (respond.io)", "type": "main", "index": 0 }]
+      ]
+    },
+    "📖 Leer contacto (respond.io)": {
+      "main": [
+        [{ "node": "🔀 ¿Contacto existe?", "type": "main", "index": 0 }]
+      ]
+    },
+    "🔀 ¿Contacto existe?": {
+      "main": [
+        [{ "node": "✅ Datos de contacto existente", "type": "main", "index": 0 }],
+        [{ "node": "🆕 Inicializar contacto nuevo", "type": "main", "index": 0 }]
+      ]
+    },
+    "✅ Datos de contacto existente": {
+      "main": [
+        [{ "node": "🔗 Unir datos contacto", "type": "main", "index": 0 }]
+      ]
+    },
+    "🆕 Inicializar contacto nuevo": {
+      "main": [
+        [{ "node": "🔗 Unir datos contacto", "type": "main", "index": 1 }]
+      ]
+    },
+    "🔗 Unir datos contacto": {
+      "main": [
+        [{ "node": "🔀 Clasificar tipo de entrada", "type": "main", "index": 0 }]
+      ]
+    },
+    "🔀 Clasificar tipo de entrada": {
+      "main": [
+        [{ "node": "🧠 Construir contexto IA", "type": "main", "index": 0 }],
+        [{ "node": "🧠 Construir contexto IA", "type": "main", "index": 0 }],
+        [{ "node": "🧠 Construir contexto IA", "type": "main", "index": 0 }],
+        [{ "node": "🧠 Construir contexto IA", "type": "main", "index": 0 }],
+        [{ "node": "🧠 Construir contexto IA", "type": "main", "index": 0 }]
+      ]
+    },
+    "🧠 Construir contexto IA": {
+      "main": [
+        [{ "node": "🤖 AI Setter (OpenAI GPT-4o)", "type": "main", "index": 0 }]
+      ]
+    },
+    "🤖 AI Setter (OpenAI GPT-4o)": {
+      "main": [
+        [{ "node": "📊 Parsear respuesta IA", "type": "main", "index": 0 }]
+      ]
+    },
+    "📊 Parsear respuesta IA": {
+      "main": [
+        [{ "node": "💬 Enviar mensajes de texto", "type": "main", "index": 0 }]
+      ]
+    },
+    "💬 Enviar mensajes de texto": {
+      "main": [
+        [
+          { "node": "🎥 ¿Enviar vídeo?", "type": "main", "index": 0 },
+          { "node": "🎙️ ¿Enviar audio?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "🎥 ¿Enviar vídeo?": {
+      "main": [
+        [{ "node": "🎬 Enviar vídeo de valor", "type": "main", "index": 0 }],
+        [{ "node": "💾 Actualizar contacto (respond.io CRM)", "type": "main", "index": 0 }]
+      ]
+    },
+    "🎬 Enviar vídeo de valor": {
+      "main": [
+        [
+          { "node": "💾 Actualizar contacto (respond.io CRM)", "type": "main", "index": 0 },
+          { "node": "🔀 Iniciar follow-up timer", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "🎙️ ¿Enviar audio?": {
+      "main": [
+        [{ "node": "🔊 Enviar audio pre-grabado", "type": "main", "index": 0 }],
+        [{ "node": "💾 Actualizar contacto (respond.io CRM)", "type": "main", "index": 0 }]
+      ]
+    },
+    "🔊 Enviar audio pre-grabado": {
+      "main": [
+        [{ "node": "📅 ¿Enviar Calendly?", "type": "main", "index": 0 }]
+      ]
+    },
+    "📅 ¿Enviar Calendly?": {
+      "main": [
+        [{ "node": "📆 Enviar link Calendly", "type": "main", "index": 0 }],
+        [{ "node": "💾 Actualizar contacto (respond.io CRM)", "type": "main", "index": 0 }]
+      ]
+    },
+    "📆 Enviar link Calendly": {
+      "main": [
+        [{ "node": "💾 Actualizar contacto (respond.io CRM)", "type": "main", "index": 0 }]
+      ]
+    },
+    "🔀 Iniciar follow-up timer": {
+      "main": [
+        [{ "node": "⏰ Esperar 2h (follow-up vídeo)", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "⏰ Esperar 2h (follow-up vídeo)": {
+      "main": [
+        [{ "node": "🔍 Leer estado actual tras 2h", "type": "main", "index": 0 }]
+      ]
+    },
+    "🔍 Leer estado actual tras 2h": {
+      "main": [
+        [{ "node": "😶 ¿Sigue sin responder?", "type": "main", "index": 0 }]
+      ]
+    },
+    "😶 ¿Sigue sin responder?": {
+      "main": [
+        [{ "node": "👋 Enviar follow-up 2h", "type": "main", "index": 0 }],
+        [{ "node": "✓ Lead ya respondió (no action)", "type": "main", "index": 0 }]
+      ]
+    },
+    "👋 Enviar follow-up 2h": {
+      "main": [
+        [{ "node": "💾 Stage → follow_up_enviado", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": ["instagram", "respond.io", "setter", "everglowface", "ventas", "ia"],
+  "pinData": {}
+}
