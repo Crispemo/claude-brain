@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SS-02 — Fármacos SVA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700&family=Inter:wght@400;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#2a3438;--teal:#7c9fa6;--teal-light:#a8c5cc;--white:#f0f4f5;--accent:#e8a87c;--danger:#e87c7c}
+  body{background:#1a1e20;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;font-family:'Inter',sans-serif}
+  h2{color:#445;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .wrap{width:270px;height:480px;position:relative;overflow:hidden;border-radius:8px;cursor:pointer}
+  .wrap:hover{outline:2px solid var(--teal)}
+  .inner{width:1080px;height:1920px;transform-origin:top left;transform:scale(0.25);position:absolute}
+  .card{width:1080px;height:1920px;background:#1e2a2e;display:flex;flex-direction:column;position:relative;overflow:hidden;padding:80px}
+  .glow{position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(232,120,124,.12) 0%,transparent 70%);top:200px;right:-100px;border-radius:50%}
+  .frame{position:relative;z-index:2;border:1px solid rgba(124,159,166,.2);flex:1;display:flex;flex-direction:column;padding:60px;gap:44px}
+  .top{display:flex;justify-content:space-between;align-items:center}
+  .handle{font-size:26px;font-weight:700;color:var(--teal);letter-spacing:2px;text-transform:uppercase}
+  .tag{background:rgba(232,120,124,.15);border:1px solid rgba(232,120,124,.3);color:var(--danger);font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 24px;border-radius:4px}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:44px}
+  .eyebrow{font-size:28px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--danger)}
+  .line{width:60px;height:3px;background:var(--danger);opacity:.6}
+  .title{font-family:'Inter',sans-serif;font-weight:900;font-size:100px;line-height:.95;letter-spacing:-4px;text-transform:uppercase;color:var(--white)}
+  .title em{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;font-size:90px;color:var(--danger);text-transform:none;display:block;line-height:1.1}
+  .drug-list{display:flex;flex-direction:column;gap:16px}
+  .drug{display:flex;align-items:baseline;gap:20px}
+  .drug-name{font-weight:900;font-size:56px;letter-spacing:-2px;color:var(--white);font-family:'Inter',sans-serif}
+  .drug-dose{font-size:32px;color:var(--teal-light)}
+  .drug.no .drug-name{color:var(--danger);text-decoration:line-through;opacity:.7}
+  .sub{font-size:32px;line-height:1.4;color:rgba(240,244,245,.55)}
+  .cta{font-size:28px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--teal-light)}
+</style>
+</head>
+<body>
+<h2>SS-02 — Fármacos SVA</h2>
+<div class="wrap" onclick="document.getElementById('mSS02').style.display='flex'">
+  <div class="inner">
+    <div class="card">
+      <div class="glow"></div>
+      <div class="frame">
+        <div class="top">
+          <span class="handle">Simulia</span>
+          <span class="tag">EIR · SVA</span>
+        </div>
+        <div class="body">
+          <div class="eyebrow">Trampa de examen</div>
+          <div class="line"></div>
+          <div class="title">Fármacos<br><em>SVA</em></div>
+          <div class="drug-list">
+            <div class="drug"><span class="drug-name">Adrenalina</span><span class="drug-dose">1mg/3-5min</span></div>
+            <div class="drug"><span class="drug-name">Amiodarona</span><span class="drug-dose">300mg</span></div>
+            <div class="drug no"><span class="drug-name">Atropina</span><span class="drug-dose" style="color:var(--danger)">❌ no rutina</span></div>
+          </div>
+          <div class="sub">La atropina sigue cayendo como distractor. No la elijas en asistolia.</div>
+          <div class="cta">▶ Mira este short</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="mSS02" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999;align-items:center;justify-content:center" onclick="this.style.display='none'">
+  <div style="width:405px;height:720px;position:relative;overflow:hidden;border-radius:12px">
+    <div style="width:1080px;height:1920px;transform-origin:top left;transform:scale(0.375);position:absolute">
+      <div class="card">
+        <div class="glow"></div>
+        <div class="frame">
+          <div class="top"><span class="handle">Simulia</span><span class="tag">EIR · SVA</span></div>
+          <div class="body">
+            <div class="eyebrow">Trampa de examen</div>
+            <div class="line"></div>
+            <div class="title">Fármacos<br><em>SVA</em></div>
+            <div class="drug-list">
+              <div class="drug"><span class="drug-name">Adrenalina</span><span class="drug-dose">1mg/3-5min</span></div>
+              <div class="drug"><span class="drug-name">Amiodarona</span><span class="drug-dose">300mg</span></div>
+              <div class="drug no"><span class="drug-name">Atropina</span><span class="drug-dose" style="color:var(--danger)">❌ no rutina</span></div>
+            </div>
+            <div class="sub">La atropina sigue cayendo como distractor. No la elijas en asistolia.</div>
+            <div class="cta">▶ Mira este short</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>S-12 — DM sin responder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700&family=Inter:wght@400;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--cream:#F5F0E8;--black:#1A1A1A;--accent:#C4611A;--accent-light:#E8885A}
+  body{background:#111;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;font-family:'Inter',sans-serif}
+  h2{color:#555;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .wrap{width:270px;height:480px;position:relative;overflow:hidden;border-radius:8px;cursor:pointer}
+  .wrap:hover{outline:2px solid var(--accent)}
+  .inner{width:1080px;height:1920px;transform-origin:top left;transform:scale(0.25);position:absolute;top:0;left:0}
+  .card{width:1080px;height:1920px;background:var(--accent);display:flex;flex-direction:column;position:relative;overflow:hidden;padding:80px}
+  .deco{position:absolute;border-radius:50%}
+  .d1{width:700px;height:700px;background:rgba(255,255,255,.1);top:500px;right:-200px}
+  .d2{width:400px;height:400px;background:rgba(255,255,255,.06);top:-100px;left:-100px}
+  .top{display:flex;justify-content:space-between;align-items:center;z-index:2;position:relative}
+  .handle{font-size:28px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:1px}
+  .tag{background:#fff;color:var(--accent);font-size:22px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 24px;border-radius:4px}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:48px;z-index:2;position:relative}
+  .eyebrow{font-size:32px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,.7)}
+  .line{width:80px;height:4px;background:rgba(255,255,255,.4)}
+  .title{font-family:'Inter',sans-serif;font-weight:900;font-size:148px;line-height:.95;letter-spacing:-6px;text-transform:uppercase;color:#fff}
+  .title em{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;font-size:128px;color:rgba(255,255,255,.85);text-transform:none;display:block}
+  .sub{font-size:38px;line-height:1.4;color:rgba(255,255,255,.8);max-width:800px}
+  .cta{font-size:30px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff}
+</style>
+</head>
+<body>
+<h2>S-12 — DM sin responder</h2>
+<div class="wrap" onclick="document.getElementById('modal12').style.display='flex'">
+  <div class="inner">
+    <div class="card">
+      <div class="deco d1"></div>
+      <div class="deco d2"></div>
+      <div class="top">
+        <span class="handle">@CristinaPerisAI</span>
+        <span class="tag">WHATSAPP</span>
+      </div>
+      <div class="body">
+        <div class="eyebrow">Ventas que se escapan</div>
+        <div class="line"></div>
+        <div class="title">
+          2 horas<br>sin<br><em>responder</em>
+        </div>
+        <div class="sub">Ya compró en otro sitio. Automatizá el primer contacto.</div>
+        <div class="cta">▶ Mira este short</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="modal12" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;align-items:center;justify-content:center" onclick="this.style.display='none'">
+  <div style="width:405px;height:720px;position:relative;overflow:hidden;border-radius:12px">
+    <div style="width:1080px;height:1920px;transform-origin:top left;transform:scale(0.375);position:absolute">
+      <div class="card">
+        <div class="deco d1"></div>
+        <div class="deco d2"></div>
+        <div class="top"><span class="handle">@CristinaPerisAI</span><span class="tag">WHATSAPP</span></div>
+        <div class="body">
+          <div class="eyebrow">Ventas que se escapan</div>
+          <div class="line"></div>
+          <div class="title">2 horas<br>sin<br><em>responder</em></div>
+          <div class="sub">Ya compró en otro sitio. Automatizá el primer contacto.</div>
+          <div class="cta">▶ Mira este short</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

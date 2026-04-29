@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SS-03 — UPP Estadios</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700&family=Inter:wght@400;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#2a3438;--teal:#7c9fa6;--teal-light:#a8c5cc;--white:#f0f4f5;--accent:#e8a87c}
+  body{background:#1a1e20;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;font-family:'Inter',sans-serif}
+  h2{color:#445;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .wrap{width:270px;height:480px;position:relative;overflow:hidden;border-radius:8px;cursor:pointer}
+  .wrap:hover{outline:2px solid var(--teal)}
+  .inner{width:1080px;height:1920px;transform-origin:top left;transform:scale(0.25);position:absolute}
+  .card{width:1080px;height:1920px;background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden;padding:80px}
+  .glow{position:absolute;width:900px;height:900px;background:radial-gradient(circle,rgba(124,159,166,.1) 0%,transparent 70%);top:-100px;left:-200px;border-radius:50%}
+  .frame{position:relative;z-index:2;border:1px solid rgba(124,159,166,.25);flex:1;display:flex;flex-direction:column;padding:60px;gap:44px}
+  .top{display:flex;justify-content:space-between;align-items:center}
+  .handle{font-size:26px;font-weight:700;color:var(--teal);letter-spacing:2px;text-transform:uppercase}
+  .tag{background:rgba(124,159,166,.15);border:1px solid rgba(124,159,166,.3);color:var(--teal-light);font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 24px;border-radius:4px}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:40px}
+  .eyebrow{font-size:28px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--teal)}
+  .line{width:60px;height:3px;background:var(--teal);opacity:.6}
+  .title{font-family:'Inter',sans-serif;font-weight:900;font-size:120px;line-height:.95;letter-spacing:-4px;text-transform:uppercase;color:var(--white)}
+  .title em{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;font-size:100px;color:var(--accent);text-transform:none;display:block;line-height:1.1}
+  .compare{display:flex;gap:24px}
+  .stage{flex:1;padding:32px;border-radius:10px;display:flex;flex-direction:column;gap:12px}
+  .stage.iii{background:rgba(124,159,166,.1);border:1px solid rgba(124,159,166,.25)}
+  .stage.iv{background:rgba(232,168,124,.1);border:1px solid rgba(232,168,124,.3)}
+  .stage-num{font-weight:900;font-size:80px;letter-spacing:-3px;font-family:'Inter',sans-serif}
+  .stage.iii .stage-num{color:var(--teal-light)}
+  .stage.iv .stage-num{color:var(--accent)}
+  .stage-text{font-size:28px;line-height:1.3;color:rgba(240,244,245,.7)}
+  .sub{font-size:32px;line-height:1.4;color:rgba(240,244,245,.55)}
+  .cta{font-size:28px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--teal-light)}
+</style>
+</head>
+<body>
+<h2>SS-03 — UPP Estadios III vs IV</h2>
+<div class="wrap" onclick="document.getElementById('mSS03').style.display='flex'">
+  <div class="inner">
+    <div class="card">
+      <div class="glow"></div>
+      <div class="frame">
+        <div class="top">
+          <span class="handle">Simulia</span>
+          <span class="tag">EIR · UPP</span>
+        </div>
+        <div class="body">
+          <div class="eyebrow">Un detalle, dos estadios</div>
+          <div class="line"></div>
+          <div class="title">UPP<br><em>III vs IV</em></div>
+          <div class="compare">
+            <div class="stage iii">
+              <div class="stage-num">III</div>
+              <div class="stage-text">Grasa visible<br>❌ Sin hueso</div>
+            </div>
+            <div class="stage iv">
+              <div class="stage-num">IV</div>
+              <div class="stage-text">Hueso /<br>tendón expuesto</div>
+            </div>
+          </div>
+          <div class="sub">Mientras no veas hueso, no es estadio IV. Ese es el criterio.</div>
+          <div class="cta">▶ Mira este short</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="mSS03" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999;align-items:center;justify-content:center" onclick="this.style.display='none'">
+  <div style="width:405px;height:720px;position:relative;overflow:hidden;border-radius:12px">
+    <div style="width:1080px;height:1920px;transform-origin:top left;transform:scale(0.375);position:absolute">
+      <div class="card">
+        <div class="glow"></div>
+        <div class="frame">
+          <div class="top"><span class="handle">Simulia</span><span class="tag">EIR · UPP</span></div>
+          <div class="body">
+            <div class="eyebrow">Un detalle, dos estadios</div>
+            <div class="line"></div>
+            <div class="title">UPP<br><em>III vs IV</em></div>
+            <div class="compare">
+              <div class="stage iii"><div class="stage-num">III</div><div class="stage-text">Grasa visible<br>❌ Sin hueso</div></div>
+              <div class="stage iv"><div class="stage-num">IV</div><div class="stage-text">Hueso /<br>tendón expuesto</div></div>
+            </div>
+            <div class="sub">Mientras no veas hueso, no es estadio IV. Ese es el criterio.</div>
+            <div class="cta">▶ Mira este short</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

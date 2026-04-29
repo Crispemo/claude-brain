@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SS-01 — Escala de Barthel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700&family=Inter:wght@400;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#2a3438;--bg2:#3f5056;--teal:#7c9fa6;--teal-light:#a8c5cc;--white:#f0f4f5;--accent:#e8a87c}
+  body{background:#1a1e20;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;font-family:'Inter',sans-serif}
+  h2{color:#445;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .wrap{width:270px;height:480px;position:relative;overflow:hidden;border-radius:8px;cursor:pointer}
+  .wrap:hover{outline:2px solid var(--teal)}
+  .inner{width:1080px;height:1920px;transform-origin:top left;transform:scale(0.25);position:absolute}
+  .card{width:1080px;height:1920px;background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden;padding:80px}
+  .glow{position:absolute;width:800px;height:800px;background:radial-gradient(circle,rgba(124,159,166,.15) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%}
+  .noise{position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");background-size:200px;opacity:.4}
+  .frame{position:relative;z-index:2;border:1px solid rgba(124,159,166,.25);flex:1;display:flex;flex-direction:column;padding:60px 60px 80px;gap:48px}
+  .top{display:flex;justify-content:space-between;align-items:center}
+  .handle{font-size:26px;font-weight:700;color:var(--teal);letter-spacing:2px;text-transform:uppercase}
+  .tag{background:rgba(124,159,166,.15);border:1px solid rgba(124,159,166,.3);color:var(--teal-light);font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 24px;border-radius:4px}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:44px}
+  .eyebrow{font-size:28px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--teal)}
+  .line{width:60px;height:3px;background:var(--teal);opacity:.6}
+  .title{font-family:'Inter',sans-serif;font-weight:900;font-size:128px;line-height:.95;letter-spacing:-5px;text-transform:uppercase;color:var(--white)}
+  .title em{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;font-size:110px;color:var(--accent);text-transform:none;display:block;line-height:1.1}
+  .score-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .score{background:rgba(124,159,166,.12);border:1px solid rgba(124,159,166,.2);border-radius:8px;padding:20px 28px;display:flex;flex-direction:column;gap:6px}
+  .score-num{font-weight:900;font-size:64px;letter-spacing:-2px;color:var(--white);font-family:'Inter',sans-serif}
+  .score-label{font-size:22px;font-weight:600;color:var(--teal);letter-spacing:1px;text-transform:uppercase}
+  .sub{font-size:34px;line-height:1.4;color:rgba(240,244,245,.6);max-width:800px}
+  .cta{font-size:28px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--teal-light)}
+</style>
+</head>
+<body>
+<h2>SS-01 — Escala de Barthel</h2>
+<div class="wrap" onclick="document.getElementById('mSS01').style.display='flex'">
+  <div class="inner">
+    <div class="card">
+      <div class="glow"></div>
+      <div class="noise"></div>
+      <div class="frame">
+        <div class="top">
+          <span class="handle">Simulia</span>
+          <span class="tag">EIR · ESCALAS</span>
+        </div>
+        <div class="body">
+          <div class="eyebrow">El corte que confunde</div>
+          <div class="line"></div>
+          <div class="title">Escala<br>de<br><em>Barthel</em></div>
+          <div class="score-row">
+            <div class="score"><div class="score-num">&lt;20</div><div class="score-label">Total</div></div>
+            <div class="score"><div class="score-num">20–60</div><div class="score-label">Grave/Mod</div></div>
+            <div class="score"><div class="score-num">≥95</div><div class="score-label">Independ.</div></div>
+          </div>
+          <div class="sub">El EIR pregunta el nivel exacto. No solo "menor de 60".</div>
+          <div class="cta">▶ Mira este short</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="mSS01" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999;align-items:center;justify-content:center" onclick="this.style.display='none'">
+  <div style="width:405px;height:720px;position:relative;overflow:hidden;border-radius:12px">
+    <div style="width:1080px;height:1920px;transform-origin:top left;transform:scale(0.375);position:absolute">
+      <div class="card">
+        <div class="glow"></div>
+        <div class="noise"></div>
+        <div class="frame">
+          <div class="top"><span class="handle">Simulia</span><span class="tag">EIR · ESCALAS</span></div>
+          <div class="body">
+            <div class="eyebrow">El corte que confunde</div>
+            <div class="line"></div>
+            <div class="title">Escala<br>de<br><em>Barthel</em></div>
+            <div class="score-row">
+              <div class="score"><div class="score-num">&lt;20</div><div class="score-label">Total</div></div>
+              <div class="score"><div class="score-num">20–60</div><div class="score-label">Grave/Mod</div></div>
+              <div class="score"><div class="score-num">≥95</div><div class="score-label">Independ.</div></div>
+            </div>
+            <div class="sub">El EIR pregunta el nivel exacto. No solo "menor de 60".</div>
+            <div class="cta">▶ Mira este short</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

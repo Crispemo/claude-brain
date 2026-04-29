@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SS-09 — Escalas del Dolor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700&family=Inter:wght@400;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#2a3438;--teal:#7c9fa6;--teal-light:#a8c5cc;--white:#f0f4f5;--accent:#e8a87c;--danger:#e87c7c}
+  body{background:#1a1e20;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;font-family:'Inter',sans-serif}
+  h2{color:#445;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .wrap{width:270px;height:480px;position:relative;overflow:hidden;border-radius:8px;cursor:pointer}
+  .wrap:hover{outline:2px solid var(--teal)}
+  .inner{width:1080px;height:1920px;transform-origin:top left;transform:scale(0.25);position:absolute}
+  .card{width:1080px;height:1920px;background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden;padding:80px}
+  .glow{position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(232,120,124,.1) 0%,transparent 70%);bottom:200px;right:-100px;border-radius:50%}
+  .frame{position:relative;z-index:2;border:1px solid rgba(124,159,166,.22);flex:1;display:flex;flex-direction:column;padding:60px;gap:36px}
+  .top{display:flex;justify-content:space-between;align-items:center}
+  .handle{font-size:26px;font-weight:700;color:var(--teal);letter-spacing:2px;text-transform:uppercase}
+  .tag{background:rgba(232,120,124,.15);border:1px solid rgba(232,120,124,.3);color:var(--danger);font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 24px;border-radius:4px}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:32px}
+  .eyebrow{font-size:26px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--teal)}
+  .line{width:60px;height:3px;background:var(--teal);opacity:.5}
+  .title{font-family:'Inter',sans-serif;font-weight:900;font-size:124px;line-height:.95;letter-spacing:-5px;text-transform:uppercase;color:var(--white)}
+  .title em{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;font-size:106px;color:var(--danger);text-transform:none;display:block}
+  .compare{display:flex;flex-direction:column;gap:16px}
+  .row{display:flex;align-items:center;padding:24px 28px;border-radius:8px;gap:24px}
+  .row.ok{background:rgba(124,159,166,.1);border:1px solid rgba(124,159,166,.2)}
+  .row.no{background:rgba(232,120,124,.1);border:1px solid rgba(232,120,124,.2)}
+  .row-icon{font-size:48px;flex-shrink:0}
+  .row-text{display:flex;flex-direction:column;gap:4px}
+  .row-name{font-size:48px;font-weight:900;letter-spacing:-2px;font-family:'Inter',sans-serif}
+  .row.ok .row-name{color:var(--teal-light)}
+  .row.no .row-name{color:var(--danger)}
+  .row-when{font-size:26px;color:rgba(240,244,245,.6)}
+  .never{font-family:'Inter',sans-serif;font-weight:900;font-size:72px;letter-spacing:-2px;color:var(--danger);text-align:center}
+  .cta{font-size:26px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--teal-light)}
+</style>
+</head>
+<body>
+<h2>SS-09 — Escalas del dolor</h2>
+<div class="wrap" onclick="document.getElementById('mSS09').style.display='flex'">
+  <div class="inner">
+    <div class="card">
+      <div class="glow"></div>
+      <div class="frame">
+        <div class="top">
+          <span class="handle">Simulia</span>
+          <span class="tag">EIR · CRÍTICA</span>
+        </div>
+        <div class="body">
+          <div class="eyebrow">En sedado, nunca EVA</div>
+          <div class="line"></div>
+          <div class="title">Dolor<br><em>EVA ≠ UCI</em></div>
+          <div class="compare">
+            <div class="row ok">
+              <div class="row-icon">✓</div>
+              <div class="row-text">
+                <div class="row-name">CPOT</div>
+                <div class="row-when">Paciente sedado / intubado</div>
+              </div>
+            </div>
+            <div class="row no">
+              <div class="row-icon">❌</div>
+              <div class="row-text">
+                <div class="row-name">EVA</div>
+                <div class="row-when">Requiere comunicación</div>
+              </div>
+            </div>
+          </div>
+          <div class="never">NUNCA EVA EN SEDADO</div>
+          <div class="cta">▶ Mira este short</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="mSS09" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999;align-items:center;justify-content:center" onclick="this.style.display='none'">
+  <div style="width:405px;height:720px;position:relative;overflow:hidden;border-radius:12px">
+    <div style="width:1080px;height:1920px;transform-origin:top left;transform:scale(0.375);position:absolute">
+      <div class="card">
+        <div class="glow"></div>
+        <div class="frame">
+          <div class="top"><span class="handle">Simulia</span><span class="tag">EIR · CRÍTICA</span></div>
+          <div class="body">
+            <div class="eyebrow">En sedado, nunca EVA</div>
+            <div class="line"></div>
+            <div class="title">Dolor<br><em>EVA ≠ UCI</em></div>
+            <div class="compare">
+              <div class="row ok"><div class="row-icon">✓</div><div class="row-text"><div class="row-name">CPOT</div><div class="row-when">Paciente sedado / intubado</div></div></div>
+              <div class="row no"><div class="row-icon">❌</div><div class="row-text"><div class="row-name">EVA</div><div class="row-when">Requiere comunicación</div></div></div>
+            </div>
+            <div class="never">NUNCA EVA EN SEDADO</div>
+            <div class="cta">▶ Mira este short</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

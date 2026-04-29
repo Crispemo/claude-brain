@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SS-05 — Escala de Braden</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700&family=Inter:wght@400;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#2a3438;--teal:#7c9fa6;--teal-light:#a8c5cc;--white:#f0f4f5;--accent:#e8a87c;--danger:#e87c7c;--warn:#e8c87c}
+  body{background:#1a1e20;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;font-family:'Inter',sans-serif}
+  h2{color:#445;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .wrap{width:270px;height:480px;position:relative;overflow:hidden;border-radius:8px;cursor:pointer}
+  .wrap:hover{outline:2px solid var(--teal)}
+  .inner{width:1080px;height:1920px;transform-origin:top left;transform:scale(0.25);position:absolute}
+  .card{width:1080px;height:1920px;background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden;padding:80px}
+  .glow{position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(124,159,166,.1) 0%,transparent 70%);top:400px;left:-100px;border-radius:50%}
+  .frame{position:relative;z-index:2;border:1px solid rgba(124,159,166,.22);flex:1;display:flex;flex-direction:column;padding:60px;gap:40px}
+  .top{display:flex;justify-content:space-between;align-items:center}
+  .handle{font-size:26px;font-weight:700;color:var(--teal);letter-spacing:2px;text-transform:uppercase}
+  .tag{background:rgba(124,159,166,.15);border:1px solid rgba(124,159,166,.3);color:var(--teal-light);font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 24px;border-radius:4px}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:36px}
+  .eyebrow{font-size:26px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--teal)}
+  .line{width:60px;height:3px;background:var(--teal);opacity:.5}
+  .title{font-family:'Inter',sans-serif;font-weight:900;font-size:124px;line-height:.95;letter-spacing:-5px;text-transform:uppercase;color:var(--white)}
+  .title em{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;font-size:106px;color:var(--accent);text-transform:none;display:block}
+  .bar-wrap{display:flex;flex-direction:column;gap:14px}
+  .bar-row{display:flex;align-items:center;gap:20px}
+  .bar-label{font-size:26px;font-weight:700;color:rgba(240,244,245,.7);width:260px;flex-shrink:0}
+  .bar-range{font-size:36px;font-weight:900;color:var(--white);font-family:'Inter',sans-serif;width:180px;flex-shrink:0}
+  .bar-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0}
+  .sub{font-size:30px;line-height:1.4;color:rgba(240,244,245,.55)}
+  .cta{font-size:26px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--teal-light)}
+</style>
+</head>
+<body>
+<h2>SS-05 — Escala de Braden</h2>
+<div class="wrap" onclick="document.getElementById('mSS05').style.display='flex'">
+  <div class="inner">
+    <div class="card">
+      <div class="glow"></div>
+      <div class="frame">
+        <div class="top">
+          <span class="handle">Simulia</span>
+          <span class="tag">EIR · UPP</span>
+        </div>
+        <div class="body">
+          <div class="eyebrow">El corte que activa el protocolo</div>
+          <div class="line"></div>
+          <div class="title">Escala<br><em>Braden</em></div>
+          <div class="bar-wrap">
+            <div class="bar-row"><div class="bar-dot" style="background:#e87c7c"></div><div class="bar-range">≤ 9</div><div class="bar-label">Muy alto</div></div>
+            <div class="bar-row"><div class="bar-dot" style="background:#e8a87c"></div><div class="bar-range">10–12</div><div class="bar-label">Alto</div></div>
+            <div class="bar-row"><div class="bar-dot" style="background:#e8c87c"></div><div class="bar-range">13–14</div><div class="bar-label">Moderado</div></div>
+            <div class="bar-row"><div class="bar-dot" style="background:#a8c5cc"></div><div class="bar-range">15–18</div><div class="bar-label">Bajo</div></div>
+            <div class="bar-row"><div class="bar-dot" style="background:#7c9fa6"></div><div class="bar-range">≥ 19</div><div class="bar-label">Sin riesgo</div></div>
+          </div>
+          <div class="sub">Confundir alto con muy alto cambia la respuesta en examen.</div>
+          <div class="cta">▶ Mira este short</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="mSS05" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999;align-items:center;justify-content:center" onclick="this.style.display='none'">
+  <div style="width:405px;height:720px;position:relative;overflow:hidden;border-radius:12px">
+    <div style="width:1080px;height:1920px;transform-origin:top left;transform:scale(0.375);position:absolute">
+      <div class="card">
+        <div class="glow"></div>
+        <div class="frame">
+          <div class="top"><span class="handle">Simulia</span><span class="tag">EIR · UPP</span></div>
+          <div class="body">
+            <div class="eyebrow">El corte que activa el protocolo</div>
+            <div class="line"></div>
+            <div class="title">Escala<br><em>Braden</em></div>
+            <div class="bar-wrap">
+              <div class="bar-row"><div class="bar-dot" style="background:#e87c7c"></div><div class="bar-range">≤ 9</div><div class="bar-label">Muy alto</div></div>
+              <div class="bar-row"><div class="bar-dot" style="background:#e8a87c"></div><div class="bar-range">10–12</div><div class="bar-label">Alto</div></div>
+              <div class="bar-row"><div class="bar-dot" style="background:#e8c87c"></div><div class="bar-range">13–14</div><div class="bar-label">Moderado</div></div>
+              <div class="bar-row"><div class="bar-dot" style="background:#a8c5cc"></div><div class="bar-range">15–18</div><div class="bar-label">Bajo</div></div>
+              <div class="bar-row"><div class="bar-dot" style="background:#7c9fa6"></div><div class="bar-range">≥ 19</div><div class="bar-label">Sin riesgo</div></div>
+            </div>
+            <div class="sub">Confundir alto con muy alto cambia la respuesta en examen.</div>
+            <div class="cta">▶ Mira este short</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

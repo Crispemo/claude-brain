@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SS-07 — Diuresis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700&family=Inter:wght@400;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#2a3438;--teal:#7c9fa6;--teal-light:#a8c5cc;--white:#f0f4f5;--accent:#e8a87c;--danger:#e87c7c}
+  body{background:#1a1e20;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;font-family:'Inter',sans-serif}
+  h2{color:#445;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .wrap{width:270px;height:480px;position:relative;overflow:hidden;border-radius:8px;cursor:pointer}
+  .wrap:hover{outline:2px solid var(--teal)}
+  .inner{width:1080px;height:1920px;transform-origin:top left;transform:scale(0.25);position:absolute}
+  .card{width:1080px;height:1920px;background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden;padding:80px}
+  .glow{position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(124,159,166,.12) 0%,transparent 70%);bottom:0;left:200px;border-radius:50%}
+  .frame{position:relative;z-index:2;border:1px solid rgba(124,159,166,.22);flex:1;display:flex;flex-direction:column;padding:60px;gap:36px}
+  .top{display:flex;justify-content:space-between;align-items:center}
+  .handle{font-size:26px;font-weight:700;color:var(--teal);letter-spacing:2px;text-transform:uppercase}
+  .tag{background:rgba(124,159,166,.15);border:1px solid rgba(124,159,166,.3);color:var(--teal-light);font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 24px;border-radius:4px}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:32px}
+  .eyebrow{font-size:26px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--teal)}
+  .line{width:60px;height:3px;background:var(--teal);opacity:.5}
+  .title{font-family:'Inter',sans-serif;font-weight:900;font-size:132px;line-height:.95;letter-spacing:-5px;text-transform:uppercase;color:var(--white)}
+  .title em{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;font-size:112px;color:var(--teal-light);text-transform:none;display:block}
+  .values{display:flex;flex-direction:column;gap:16px}
+  .val-row{display:flex;align-items:center;gap:24px;padding:20px 28px;border-radius:8px;background:rgba(124,159,166,.08);border:1px solid rgba(124,159,166,.15)}
+  .val-row.alert{background:rgba(232,120,124,.08);border-color:rgba(232,120,124,.2)}
+  .val-num{font-weight:900;font-size:56px;letter-spacing:-2px;font-family:'Inter',sans-serif;flex-shrink:0;width:320px}
+  .val-row .val-num{color:var(--teal-light)}
+  .val-row.alert .val-num{color:var(--danger)}
+  .val-label{font-size:32px;font-weight:700;color:rgba(240,244,245,.7);text-transform:uppercase;letter-spacing:1px}
+  .sub{font-size:28px;line-height:1.4;color:rgba(240,244,245,.55)}
+  .cta{font-size:26px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--teal-light)}
+</style>
+</head>
+<body>
+<h2>SS-07 — Diuresis normal, oliguria, anuria</h2>
+<div class="wrap" onclick="document.getElementById('mSS07').style.display='flex'">
+  <div class="inner">
+    <div class="card">
+      <div class="glow"></div>
+      <div class="frame">
+        <div class="top">
+          <span class="handle">Simulia</span>
+          <span class="tag">EIR · NEFROLOGÍA</span>
+        </div>
+        <div class="body">
+          <div class="eyebrow">3 valores de memoria</div>
+          <div class="line"></div>
+          <div class="title">Diuresis<br><em>normal</em></div>
+          <div class="values">
+            <div class="val-row"><div class="val-num">0.5–1 ml/kg/h</div><div class="val-label">Normal</div></div>
+            <div class="val-row alert"><div class="val-num">&lt;0.5 ml/kg/h</div><div class="val-label">Oliguria</div></div>
+            <div class="val-row alert"><div class="val-num">&lt;100 ml/24h</div><div class="val-label">Anuria</div></div>
+          </div>
+          <div class="sub">En UCI te dan el peso y el volumen horario. Calculás tú.</div>
+          <div class="cta">▶ Mira este short</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="mSS07" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999;align-items:center;justify-content:center" onclick="this.style.display='none'">
+  <div style="width:405px;height:720px;position:relative;overflow:hidden;border-radius:12px">
+    <div style="width:1080px;height:1920px;transform-origin:top left;transform:scale(0.375);position:absolute">
+      <div class="card">
+        <div class="glow"></div>
+        <div class="frame">
+          <div class="top"><span class="handle">Simulia</span><span class="tag">EIR · NEFROLOGÍA</span></div>
+          <div class="body">
+            <div class="eyebrow">3 valores de memoria</div>
+            <div class="line"></div>
+            <div class="title">Diuresis<br><em>normal</em></div>
+            <div class="values">
+              <div class="val-row"><div class="val-num">0.5–1 ml/kg/h</div><div class="val-label">Normal</div></div>
+              <div class="val-row alert"><div class="val-num">&lt;0.5 ml/kg/h</div><div class="val-label">Oliguria</div></div>
+              <div class="val-row alert"><div class="val-num">&lt;100 ml/24h</div><div class="val-label">Anuria</div></div>
+            </div>
+            <div class="sub">En UCI te dan el peso y el volumen horario. Calculás tú.</div>
+            <div class="cta">▶ Mira este short</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
