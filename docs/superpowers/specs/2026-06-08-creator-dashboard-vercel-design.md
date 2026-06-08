@@ -46,13 +46,15 @@ GOOGLE_SERVICE_ACCOUNT_JSON   # JSON completo de la service account
 ## Módulos
 
 ### YouTube
+Solo se trackean **vídeos largos** (duración > 60 segundos). Los Shorts son clips derivados que redirigen al largo — no se muestran por separado.
+
 **KPIs (últimos 30 días):**
 - Suscriptores totales + delta vs mes anterior
-- Vistas totales del mes
+- Vistas totales del mes (solo vídeos largos)
 - Watch time (horas)
-- Vídeos subidos este mes
+- Vídeos largos subidos este mes
 
-**Tabla top vídeos:**
+**Tabla top vídeos largos:**
 - Título, vistas, CTR, duración media de visualización, leads generados (cruzado con Tally UTM)
 
 ### Instagram
@@ -61,6 +63,7 @@ GOOGLE_SERVICE_ACCOUNT_JSON   # JSON completo de la service account
 - Alcance total del mes
 - Impresiones
 - Engagement rate
+- **Lead velocity:** leads por semana (semana 1→2→3→4 del mes en curso) — mini sparkline o tabla de 4 valores
 
 **Tabla últimos 20 posts/reels:**
 - Miniatura (si disponible), likes, comentarios, reach, guardados
