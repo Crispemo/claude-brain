@@ -8,7 +8,7 @@
 
 ## Resumen
 
-App Next.js 14 deployada en Vercel. URL pública (sin auth). Sidebar lateral con 4 secciones: YouTube, Instagram, Leads, ICP. Botón "Actualizar todo" que extrae datos de todas las fuentes en paralelo vía API Routes server-side. Las tablas de YouTube e Instagram incluyen analytics avanzado por pieza de contenido (multiplicador vs promedio, engagement vs promedio, vistas por día de semana). Una card de "Análisis Claude" genera bajo demanda un análisis en lenguaje natural de toda la data, con recomendaciones de contenido basadas en el ICP definido.
+App Next.js 14 deployada en Vercel. URL pública (sin auth). Sidebar lateral con 5 secciones: Dashboard, YouTube, Instagram, Leads, ICP. Botón "Actualizar todo" que extrae datos de todas las fuentes en paralelo vía API Routes server-side. Las tablas de YouTube e Instagram incluyen analytics avanzado por pieza de contenido (multiplicador vs promedio, engagement vs promedio, vistas por día de semana). Una card de "Análisis Claude" genera bajo demanda un análisis en lenguaje natural de toda la data, con recomendaciones de contenido basadas en el ICP definido.
 
 ---
 
@@ -19,7 +19,7 @@ App Next.js 14 deployada en Vercel. URL pública (sin auth). Sidebar lateral con
 - **Estilos:** Tailwind CSS
 - **Deploy:** Vercel (repo GitHub conectado, deploy automático en push)
 - **Sin base de datos** — todo se trae en vivo al hacer refresh
-- **Dependencias nuevas:** `recharts` (gráfico vistas por día de semana), `@anthropic-ai/sdk` (Análisis Claude)
+- **Dependencias nuevas:** `recharts` (gráfico vistas por día de semana), `@anthropic-ai/sdk` (Análisis Claude), `react-markdown` (renderizar el análisis)
 
 ### API Routes (server-side)
 | Ruta | Fuente | Datos |
