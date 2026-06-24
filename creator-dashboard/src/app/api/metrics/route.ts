@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             const insights = await fetchIGMediaInsights(igToken, item.id);
             if (insights.data) {
               for (const m of insights.data) {
-                if (m.name === "impressions") ig.views += m.values?.[0]?.value || 0;
+                if (m.name === "views") ig.views += m.values?.[0]?.value || 0;
                 if (m.name === "saved") ig.saves += m.values?.[0]?.value || 0;
               }
             }

@@ -16,6 +16,6 @@ export async function fetchIGMedia(token: string, limit = 25) {
 }
 
 export async function fetchIGMediaInsights(token: string, mediaId: string) {
-  const res = await fetch(`${BASE}/${mediaId}/insights?metric=impressions,reach,saved,shares&access_token=${token}`);
+  const res = await fetch(`${BASE}/${mediaId}/insights?metric=views,reach,saved,shares&access_token=${token}`);
   return res.json();
 }
