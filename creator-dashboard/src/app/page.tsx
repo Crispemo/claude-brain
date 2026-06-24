@@ -12,13 +12,14 @@ export default function OverviewPage() {
   const [calendar, setCalendar] = useState<CalendarEntry[]>([]);
   const [trends, setTrends] = useState<Trend[]>([]);
   const [igMetrics, setIgMetrics] = useState({ views: 0, saves: 0, followers_new: 0, dms: 0 });
+  const [ytMetrics, setYtMetrics] = useState({ followers_total: 0, views: 0 });
   const [simulia, setSimulia] = useState({ revenue: 0, new_users: 0 });
 
   useEffect(() => {
     fetch("/api/hooks?sort=recent").then((r) => r.json()).then((d) => Array.isArray(d) && setHooks(d.slice(0, 3)));
     fetch("/api/calendar").then((r) => r.json()).then((d) => Array.isArray(d) && setCalendar(d.slice(0, 5)));
     fetch("/api/trends?category=gancho").then((r) => r.json()).then((d) => Array.isArray(d) && setTrends(d.slice(0, 3)));
-    fetch("/api/metrics?range=7").then((r) => r.json()).then((d) => { if (d.ig) setIgMetrics(d.ig); });
+    fetch("/api/metrics?range=7").then((r) => r.json()).then((d) => { if (d.ig) setIgMetrics(d.ig); if (d.yt) setYtMetrics(d.yt); });
     fetch("/api/simulia").then((r) => r.json()).then((d) => { if (Array.isArray(d) && d[0]) setSimulia(d[0]); });
   }, []);
 
@@ -41,7 +42,7 @@ export default function OverviewPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <KpiCard label="IG Views · 7D" value={fmtNum(igMetrics.views)} changeType="up" sparkColor="#c4704b" />
-        <KpiCard label="YT Subs" value="—" sparkColor="#ef4444" />
+        <KpiCard label="YT Subs" value={fmtNum(ytMetrics.followers_total)} sparkColor="#ef4444" />
         <KpiCard label="Guardados · 7D" value={fmtNum(igMetrics.saves)} sparkColor="#22c55e" />
         <KpiCard label="Simulia · 30D" value={`€${simulia.revenue}`} accent="#7da0a7" sublabel={`${simulia.new_users} nuevos usuarios`} />
       </div>
