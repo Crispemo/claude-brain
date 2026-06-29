@@ -2,7 +2,10 @@ const Anthropic = require('@anthropic-ai/sdk');
 const fs = require('fs');
 const path = require('path');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  timeout: 120000,
+});
 
 async function generateScript(content) {
   let promptTemplate;
@@ -14,7 +17,7 @@ async function generateScript(content) {
   const prompt = promptTemplate.replace('{{CONTENT}}', content);
 
   const msg = await client.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -53,7 +56,7 @@ async function generateLinkedIn(script) {
   const scriptText = scriptToText(script);
 
   const msg = await client.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     messages: [{
       role: 'user',
@@ -82,7 +85,7 @@ async function generateEmail(script) {
   const scriptText = scriptToText(script);
 
   const msg = await client.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     messages: [{
       role: 'user',
@@ -121,7 +124,7 @@ async function selectClips(transcriptionText) {
   const prompt = promptTemplate.replace('{{TRANSCRIPTION}}', transcriptionText);
 
   const msg = await client.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   });
